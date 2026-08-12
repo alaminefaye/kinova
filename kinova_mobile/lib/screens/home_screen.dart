@@ -928,7 +928,7 @@ class _UniverseCard extends StatelessWidget {
   }
 }
 
-/// Effet parallax/zoom léger sur les pages du carrousel hero.
+/// Effet zoom léger sur les pages du carrousel hero (sans décalage horizontal).
 class _HeroParallax extends StatelessWidget {
   const _HeroParallax({
     required this.controller,
@@ -952,11 +952,14 @@ class _HeroParallax extends StatelessWidget {
           page = controller.page ?? fallbackPage;
         }
         final delta = (page - index).clamp(-1.0, 1.0);
-        final scale = 1.0 - delta.abs() * 0.08;
-        return Transform.scale(
-          scale: scale,
-          child: Transform.translate(
-            offset: Offset(delta * 24, 0),
+        // Zoom très doux — pas de translate (évite le décalage / bords moches)
+        final scale = 1.0 - delta.abs() * 0.035;
+        final opacity = (1.0 - delta.abs() * 0.25).clamp(0.75, 1.0);
+        return Opacity(
+          opacity: opacity,
+          child: Transform.scale(
+            scale: scale,
+            alignment: Alignment.center,
             child: child,
           ),
         );

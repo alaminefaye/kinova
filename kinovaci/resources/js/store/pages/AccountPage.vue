@@ -5,6 +5,7 @@ import { api, getToken } from '../api/client'
 import { formatMoney, resolveMediaUrl, statusLabel } from '../lib/format'
 import { useAuth } from '../state/auth'
 import { useFavorites } from '../state/favorites'
+import KinovaLoader from '../components/KinovaLoader.vue'
 import type { OrderSummary } from '../lib/types'
 
 const router = useRouter()
@@ -153,7 +154,9 @@ function formatDate(iso?: string) {
       </div>
     </div>
 
-    <div v-else-if="loadingOrders && !orders.length" class="loading">Chargement des commandes…</div>
+    <div v-else-if="loadingOrders && !orders.length">
+      <KinovaLoader compact message="Chargement des commandes" :size="58" />
+    </div>
 
     <div v-else-if="!orders.length" class="empty-card">
       <div class="icon">🛍️</div>

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ProductCard from '../components/ProductCard.vue'
+import KinovaLoader from '../components/KinovaLoader.vue'
 import { api, getToken } from '../api/client'
 import { mapProduct, type Product } from '../lib/types'
 import { useCatalog } from '../state/catalog'
@@ -44,7 +45,7 @@ onMounted(async () => {
       <span class="count">{{ products.length }}</span>
     </div>
 
-    <p v-if="loading" class="muted">Chargement…</p>
+    <KinovaLoader v-if="loading" compact message="Chargement" :size="58" />
 
     <div v-else-if="products.length" class="kv-grid-products">
       <ProductCard v-for="p in products" :key="p.id" :product="p" />

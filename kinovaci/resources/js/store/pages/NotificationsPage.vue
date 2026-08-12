@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, getToken } from '../api/client'
 import { useNotifications } from '../state/notifications'
+import KinovaLoader from '../components/KinovaLoader.vue'
 
 type Notif = {
   id: number
@@ -86,7 +87,7 @@ onMounted(load)
         <button type="button" :class="{ on: filter === 'unread' }" @click="filter = 'unread'">Non lues</button>
       </div>
 
-      <p v-if="loading" class="muted">Chargement…</p>
+      <KinovaLoader v-if="loading" compact message="Chargement" :size="58" />
       <p v-else-if="error" class="error">{{ error }}</p>
       <p v-else-if="!visible.length" class="muted">Aucune notification.</p>
 

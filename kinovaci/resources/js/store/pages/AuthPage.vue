@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AnimatedLogoBadge from '../components/AnimatedLogoBadge.vue'
 import { useAuth } from '../state/auth'
 import { useFavorites } from '../state/favorites'
 
@@ -66,7 +67,7 @@ function goBack() {
 
     <header class="brand">
       <div class="logo-wrap">
-        <img src="/favicon.png" alt="KINOVA" />
+        <AnimatedLogoBadge :size="84" />
       </div>
       <h1 class="kv-display">K I N O V A</h1>
       <p class="tag">ESPACE PRIVILÈGE</p>
@@ -118,8 +119,38 @@ function goBack() {
             required
             minlength="6"
           />
-          <button class="eye" type="button" @click="obscure = !obscure">
-            {{ obscure ? 'voir' : 'cacher' }}
+          <button
+            class="eye"
+            type="button"
+            @click="obscure = !obscure"
+            :aria-label="obscure ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+          >
+            <!-- eye / eye-off -->
+            <svg v-if="obscure" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.7" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M3 3l18 18M10.5 6.2A8.4 8.4 0 0 1 12 5.5C18 5.5 21.5 12 21.5 12a14.7 14.7 0 0 1-3.1 3.9M7.2 7.3C4.7 8.9 2.5 12 2.5 12a14.8 14.8 0 0 0 7.4 5.7"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M9.9 9.9a3.2 3.2 0 0 0 4.5 4.5"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+              />
+            </svg>
           </button>
         </label>
 
@@ -192,16 +223,8 @@ function goBack() {
   width: 84px;
   height: 84px;
   margin: 0 auto 1rem;
-  border-radius: 22px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(197, 160, 128, 0.35);
-  box-shadow: 0 0 28px rgba(212, 175, 55, 0.18);
-}
-.logo-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: grid;
+  place-items: center;
 }
 .brand h1 {
   margin: 0;
@@ -299,11 +322,18 @@ form {
   border: none;
   background: transparent;
   color: var(--kv-sand);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
   cursor: pointer;
-  text-transform: uppercase;
+  padding: 0;
+  flex-shrink: 0;
+}
+.eye svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 .error {
   display: flex;

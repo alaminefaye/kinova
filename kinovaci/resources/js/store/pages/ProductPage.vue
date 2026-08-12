@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SoftImage from '../components/SoftImage.vue'
+import KinovaLoader from '../components/KinovaLoader.vue'
 import { api, getToken } from '../api/client'
 import { formatMoney } from '../lib/format'
 import { mapProduct, type Product } from '../lib/types'
@@ -125,7 +126,9 @@ function addToCart() {
 </script>
 
 <template>
-  <div v-if="loading" class="missing">Chargement…</div>
+  <div v-if="loading" class="missing">
+    <KinovaLoader compact message="Chargement" :size="64" />
+  </div>
 
   <div v-else-if="product" class="page">
     <div class="media">

@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TypewriterHint from './TypewriterHint.vue'
+import AnimatedLogoBadge from './AnimatedLogoBadge.vue'
 import { useAuth } from '../state/auth'
 import { useCart } from '../state/cart'
 import { useNotifications } from '../state/notifications'
@@ -69,8 +70,8 @@ function isActive(tab: (typeof tabs)[number]) {
     <header v-if="!hideChrome" class="top">
       <div class="kv-container top-inner">
         <div class="brand-row">
-          <button class="logo" type="button" @click="router.push({ name: 'home' })">
-            <img src="/favicon.png" alt="KINOVA" />
+          <button class="logo" type="button" @click="router.push({ name: 'home' })" aria-label="Accueil">
+            <AnimatedLogoBadge :size="42" />
           </button>
           <div class="greet">
             <p>{{ firstName ? `Bonjour ${firstName}` : 'Bienvenue chez' }}</p>
@@ -154,16 +155,12 @@ function isActive(tab: (typeof tabs)[number]) {
 .logo {
   width: 42px;
   height: 42px;
-  border-radius: 14px;
-  border: 1px solid rgba(197, 160, 128, 0.4);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 4px;
+  border: none;
+  background: transparent;
+  padding: 0;
   cursor: pointer;
-}
-.logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: grid;
+  place-items: center;
 }
 .greet {
   flex: 1;

@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { useAuth } from '../state/auth'
+import KinovaLoader from '../components/KinovaLoader.vue'
 
 const router = useRouter()
 const auth = useAuth()
@@ -67,9 +68,9 @@ async function submit() {
     </header>
 
     <div class="kv-container body">
-      <p v-if="loading" class="muted">Chargement…</p>
+      <KinovaLoader v-if="loading" compact message="Chargement" :size="58" />
 
-      <section v-if="help" class="card">
+      <section v-if="!loading && help" class="card">
         <h3>Nous joindre</h3>
         <p v-if="help.phone">Tél. {{ help.phone }}</p>
         <p v-if="help.email">{{ help.email }}</p>

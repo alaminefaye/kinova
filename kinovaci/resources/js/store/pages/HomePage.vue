@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import ProductCard from '../components/ProductCard.vue'
 import UniverseCard from '../components/UniverseCard.vue'
 import SoftImage from '../components/SoftImage.vue'
+import KinovaLoader from '../components/KinovaLoader.vue'
 import { useCatalog } from '../state/catalog'
 
 const router = useRouter()
@@ -112,7 +113,12 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <p v-if="catalog.state.loading" class="status">Chargement du catalogue…</p>
+      <KinovaLoader
+        v-if="catalog.state.loading && !catalog.state.loaded"
+        compact
+        message="Chargement du catalogue"
+        :size="64"
+      />
       <p v-else-if="catalog.state.error" class="status error">{{ catalog.state.error }}</p>
     </div>
   </div>
@@ -126,53 +132,77 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   border-radius: 22px;
-  height: min(52vw, 280px);
-  min-height: 220px;
-  box-shadow: var(--kv-shadow);
+  height: min(52vw, 300px);
+  min-height: 230px;
+  box-shadow: 0 10px 28px rgba(62, 39, 35, 0.22);
   margin-bottom: 0.85rem;
+  background: #1b110b;
 }
 .hero-track {
   display: flex;
   height: 100%;
-  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 .hero-slide {
   position: relative;
-  min-width: 100%;
+  flex: 0 0 100%;
+  width: 100%;
   height: 100%;
+  overflow: hidden;
+}
+.hero-slide :deep(.soft-img) {
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.02);
 }
 .hero-veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, rgba(27, 17, 11, 0.72), rgba(27, 17, 11, 0.15) 55%, transparent);
+  background: linear-gradient(
+    115deg,
+    rgba(27, 17, 11, 0.82) 0%,
+    rgba(27, 17, 11, 0.35) 48%,
+    rgba(27, 17, 11, 0.08) 100%
+  );
+  pointer-events: none;
 }
 .hero-copy {
   position: absolute;
   left: 1.1rem;
-  bottom: 1.1rem;
-  right: 1.1rem;
+  bottom: 1.15rem;
+  right: 3.5rem;
   color: var(--kv-cream);
+  z-index: 1;
 }
 .hero-copy span {
   display: inline-block;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.14em;
-  color: var(--kv-gold);
-  margin-bottom: 0.35rem;
+  color: var(--kv-gold-light);
+  margin-bottom: 0.4rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(197, 160, 128, 0.45);
 }
 .hero-copy h2 {
   margin: 0 0 0.75rem;
   font-size: clamp(1.2rem, 4vw, 1.75rem);
-  max-width: 14ch;
+  max-width: 15ch;
   line-height: 1.15;
+  white-space: pre-line;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 .dots {
   position: absolute;
   right: 1rem;
-  bottom: 1rem;
+  bottom: 1.1rem;
   display: flex;
   gap: 0.35rem;
+  z-index: 2;
 }
 .dots button {
   width: 7px;
@@ -182,6 +212,7 @@ onBeforeUnmount(() => {
   background: rgba(253, 251, 247, 0.35);
   cursor: pointer;
   padding: 0;
+  transition: width 0.25s ease, background 0.25s ease;
 }
 .dots button.on {
   width: 18px;
