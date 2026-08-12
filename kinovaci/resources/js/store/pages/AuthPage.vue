@@ -9,7 +9,8 @@ const router = useRouter()
 const auth = useAuth()
 const favorites = useFavorites()
 
-const mode = ref<'login' | 'register'>('login')
+const registerMode = ref(false)
+const obscure = ref(true)
 const error = ref('')
 const form = reactive({
   name: '',
@@ -19,117 +20,351 @@ const form = reactive({
   password: '',
 })
 
+function switchMode(register: boolean) {
+  if (auth.state.loading) return
+  registerMode.value = register
+  error.value = ''
+}
+
 async function submit() {
   error.value = ''
   try {
-    if (mode.value === 'login') {
-      await auth.login(form.login, form.password)
-    } else {
+    if (registerMode.value) {
       await auth.register({
         name: form.name,
         phone: form.phone,
         email: form.email || undefined,
         password: form.password,
       })
+    } else {
+      await auth.login(form.login, form.password)
     }
-    await favorites.sync()
-    await favorites.loadFromApi()
-    const redirect = (route.query.redirect as string) || '/'
+    try {
+      await favorites.sync()
+      await favorites.loadFromApi()
+    } catch {
+      /* ignore */
+    }
+    const redirect = (route.query.redirect as string) || '/compte'
     router.replace(redirect)
   } catch (e: any) {
-    error.value = e?.message || 'Erreur d’authentification'
+    error.value = e?.message || 'Connexion impossible. Vérifiez votre réseau.'
   }
+}
+
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else router.push({ name: 'home' })
 }
 </script>
 
 <template>
-  <div class="page">
-    <div class="panel kv-container">
-      <p class="eyebrow">KINOVA</p>
-      <h1 class="kv-display">{{ mode === 'login' ? 'Connexion' : 'Créer un compte' }}</h1>
-      <p class="sub">Même compte que sur l’application mobile.</p>
+  <div class="auth">
+    <div class="glow" />
+
+    <button class="back" type="button" @click="goBack" aria-label="Retour">←</button>
+
+    <header class="brand">
+      <div class="logo-wrap">
+        <img src="/favicon.png" alt="KINOVA" />
+      </div>
+      <h1 class="kv-display">K I N O V A</h1>
+      <p class="tag">ESPACE PRIVILÈGE</p>
+    </header>
+
+    <section class="sheet">
+      <div class="toggle">
+        <button type="button" :class="{ on: !registerMode }" @click="switchMode(false)">Connexion</button>
+        <button type="button" :class="{ on: registerMode }" @click="switchMode(true)">Inscription</button>
+      </div>
+
+      <h2 class="kv-display">{{ registerMode ? 'Rejoignez la Maison' : 'Bon retour parmi nous' }}</h2>
+      <p class="lead">
+        {{
+          registerMode
+            ? 'Créez votre compte et cumulez vos points VIP.'
+            : 'Retrouvez vos favoris, commandes et avantages.'
+        }}
+      </p>
 
       <form @submit.prevent="submit">
-        <template v-if="mode === 'register'">
-          <label>Nom<input v-model="form.name" class="kv-input" required /></label>
-          <label>Téléphone<input v-model="form.phone" class="kv-input" required /></label>
-          <label>Email (optionnel)<input v-model="form.email" type="email" class="kv-input" /></label>
+        <template v-if="registerMode">
+          <label class="field">
+            <span class="ico">◎</span>
+            <input v-model="form.name" placeholder="Nom complet" required />
+          </label>
+          <label class="field">
+            <span class="ico">☎</span>
+            <input v-model="form.phone" placeholder="Numéro de téléphone" required minlength="8" />
+          </label>
+          <label class="field">
+            <span class="ico">✉</span>
+            <input v-model="form.email" type="email" placeholder="Email (optionnel)" />
+          </label>
         </template>
         <template v-else>
-          <label>Email ou téléphone<input v-model="form.login" class="kv-input" required /></label>
+          <label class="field">
+            <span class="ico">◎</span>
+            <input v-model="form.login" placeholder="Email ou numéro de téléphone" required />
+          </label>
         </template>
-        <label>Mot de passe<input v-model="form.password" type="password" class="kv-input" required minlength="8" /></label>
 
-        <p v-if="error" class="error">{{ error }}</p>
-        <button class="kv-btn kv-btn-dark full" type="submit" :disabled="auth.state.loading">
-          {{ auth.state.loading ? 'Patientez…' : mode === 'login' ? 'Se connecter' : 'S’inscrire' }}
+        <label class="field">
+          <span class="ico">⌂</span>
+          <input
+            v-model="form.password"
+            :type="obscure ? 'password' : 'text'"
+            placeholder="Mot de passe"
+            required
+            minlength="6"
+          />
+          <button class="eye" type="button" @click="obscure = !obscure">
+            {{ obscure ? 'voir' : 'cacher' }}
+          </button>
+        </label>
+
+        <div v-if="error" class="error">{{ error }}</div>
+
+        <button class="gold" type="submit" :disabled="auth.state.loading">
+          {{
+            auth.state.loading
+              ? 'Patientez…'
+              : registerMode
+                ? 'CRÉER MON COMPTE'
+                : 'SE CONNECTER'
+          }}
         </button>
       </form>
 
-      <button class="switch" type="button" @click="mode = mode === 'login' ? 'register' : 'login'">
-        {{ mode === 'login' ? 'Pas encore de compte ? S’inscrire' : 'Déjà un compte ? Se connecter' }}
-      </button>
-    </div>
+      <div class="sep"><span>EVERYTHING YOU LOVE</span></div>
+
+      <p class="switch">
+        {{ registerMode ? 'Déjà membre ?' : 'Nouveau chez KINOVA ?' }}
+        <button type="button" @click="switchMode(!registerMode)">
+          {{ registerMode ? 'Connexion' : 'Créer un compte' }}
+        </button>
+      </p>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.page {
+.auth {
   min-height: 100vh;
-  background: radial-gradient(circle at 20% -20%, #3a281c, #1b110b 55%);
-  padding: 2.5rem 0 3rem;
+  background: radial-gradient(circle at 50% -20%, #2c1e14, #1b110b 50%, #0f0a06 100%);
   color: var(--kv-cream);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
-.panel {
+.glow {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.28), rgba(197, 160, 128, 0.1), transparent 70%);
+  pointer-events: none;
+}
+.back {
+  position: relative;
+  z-index: 2;
+  align-self: flex-start;
+  margin: 0.75rem 0.5rem 0;
+  width: 42px;
+  height: 42px;
+  border: none;
+  background: transparent;
+  color: var(--kv-sand);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.brand {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0.25rem 1rem 1.25rem;
+}
+.logo-wrap {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 1rem;
+  border-radius: 22px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(197, 160, 128, 0.35);
+  box-shadow: 0 0 28px rgba(212, 175, 55, 0.18);
+}
+.logo-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.brand h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 0.5em;
+  color: #f7e7ce;
+  text-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+}
+.tag {
+  margin: 0.4rem 0 0;
+  color: #c5a080;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+}
+.sheet {
+  position: relative;
+  z-index: 2;
+  flex: 1;
   background: var(--kv-bg);
   color: var(--kv-brown);
-  border-radius: 24px;
-  padding: 1.5rem 1.15rem 1.75rem;
-  box-shadow: var(--kv-shadow);
+  border-radius: 32px 32px 0 0;
+  border-top: 1px solid rgba(197, 160, 128, 0.5);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.4);
+  padding: 1.6rem 1.4rem 2rem;
+  width: min(480px, 100%);
+  margin: 0 auto;
 }
-.eyebrow {
-  margin: 0;
-  color: var(--kv-gold);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
+.toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--kv-surface-muted);
+  border-radius: 14px;
+  margin-bottom: 1.35rem;
 }
-h1 {
-  margin: 0.35rem 0 0.35rem;
-  font-size: 1.7rem;
-}
-.sub {
-  margin: 0 0 1.2rem;
+.toggle button {
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  padding: 0.7rem;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
   color: var(--kv-muted);
-  font-size: 0.85rem;
+  cursor: pointer;
+}
+.toggle button.on {
+  background: linear-gradient(135deg, #3e2723, #251614);
+  color: var(--kv-gold-light);
+}
+.sheet h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.lead {
+  margin: 0 0 1.25rem;
+  color: var(--kv-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 form {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.85rem;
 }
-label {
-  display: grid;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--kv-muted);
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--kv-cream);
+  border: 1px solid rgba(197, 160, 128, 0.35);
+  border-radius: 14px;
+  padding: 0.15rem 0.75rem;
 }
-.full {
-  width: 100%;
-  margin-top: 0.35rem;
+.field:focus-within {
+  border-color: var(--kv-gold);
+  box-shadow: 0 0 0 3px rgba(197, 160, 128, 0.16);
 }
-.error {
-  color: #8b3a2f;
-  font-size: 0.85rem;
+.field .ico {
+  color: var(--kv-sand);
+  font-size: 0.95rem;
 }
-.switch {
-  margin-top: 1rem;
-  width: 100%;
+.field input {
+  flex: 1;
   border: none;
   background: transparent;
-  color: var(--kv-gold);
+  padding: 0.85rem 0;
+  color: var(--kv-brown);
+  outline: none;
+  font-size: 0.9rem;
+}
+.eye {
+  border: none;
+  background: transparent;
+  color: var(--kv-sand);
+  font-size: 0.68rem;
   font-weight: 700;
-  font-size: 0.82rem;
+  letter-spacing: 0.04em;
   cursor: pointer;
+  text-transform: uppercase;
+}
+.error {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  background: #fdecea;
+  border: 1px solid rgba(229, 115, 115, 0.5);
+  color: #c62828;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.78rem;
+}
+.gold {
+  margin-top: 0.35rem;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--kv-brown);
+  background: linear-gradient(135deg, #d4af37, #c5a080, #e8d5b7);
+  box-shadow: 0 8px 20px rgba(62, 39, 35, 0.18);
+}
+.gold:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.sep {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.15rem 0 0.9rem;
+  color: var(--kv-sand);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+.sep::before,
+.sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(193, 168, 149, 0.4);
+}
+.switch {
+  text-align: center;
+  margin: 0;
+  color: var(--kv-muted);
+  font-size: 0.8rem;
+}
+.switch button {
+  border: none;
+  background: transparent;
+  color: var(--kv-brown);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--kv-gold);
+  cursor: pointer;
+  font-size: inherit;
 }
 </style>

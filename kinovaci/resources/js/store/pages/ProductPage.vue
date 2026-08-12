@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SoftImage from '../components/SoftImage.vue'
 import { api, getToken } from '../api/client'
 import { formatMoney } from '../lib/format'
+import { mapProduct, type Product } from '../lib/types'
 import { useCatalog } from '../state/catalog'
 import { useCart } from '../state/cart'
 import { useFavorites } from '../state/favorites'
@@ -14,14 +15,49 @@ const catalog = useCatalog()
 const cart = useCart()
 const favorites = useFavorites()
 
-const product = computed(() => catalog.byId(String(route.params.id)))
+const remote = ref<Product | null>(null)
+const loading = ref(false)
+const imageIndex = ref(0)
+const qty = ref(1)
 const average = ref(0)
 const ratingsCount = ref(0)
 const myRating = ref<number | null>(null)
 const ratingLoading = ref(false)
 const toast = ref('')
 
-onMounted(async () => {
+const product = computed(() => {
+  return catalog.byId(String(route.params.id)) || remote.value
+})
+
+const gallery = computed(() => {
+  const p = product.value
+  if (!p) return []
+  const imgs = p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : []
+  return imgs
+})
+
+async function ensureProduct() {
+  const id = String(route.params.id)
+  if (catalog.byId(id)) {
+    remote.value = null
+    return
+  }
+  if (!catalog.state.loaded && !catalog.state.loading) {
+    await catalog.load()
+    if (catalog.byId(id)) return
+  }
+  loading.value = true
+  try {
+    const res = await api<{ data: any }>(`/products/${id}`)
+    remote.value = mapProduct(res.data)
+  } catch {
+    remote.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadRating() {
   const p = product.value
   if (!p) return
   average.value = p.rating
@@ -35,9 +71,24 @@ onMounted(async () => {
     ratingsCount.value = Number(res.data.count ?? ratingsCount.value)
     myRating.value = res.data.my_rating != null ? Number(res.data.my_rating) : null
   } catch {
-    /* keep defaults */
+    /* keep */
   }
+}
+
+onMounted(async () => {
+  await ensureProduct()
+  await loadRating()
 })
+
+watch(
+  () => route.params.id,
+  async () => {
+    imageIndex.value = 0
+    qty.value = 1
+    await ensureProduct()
+    await loadRating()
+  },
+)
 
 async function rate(stars: number) {
   if (!product.value) return
@@ -67,26 +118,46 @@ async function rate(stars: number) {
 
 function addToCart() {
   if (!product.value) return
-  cart.add(product.value)
-  toast.value = 'Ajouté au panier'
+  cart.add(product.value, qty.value)
+  toast.value = qty.value > 1 ? `Ajouté ×${qty.value}` : 'Ajouté au panier'
   setTimeout(() => (toast.value = ''), 1800)
 }
 </script>
 
 <template>
-  <div v-if="product" class="page">
+  <div v-if="loading" class="missing">Chargement…</div>
+
+  <div v-else-if="product" class="page">
     <div class="media">
-      <SoftImage :url="product.imageUrl" :alt="product.name" />
+      <SoftImage :url="gallery[imageIndex] || product.imageUrl" :alt="product.name" />
       <button class="back" type="button" @click="router.back()">←</button>
       <button class="fav" type="button" @click="favorites.toggle(product.id)">
         {{ favorites.isFavorite(product.id) ? '♥' : '♡' }}
       </button>
+      <div v-if="gallery.length > 1" class="dots">
+        <button
+          v-for="(img, i) in gallery"
+          :key="img + i"
+          type="button"
+          :class="{ on: i === imageIndex }"
+          @click="imageIndex = i"
+        />
+      </div>
     </div>
 
     <div class="kv-container body">
       <p class="price">{{ formatMoney(product.price) }}</p>
       <h1 class="kv-display">{{ product.name }}</h1>
       <p class="desc">{{ product.description }}</p>
+
+      <div class="qty-row">
+        <span>Quantité</span>
+        <div class="qty">
+          <button type="button" @click="qty = Math.max(1, qty - 1)">−</button>
+          <strong>{{ qty }}</strong>
+          <button type="button" @click="qty++">+</button>
+        </div>
+      </div>
 
       <section class="rating-box">
         <div class="rating-head">
@@ -114,6 +185,7 @@ function addToCart() {
 
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
+
   <div v-else class="kv-container missing">
     <p>Produit introuvable.</p>
     <RouterLink :to="{ name: 'catalog' }">Retour boutique</RouterLink>
@@ -137,12 +209,35 @@ function addToCart() {
   background: rgba(253, 251, 247, 0.92);
   cursor: pointer;
   font-size: 1.1rem;
+  z-index: 2;
 }
 .back {
   left: 1rem;
 }
 .fav {
   right: 1rem;
+}
+.dots {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.35rem;
+  z-index: 2;
+}
+.dots button {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(253, 251, 247, 0.4);
+  padding: 0;
+  cursor: pointer;
+}
+.dots button.on {
+  width: 16px;
+  background: var(--kv-gold);
 }
 .body {
   margin-top: -1.5rem;
@@ -166,8 +261,35 @@ function addToCart() {
   line-height: 1.55;
   font-size: 0.92rem;
 }
+.qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0;
+  color: var(--kv-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--kv-surface);
+  border-radius: 999px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid rgba(197, 160, 128, 0.22);
+}
+.qty button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: var(--kv-brown);
+  color: var(--kv-cream);
+  cursor: pointer;
+}
 .rating-box {
-  margin: 1.25rem 0;
+  margin: 0.5rem 0 1.25rem;
   padding: 1rem;
   background: var(--kv-surface);
   border-radius: 18px;
@@ -207,7 +329,7 @@ function addToCart() {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 5.5rem;
+  bottom: 1.5rem;
   transform: translateX(-50%);
   background: var(--kv-brown);
   color: var(--kv-cream);
@@ -219,5 +341,6 @@ function addToCart() {
 .missing {
   padding: 3rem 0;
   text-align: center;
+  color: var(--kv-muted);
 }
 </style>

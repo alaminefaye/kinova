@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TypewriterHint from './TypewriterHint.vue'
-import { getToken } from '../api/client'
 import { useAuth } from '../state/auth'
 import { useCart } from '../state/cart'
+import { useNotifications } from '../state/notifications'
 import { resolveMediaUrl } from '../lib/format'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuth()
 const cart = useCart()
+const notifications = useNotifications()
 
 const firstName = computed(() => {
   const name = auth.state.user?.name?.trim()
@@ -19,7 +20,11 @@ const firstName = computed(() => {
 
 const hideChrome = computed(() => !!route.meta.hideChrome)
 const cartCount = computed(() => cart.itemCount.value)
-const loggedIn = computed(() => !!getToken())
+const unread = computed(() => notifications.unread.value)
+
+onMounted(() => {
+  if (auth.isLoggedIn.value) notifications.refresh()
+})
 
 const tabs = [
   { name: 'home', label: 'Accueil', icon: '⌂' },
@@ -31,15 +36,30 @@ const tabs = [
 
 function go(tab: (typeof tabs)[number]) {
   if (tab.account) {
-    if (loggedIn.value) router.push({ name: 'account' })
-    else router.push({ name: 'auth', query: { redirect: '/compte' } })
+    router.push({ name: 'account' })
     return
   }
   router.push({ name: tab.name })
 }
 
+function openSearch() {
+  router.push('/recherche')
+}
+
+function openNotifications() {
+  router.push('/notifications')
+}
+
 function isActive(tab: (typeof tabs)[number]) {
-  if (tab.account) return route.name === 'account' || route.name === 'auth' || route.name === 'edit-profile'
+  if (tab.account) {
+    return (
+      route.name === 'account' ||
+      route.name === 'edit-profile' ||
+      route.name === 'auth' ||
+      route.name === 'help' ||
+      route.name === 'notifications'
+    )
+  }
   return route.name === tab.name
 }
 </script>
@@ -56,12 +76,13 @@ function isActive(tab: (typeof tabs)[number]) {
             <p>{{ firstName ? `Bonjour ${firstName}` : 'Bienvenue chez' }}</p>
             <h1 class="kv-display">KINOVA</h1>
           </div>
-          <button class="bell" type="button" @click="router.push({ name: 'notifications' })" aria-label="Notifications">
+          <button class="bell" type="button" @click="openNotifications" aria-label="Notifications">
             🔔
+            <i v-if="unread">{{ unread > 9 ? '9+' : unread }}</i>
           </button>
         </div>
 
-        <button class="search" type="button" @click="router.push({ name: 'search' })">
+        <button class="search" type="button" @click="openSearch">
           <span class="icon">⌕</span>
           <TypewriterHint
             class="placeholder"
@@ -161,12 +182,29 @@ function isActive(tab: (typeof tabs)[number]) {
   color: #f7e7ce;
 }
 .bell {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 999px;
   border: 1px solid rgba(197, 160, 128, 0.4);
   background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
+}
+.bell i {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--kv-gold-rich);
+  color: var(--kv-brown);
+  font-style: normal;
+  font-size: 0.6rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
 }
 .search {
   display: flex;
@@ -185,6 +223,7 @@ function isActive(tab: (typeof tabs)[number]) {
   flex: 1;
   font-size: 0.82rem;
   overflow: hidden;
+  pointer-events: none;
 }
 .tune {
   background: linear-gradient(135deg, #d4af37, #c5a080);
@@ -196,6 +235,7 @@ function isActive(tab: (typeof tabs)[number]) {
   place-items: center;
   font-size: 0.75rem;
   font-weight: 800;
+  pointer-events: none;
 }
 .main {
   flex: 1;

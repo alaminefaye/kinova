@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getToken } from '../api/client'
 import { formatMoney } from '../lib/format'
 import { useAuth } from '../state/auth'
 import { useCart } from '../state/cart'
@@ -12,16 +13,41 @@ const error = ref('')
 const loading = ref(false)
 
 const form = reactive({
-  customer_name: auth.state.user?.name || '',
-  customer_phone: auth.state.user?.phone || '',
-  customer_email: auth.state.user?.email || '',
-  address: auth.state.user?.address || '',
-  city: auth.state.user?.city || '',
+  customer_name: '',
+  customer_phone: '',
+  customer_email: '',
+  address: '',
+  city: '',
   payment_method: 'cod' as 'cod' | 'card',
   notes: '',
 })
 
+onMounted(async () => {
+  if (!getToken()) {
+    router.replace({ name: 'auth', query: { redirect: '/commande' } })
+    return
+  }
+  if (!auth.state.user) {
+    try {
+      await auth.refreshProfile()
+    } catch {
+      router.replace({ name: 'auth', query: { redirect: '/commande' } })
+      return
+    }
+  }
+  const u = auth.state.user
+  form.customer_name = u?.name || ''
+  form.customer_phone = u?.phone || ''
+  form.customer_email = u?.email || ''
+  form.address = u?.address || ''
+  form.city = u?.city || ''
+})
+
 async function submit() {
+  if (!getToken()) {
+    router.replace({ name: 'auth', query: { redirect: '/commande' } })
+    return
+  }
   if (!cart.state.items.length) {
     router.push({ name: 'cart' })
     return
@@ -41,7 +67,7 @@ async function submit() {
     router.replace({
       name: 'order-success',
       params: { reference: order.reference || order.id },
-      query: { total: String(order.total ?? cart.total.value) },
+      query: { total: String(order.total ?? '') },
     })
   } catch (e: any) {
     error.value = e?.message || 'Commande impossible'

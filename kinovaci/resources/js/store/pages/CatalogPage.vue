@@ -8,6 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const catalog = useCatalog()
 const categoryId = ref((route.query.category as string) || '')
+const q = ref('')
 
 watch(
   () => route.query.category,
@@ -16,8 +17,20 @@ watch(
   },
 )
 
-const products = computed(() => catalog.byCategory(categoryId.value || null))
 const categories = computed(() => catalog.state.categories)
+
+const products = computed(() => {
+  let list = catalog.byCategory(categoryId.value || null)
+  const needle = q.value.trim().toLowerCase()
+  if (needle) {
+    list = list.filter(
+      (p) =>
+        p.name.toLowerCase().includes(needle) ||
+        p.description.toLowerCase().includes(needle),
+    )
+  }
+  return list
+})
 
 function selectCategory(id: string) {
   categoryId.value = id
@@ -33,6 +46,13 @@ function selectCategory(id: string) {
     <div class="kv-section-title">
       <h2>Boutique</h2>
     </div>
+
+    <input
+      v-model="q"
+      class="kv-input search"
+      type="search"
+      placeholder="Rechercher dans la boutique…"
+    />
 
     <div class="chips">
       <button type="button" :class="{ on: !categoryId }" @click="selectCategory('')">Tout</button>
@@ -50,13 +70,18 @@ function selectCategory(id: string) {
     <div v-if="products.length" class="kv-grid-products">
       <ProductCard v-for="p in products" :key="p.id" :product="p" />
     </div>
-    <p v-else class="empty">Aucun article dans cet univers.</p>
+    <p v-else class="empty">
+      {{ q.trim() ? 'Aucun résultat pour cette recherche.' : 'Aucun article dans cet univers.' }}
+    </p>
   </div>
 </template>
 
 <style scoped>
 .page {
   padding: 1.1rem 0 2rem;
+}
+.search {
+  margin-bottom: 0.9rem;
 }
 .chips {
   display: flex;

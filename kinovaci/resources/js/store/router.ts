@@ -23,7 +23,7 @@ const router = createRouter({
       path: '/produit/:id',
       name: 'product',
       component: () => import('./pages/ProductPage.vue'),
-      meta: { title: 'Produit' },
+      meta: { title: 'Produit', hideChrome: true },
     },
     {
       path: '/panier',
@@ -35,7 +35,7 @@ const router = createRouter({
       path: '/commande',
       name: 'checkout',
       component: () => import('./pages/CheckoutPage.vue'),
-      meta: { title: 'Commande' },
+      meta: { title: 'Commande', requiresAuth: true, hideChrome: true },
     },
     {
       path: '/commande/succes/:reference',
@@ -53,7 +53,13 @@ const router = createRouter({
       path: '/compte',
       name: 'account',
       component: () => import('./pages/AccountPage.vue'),
-      meta: { title: 'Compte', requiresAuth: true },
+      meta: { title: 'Compte' },
+    },
+    {
+      path: '/compte/modifier',
+      name: 'edit-profile',
+      component: () => import('./pages/EditProfilePage.vue'),
+      meta: { title: 'Modifier mon profil', requiresAuth: true, hideChrome: true },
     },
     {
       path: '/favoris',
@@ -65,19 +71,19 @@ const router = createRouter({
       path: '/recherche',
       name: 'search',
       component: () => import('./pages/SearchPage.vue'),
-      meta: { title: 'Recherche' },
+      meta: { title: 'Recherche', hideChrome: true },
     },
     {
       path: '/notifications',
       name: 'notifications',
       component: () => import('./pages/NotificationsPage.vue'),
-      meta: { title: 'Notifications' },
+      meta: { title: 'Notifications', hideChrome: true },
     },
     {
       path: '/aide',
       name: 'help',
       component: () => import('./pages/HelpPage.vue'),
-      meta: { title: 'Aide' },
+      meta: { title: 'Aide', hideChrome: true },
     },
     {
       path: '/:pathMatch(.*)*',
