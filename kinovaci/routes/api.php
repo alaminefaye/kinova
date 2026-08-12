@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Customer\LoyaltyController as CustomerLoyaltyContro
 use App\Http\Controllers\Api\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Api\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\Customer\ProfileController;
+use App\Http\Controllers\Api\Customer\RatingController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Middleware\EnsureUserIsAdmin;
@@ -39,6 +40,7 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
+Route::get('/products/{product}/rating', [RatingController::class, 'show']);
 Route::get('/hero-slides', [HeroSlideController::class, 'index']);
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/{reference}', [OrderController::class, 'show']);
@@ -80,6 +82,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/favorites', [FavoriteController::class, 'store']);
         Route::post('/favorites/sync', [FavoriteController::class, 'sync']);
         Route::delete('/favorites/{productId}', [FavoriteController::class, 'destroy']);
+
+        Route::get('/products/{product}/rating', [RatingController::class, 'show']);
+        Route::post('/ratings', [RatingController::class, 'store']);
 
         Route::get('/orders', [CustomerOrderController::class, 'index']);
         Route::get('/orders/{reference}', [CustomerOrderController::class, 'show']);

@@ -4,12 +4,18 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard SPA (Vue) — served by Laravel
+| Admin SPA — /dashboard/admin/*
 |--------------------------------------------------------------------------
-| API routes live in routes/api.php (prefix /api).
-| Everything else is handled by the Vue router.
 */
-
-Route::view('/{any?}', 'dashboard')
+Route::view('/dashboard/admin/{any?}', 'dashboard')
     ->where('any', '.*')
-    ->name('dashboard');
+    ->name('admin.dashboard');
+
+/*
+|--------------------------------------------------------------------------
+| Public storefront — everything else
+|--------------------------------------------------------------------------
+*/
+Route::view('/{any?}', 'storefront')
+    ->where('any', '.*')
+    ->name('storefront');

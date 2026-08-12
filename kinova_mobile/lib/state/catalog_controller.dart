@@ -50,6 +50,16 @@ class CatalogController extends ChangeNotifier {
     }
   }
 
+  void patchProductRating(String productId, double average, int count) {
+    final index = _products.indexWhere((p) => p.id == productId);
+    if (index < 0) return;
+    _products[index] = _products[index].copyWith(
+      rating: average,
+      ratingsCount: count,
+    );
+    notifyListeners();
+  }
+
   Future<void> load() async {
     // Laisse finir le frame en cours (évite markNeedsBuild pendant build).
     await Future<void>.delayed(Duration.zero);

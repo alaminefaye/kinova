@@ -14,6 +14,7 @@ import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/animated_logo_badge.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 import 'package:kinova_mobile/widgets/product_card.dart';
+import 'package:kinova_mobile/widgets/typewriter_hint.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,18 +55,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openSearch() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SearchScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
   }
 
   void _openCatalog({String? categoryId}) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CatalogScreen(
-          embedded: false,
-          initialCategoryId: categoryId,
-        ),
+        builder: (_) =>
+            CatalogScreen(embedded: false, initialCategoryId: categoryId),
       ),
     );
   }
@@ -266,8 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 18),
                           scrollDirection: Axis.horizontal,
                           itemCount: featured.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(width: 14),
+                          separatorBuilder: (_, _) => const SizedBox(width: 14),
                           itemBuilder: (context, index) {
                             return FadeSlideIn(
                               delay: Duration(milliseconds: 60 * index),
@@ -308,8 +306,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color:
-                                          KinovaColors.brown.withOpacity(0.30),
+                                      color: KinovaColors.brown.withOpacity(
+                                        0.30,
+                                      ),
                                       blurRadius: 18,
                                       offset: const Offset(0, 8),
                                     ),
@@ -321,11 +320,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: KinovaColors.gold
-                                            .withOpacity(0.15),
+                                        color: KinovaColors.gold.withOpacity(
+                                          0.15,
+                                        ),
                                         border: Border.all(
-                                          color: KinovaColors.gold
-                                              .withOpacity(0.5),
+                                          color: KinovaColors.gold.withOpacity(
+                                            0.5,
+                                          ),
                                         ),
                                       ),
                                       child: const Icon(
@@ -425,11 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       sliver: SliverGrid(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 0.65,
-                        ),
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 14,
+                              childAspectRatio: 0.65,
+                            ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => FadeSlideIn(
                             delay: Duration(milliseconds: 50 * index),
@@ -530,7 +531,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
-                            if (slide.tag.isNotEmpty) const SizedBox(height: 10),
+                            if (slide.tag.isNotEmpty)
+                              const SizedBox(height: 10),
                             Text(
                               slide.title,
                               style: const TextStyle(
@@ -555,8 +557,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFFD4AF37)
-                                            .withOpacity(0.4),
+                                        color: const Color(
+                                          0xFFD4AF37,
+                                        ).withOpacity(0.4),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -636,8 +639,7 @@ class _DarkHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstName =
-        userName == null ? null : userName!.trim().split(' ').first;
+    final firstName = userName?.trim().split(' ').first;
 
     return Container(
       width: double.infinity,
@@ -646,11 +648,7 @@ class _DarkHeader extends StatelessWidget {
         gradient: RadialGradient(
           center: Alignment(-0.6, -1.2),
           radius: 2.2,
-          colors: [
-            Color(0xFF3A281C),
-            Color(0xFF2C1E14),
-            Color(0xFF1B110B),
-          ],
+          colors: [Color(0xFF3A281C), Color(0xFF2C1E14), Color(0xFF1B110B)],
           stops: [0.0, 0.4, 1.0],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(34)),
@@ -741,8 +739,13 @@ class _DarkHeader extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        'Un soin, un sac, une senteur...',
+                      child: TypewriterHint(
+                        phrases: const [
+                          'Un soin, un sac, une senteur...',
+                          'Rouge, parfum, senteur...',
+                          'Mode, beauté, maison...',
+                          'Cherchez votre univers...',
+                        ],
                         style: TextStyle(
                           color: KinovaColors.sand.withOpacity(0.9),
                           fontSize: 13,
@@ -829,29 +832,37 @@ class _UniverseCard extends StatelessWidget {
                 ),
               ),
 
-              // Pastille compteur en haut à droite
+              // Pastille compteur (fond opaque pour lisibilité sur toute photo)
               Positioned(
                 top: 9,
                 right: 9,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
+                    horizontal: 9,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.16),
+                    color: const Color(0xFF1B110B).withOpacity(0.82),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: KinovaColors.gold.withOpacity(0.55),
-                      width: 0.8,
+                      color: KinovaColors.gold.withOpacity(0.75),
+                      width: 0.9,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.28),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     '$count',
                     style: const TextStyle(
-                      color: KinovaColors.goldLight,
-                      fontSize: 10,
+                      color: KinovaColors.cream,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
+                      height: 1.1,
                     ),
                   ),
                 ),
@@ -988,9 +999,9 @@ class _SectionHeader extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  ),
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
           if (trailingIcon != null)
@@ -1058,10 +1069,7 @@ class _PerkItem extends StatelessWidget {
         ),
         Text(
           subtitle,
-          style: const TextStyle(
-            fontSize: 9,
-            color: KinovaColors.mutedBrown,
-          ),
+          style: const TextStyle(fontSize: 9, color: KinovaColors.mutedBrown),
         ),
       ],
     );

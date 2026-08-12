@@ -93,8 +93,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
-    } catch (e) {
-      setState(() => _error = e.toString());
+    } catch (_) {
+      setState(
+        () => _error = 'Impossible de charger les notifications. Réessayez.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -206,8 +208,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   children: [
                     if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+                          decoration: BoxDecoration(
+                            color: KinovaColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: KinovaColors.gold.withOpacity(0.28),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.wifi_off_rounded,
+                                color: KinovaColors.brown,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(
+                                    color: KinovaColors.brown,
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _load,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: KinovaColors.goldRich,
+                                ),
+                                child: const Text('Réessayer'),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),

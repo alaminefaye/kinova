@@ -25,21 +25,27 @@ npm run dev            # terminal 1
 php artisan serve      # terminal 2 → http://127.0.0.1:8000
 ```
 
+### Boutique publique (même design que l’app)
+
+- URL : http://127.0.0.1:8000/
+- Pages : `/`, `/boutique`, `/produit/:id`, `/panier`, `/commande`, `/connexion`, `/compte`, `/favoris`, `/recherche`, `/notifications`
+
 ### Admin dashboard
 
-- URL : http://127.0.0.1:8000/signin  
+- URL : http://127.0.0.1:8000/dashboard/admin/signin  
 - Email : `admin@kinova.test`  
 - Mot de passe : `password`
 
 Pages admin :
-- `/` Dashboard
-- `/products` CRUD + upload image
-- `/categories` CRUD
-- `/hero-slides` CRUD slider accueil
-- `/orders` statut + tracking livraison
-- `/notifications` envoi / historique
-- `/contact-messages` aide & contact
-- `/loyalty` points VIP clients
+- `/dashboard/admin/` Dashboard
+- `/dashboard/admin/products` CRUD + upload image
+- `/dashboard/admin/categories` CRUD
+- `/dashboard/admin/hero-slides` CRUD slider accueil
+- `/dashboard/admin/orders` statut + tracking livraison
+- `/dashboard/admin/notifications` envoi / historique
+- `/dashboard/admin/contact-messages` aide & contact
+- `/dashboard/admin/loyalty` points VIP clients
+- `/dashboard/admin/users`
 
 ### Compte client démo (API)
 
@@ -77,7 +83,8 @@ Pages admin :
 |---------|-------|-------------|
 | POST | `/api/customer/auth/register` | Inscription |
 | POST | `/api/customer/auth/login` | Login client |
-| GET/PUT | `/api/customer/profile` | Profil (adresse, VIP, avatar_url) |
+| POST | `/api/customer/ratings` | Noter un produit `{product_id, stars:1-5}` |
+| GET | `/api/products/{id}/rating` | Moyenne + nombre d’avis |
 | POST | `/api/customer/profile/avatar` | Upload avatar (`multipart` field `avatar`) |
 | POST | `/api/customer/profile/delete` | Supprimer compte (`confirmation_code`: `kinovaci`) |
 | GET/POST/DELETE | `/api/customer/favorites` | Favoris |

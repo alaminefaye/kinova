@@ -8,7 +8,10 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/js/main.ts'],
+            input: [
+                'resources/js/main.ts',
+                'resources/js/store/main.ts',
+            ],
             refresh: true,
         }),
         vue({

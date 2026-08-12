@@ -47,6 +47,7 @@ class ApiMappers {
       imageUrl: imageUrl,
       images: gallery,
       rating: _toDouble(json['rating'], fallback: 4.8),
+      ratingsCount: int.tryParse('${json['ratings_count'] ?? 0}') ?? 0,
       isNew: json['is_new'] == true || json['is_new'] == 1,
       isFeatured: json['is_featured'] == true || json['is_featured'] == 1,
     );

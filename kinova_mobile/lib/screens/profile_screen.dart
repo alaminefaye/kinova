@@ -110,14 +110,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Compte Privilège'),
-        actions: [
-          if (auth.isLoggedIn)
-            IconButton(
-              onPressed: _logout,
-              icon: const Icon(Icons.logout),
-              tooltip: 'Déconnexion',
-            ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 36),
@@ -429,6 +421,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          if (auth.isLoggedIn) ...[
+            const SizedBox(height: 18),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 200),
+              child: PressableScale(
+                onTap: _logout,
+                child: Container(
+                  width: double.infinity,
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: KinovaColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: KinovaColors.brown.withOpacity(0.18),
+                    ),
+                    boxShadow: KinovaColors.softShadow,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.exit_to_app_rounded,
+                        color: KinovaColors.brown,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'SE DÉCONNECTER',
+                        style: TextStyle(
+                          color: KinovaColors.brown,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.3,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

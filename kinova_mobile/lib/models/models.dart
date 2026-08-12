@@ -44,6 +44,7 @@ class Product {
     required this.imageUrl,
     this.images = const [],
     this.rating = 4.8,
+    this.ratingsCount = 0,
     this.isNew = false,
     this.isFeatured = false,
   });
@@ -56,10 +57,30 @@ class Product {
   final String imageUrl;
   final List<String> images;
   final double rating;
+  final int ratingsCount;
   final bool isNew;
   final bool isFeatured;
 
   List<String> get gallery => images.isEmpty ? [imageUrl] : images;
+
+  Product copyWith({
+    double? rating,
+    int? ratingsCount,
+  }) {
+    return Product(
+      id: id,
+      name: name,
+      description: description,
+      price: price,
+      categoryId: categoryId,
+      imageUrl: imageUrl,
+      images: images,
+      rating: rating ?? this.rating,
+      ratingsCount: ratingsCount ?? this.ratingsCount,
+      isNew: isNew,
+      isFeatured: isFeatured,
+    );
+  }
 }
 
 class CartItem {

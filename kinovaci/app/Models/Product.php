@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
     'image_url',
     'gallery',
     'rating',
+    'ratings_count',
     'stock',
     'is_active',
     'is_featured',
@@ -28,6 +29,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'rating' => 'decimal:1',
+            'ratings_count' => 'integer',
             'gallery' => 'array',
             'is_active' => 'boolean',
             'is_featured' => 'boolean',
@@ -47,5 +49,10 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductRating::class);
     }
 }

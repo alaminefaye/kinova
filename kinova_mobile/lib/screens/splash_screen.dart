@@ -111,7 +111,9 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     final elapsed = DateTime.now().difference(started);
-    const minSplash = Duration(milliseconds: 2200);
+    // Affiche le splash au moins 3 secondes pour laisser voir l'animation
+    // et s'assurer que le chargement initial est bien visible.
+    const minSplash = Duration(seconds: 5);
     if (elapsed < minSplash) {
       await Future<void>.delayed(minSplash - elapsed);
     }

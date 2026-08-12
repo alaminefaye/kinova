@@ -45,7 +45,7 @@ class KinovaAvatar extends StatelessWidget {
                   width: radius * 2,
                   height: radius * 2,
                   gaplessPlayback: true,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       _Initial(letter: _initial, radius: radius),
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;

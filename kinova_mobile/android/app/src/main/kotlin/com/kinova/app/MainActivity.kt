@@ -1,4 +1,4 @@
-package com.kinova.kinova_mobile
+package com.kinova.app
 
 import io.flutter.embedding.android.FlutterActivity
 

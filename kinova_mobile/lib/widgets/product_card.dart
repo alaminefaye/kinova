@@ -148,7 +148,9 @@ class ProductCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 3),
                             Text(
-                              product.rating.toStringAsFixed(1),
+                              product.ratingsCount > 0
+                                  ? product.rating.toStringAsFixed(1)
+                                  : '—',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
