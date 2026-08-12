@@ -89,15 +89,19 @@ class _AuthScreenState extends State<AuthScreen>
       if (_registerMode) {
         await auth.register(
           name: _name.text,
-          email: _email.text,
-          password: _password.text,
           phone: _phone.text,
+          password: _password.text,
+          email: _email.text,
         );
       } else {
+        // Email ou téléphone
         await auth.login(_email.text, _password.text);
       }
       if (!mounted) return;
-      await context.read<FavoritesController>().loadFromApi();
+      // Déjà connecté (token reçu) — sync favoris sans bloquer la session.
+      try {
+        await context.read<FavoritesController>().loadFromApi();
+      } catch (_) {}
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -318,9 +322,29 @@ class _AuthScreenState extends State<AuthScreen>
                                             const SizedBox(height: 14),
                                             _LuxField(
                                               controller: _phone,
-                                              hint: 'Téléphone (optionnel)',
+                                              hint: 'Numéro de téléphone',
                                               icon: Icons.phone_iphone_rounded,
                                               keyboardType: TextInputType.phone,
+                                              validator: (v) => (v == null ||
+                                                      v.trim().length < 8)
+                                                  ? 'Numéro de téléphone requis'
+                                                  : null,
+                                            ),
+                                            const SizedBox(height: 14),
+                                            _LuxField(
+                                              controller: _email,
+                                              hint: 'Email (optionnel)',
+                                              icon: Icons.mail_outline_rounded,
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                              validator: (v) {
+                                                final t = v?.trim() ?? '';
+                                                if (t.isEmpty) return null;
+                                                if (!t.contains('@')) {
+                                                  return 'Email invalide';
+                                                }
+                                                return null;
+                                              },
                                             ),
                                             const SizedBox(height: 14),
                                           ],
@@ -328,17 +352,20 @@ class _AuthScreenState extends State<AuthScreen>
                                       : const SizedBox.shrink(),
                                 ),
 
-                                _LuxField(
-                                  controller: _email,
-                                  hint: 'Adresse email',
-                                  icon: Icons.mail_outline_rounded,
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (v) =>
-                                      (v == null || !v.contains('@'))
-                                          ? 'Email invalide'
-                                          : null,
-                                ),
-                                const SizedBox(height: 14),
+                                // Connexion : email OU téléphone
+                                if (!_registerMode) ...[
+                                  _LuxField(
+                                    controller: _email,
+                                    hint: 'Email ou numéro de téléphone',
+                                    icon: Icons.person_outline_rounded,
+                                    keyboardType: TextInputType.text,
+                                    validator: (v) => (v == null ||
+                                            v.trim().isEmpty)
+                                        ? 'Email ou téléphone requis'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 14),
+                                ],
                                 _LuxField(
                                   controller: _password,
                                   hint: 'Mot de passe',

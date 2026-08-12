@@ -31,7 +31,7 @@ class _HelpScreenState extends State<HelpScreen> {
       final user = context.read<AuthController>().user;
       if (user != null) {
         _name.text = user.name;
-        _email.text = user.email;
+        _email.text = user.email ?? '';
       }
       _load();
     });

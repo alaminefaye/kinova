@@ -77,7 +77,9 @@ Pages admin :
 |---------|-------|-------------|
 | POST | `/api/customer/auth/register` | Inscription |
 | POST | `/api/customer/auth/login` | Login client |
-| GET/PUT | `/api/customer/profile` | Profil (adresse, VIP) |
+| GET/PUT | `/api/customer/profile` | Profil (adresse, VIP, avatar_url) |
+| POST | `/api/customer/profile/avatar` | Upload avatar (`multipart` field `avatar`) |
+| DELETE | `/api/customer/profile` | Supprimer compte (`confirmation_code`: `kinovaci`) |
 | GET/POST/DELETE | `/api/customer/favorites` | Favoris |
 | POST | `/api/customer/favorites/sync` | Sync liste `product_ids` |
 | GET | `/api/customer/orders` | Mes commandes |

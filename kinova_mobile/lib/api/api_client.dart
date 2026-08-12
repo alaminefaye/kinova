@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:kinova_mobile/api/api_config.dart';
@@ -50,8 +51,25 @@ class ApiClient {
     return _decode(response);
   }
 
-  Future<dynamic> delete(String path) async {
-    final response = await _client.delete(_uri(path), headers: _headers());
+  Future<dynamic> delete(String path, {Object? body}) async {
+    final response = await _client.delete(
+      _uri(path),
+      headers: _headers(jsonBody: body != null),
+      body: body == null ? null : jsonEncode(body),
+    );
+    return _decode(response);
+  }
+
+  Future<dynamic> postMultipart(
+    String path, {
+    required String field,
+    required File file,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path));
+    request.headers.addAll(_headers());
+    request.files.add(await http.MultipartFile.fromPath(field, file.path));
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
     return _decode(response);
   }
 
@@ -64,10 +82,21 @@ class ApiClient {
 
     String message = 'Erreur serveur (${response.statusCode})';
     if (raw is Map) {
-      if (raw['message'] is String) {
+      if (raw['message'] is String && (raw['errors'] == null)) {
         message = raw['message'] as String;
-      } else if (raw['errors'] != null) {
-        message = raw['errors'].toString();
+      }
+      if (raw['errors'] is Map) {
+        final errors = raw['errors'] as Map;
+        if (errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) {
+            message = first.first.toString();
+          } else {
+            message = first.toString();
+          }
+        }
+      } else if (raw['message'] is String) {
+        message = raw['message'] as String;
       }
     }
     throw ApiException(message, statusCode: response.statusCode);

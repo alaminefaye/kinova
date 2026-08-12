@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/models/models.dart';
@@ -45,11 +47,12 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<void> login(String email, String password) async {
+  /// Connexion par email **ou** numéro de téléphone.
+  Future<void> login(String identifier, String password) async {
     _error = null;
     notifyListeners();
     final res = await _api.post('/customer/auth/login', body: {
-      'email': email.trim(),
+      'login': identifier.trim(),
       'password': password,
     });
     await _applyAuth(res);
@@ -57,18 +60,19 @@ class AuthController extends ChangeNotifier {
 
   Future<void> register({
     required String name,
-    required String email,
+    required String phone,
     required String password,
-    String? phone,
+    String? email,
   }) async {
     _error = null;
     notifyListeners();
+    final trimmedEmail = email?.trim() ?? '';
     final res = await _api.post('/customer/auth/register', body: {
       'name': name.trim(),
-      'email': email.trim(),
+      'phone': phone.trim(),
       'password': password,
       'password_confirmation': password,
-      if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+      if (trimmedEmail.isNotEmpty) 'email': trimmedEmail,
     });
     await _applyAuth(res);
   }
@@ -80,6 +84,58 @@ class AuthController extends ChangeNotifier {
         ? Map<String, dynamic>.from(res['data'] as Map)
         : Map<String, dynamic>.from(res as Map);
     _user = AppUser.fromJson(data);
+    notifyListeners();
+  }
+
+  Future<void> updateProfile({
+    required String name,
+    required String phone,
+    String? email,
+    String? address,
+    String? city,
+    String? password,
+    String? currentPassword,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name.trim(),
+      'phone': phone.trim(),
+      'email': (email ?? '').trim().isEmpty ? null : email!.trim(),
+      'address': (address ?? '').trim().isEmpty ? null : address!.trim(),
+      'city': (city ?? '').trim().isEmpty ? null : city!.trim(),
+    };
+    if (password != null && password.isNotEmpty) {
+      body['password'] = password;
+      body['password_confirmation'] = password;
+      body['current_password'] = currentPassword ?? '';
+    }
+    final res = await _api.put('/customer/profile', body: body);
+    final data = res is Map && res['data'] is Map
+        ? Map<String, dynamic>.from(res['data'] as Map)
+        : Map<String, dynamic>.from(res as Map);
+    _user = AppUser.fromJson(data);
+    notifyListeners();
+  }
+
+  Future<void> uploadAvatar(File file) async {
+    final res = await _api.postMultipart(
+      '/customer/profile/avatar',
+      field: 'avatar',
+      file: file,
+    );
+    final data = res is Map && res['data'] is Map
+        ? Map<String, dynamic>.from(res['data'] as Map)
+        : Map<String, dynamic>.from(res as Map);
+    _user = AppUser.fromJson(data);
+    notifyListeners();
+  }
+
+  /// Suppression définitive — le code de confirmation doit être `kinovaci`.
+  Future<void> deleteAccount(String confirmationCode) async {
+    await _api.delete('/customer/profile', body: {
+      'confirmation_code': confirmationCode.trim(),
+    });
+    await _clearToken();
+    _user = null;
     notifyListeners();
   }
 

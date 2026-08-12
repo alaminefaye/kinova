@@ -96,8 +96,9 @@ class AppUser {
   const AppUser({
     required this.id,
     required this.name,
-    required this.email,
+    this.email,
     this.phone,
+    this.avatarUrl,
     this.address,
     this.city,
     this.loyaltyPoints = 0,
@@ -106,19 +107,23 @@ class AppUser {
 
   final String id;
   final String name;
-  final String email;
+  final String? email;
   final String? phone;
+  final String? avatarUrl;
   final String? address;
   final String? city;
   final int loyaltyPoints;
   final String vipTier;
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
+    final email = json['email']?.toString();
+    final avatar = json['avatar_url']?.toString();
     return AppUser(
       id: '${json['id']}',
       name: (json['name'] ?? '').toString(),
-      email: (json['email'] ?? '').toString(),
+      email: (email == null || email.isEmpty) ? null : email,
       phone: json['phone']?.toString(),
+      avatarUrl: (avatar == null || avatar.isEmpty) ? null : avatar,
       address: json['address']?.toString(),
       city: json['city']?.toString(),
       loyaltyPoints: int.tryParse('${json['loyalty_points'] ?? 0}') ?? 0,

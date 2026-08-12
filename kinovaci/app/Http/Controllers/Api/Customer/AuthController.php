@@ -16,16 +16,16 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:160', 'unique:users,email'],
+            'phone' => ['required', 'string', 'max:40', 'unique:users,phone'],
+            'email' => ['nullable', 'email', 'max:160', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'phone' => ['nullable', 'string', 'max:40'],
         ]);
 
         $user = User::query()->create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'email' => $data['email'] ?? null,
             'password' => $data['password'],
-            'phone' => $data['phone'] ?? null,
             'role' => 'customer',
             'loyalty_points' => 0,
             'vip_tier' => 'standard',
@@ -50,24 +50,37 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            // Accepte `login`, ou legacy `email` / `phone`
+            'login' => ['nullable', 'string', 'max:160'],
+            'email' => ['nullable', 'string', 'max:160'],
+            'phone' => ['nullable', 'string', 'max:40'],
             'password' => ['required', 'string'],
         ]);
 
+        $login = trim((string) ($data['login'] ?? $data['email'] ?? $data['phone'] ?? ''));
+
+        if ($login === '') {
+            throw ValidationException::withMessages([
+                'login' => ['Indiquez votre email ou numéro de téléphone.'],
+            ]);
+        }
+
         $user = User::query()
-            ->where('email', $data['email'])
             ->where('role', 'customer')
+            ->where(function ($query) use ($login) {
+                $query->where('email', $login)->orWhere('phone', $login);
+            })
             ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Identifiants incorrects.'],
+                'login' => ['Identifiants incorrects.'],
             ]);
         }
 
         if ($user->is_blocked) {
             throw ValidationException::withMessages([
-                'email' => ['Votre compte a été bloqué par un administrateur.'],
+                'login' => ['Votre compte a été bloqué par un administrateur.'],
             ]);
         }
 

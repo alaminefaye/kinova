@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
+import 'package:kinova_mobile/screens/edit_profile_screen.dart';
 import 'package:kinova_mobile/screens/favorites_screen.dart';
 import 'package:kinova_mobile/screens/help_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
@@ -72,6 +74,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
     cart.setOrders(const []);
   }
 
+  Future<void> _openEditProfile() async {
+    final ok = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+    if (ok == true && mounted) {
+      await context.read<AuthController>().refreshProfile();
+    }
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final codeController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer mon compte'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Cette action est définitive. Pour confirmer, tapez le code :',
+              style: TextStyle(fontSize: 13.5),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'kinovaci',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: KinovaColors.brown,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: codeController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Code de confirmation',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      codeController.dispose();
+      return;
+    }
+
+    try {
+      await context.read<AuthController>().deleteAccount(codeController.text);
+      if (!mounted) return;
+      context.read<FavoritesController>().clearLocal();
+      context.read<CartController>().setOrders(const []);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compte supprimé')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Suppression impossible')),
+      );
+    } finally {
+      codeController.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -128,18 +215,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: CircleAvatar(
                           radius: 26,
                           backgroundColor: KinovaColors.brown,
-                          child: Text(
-                            (user?.name.isNotEmpty == true
-                                    ? user!.name[0]
-                                    : 'K')
-                                .toUpperCase(),
-                            style: const TextStyle(
-                              fontFamily: 'PlayfairDisplay',
-                              color: KinovaColors.gold,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          backgroundImage: user?.avatarUrl != null
+                              ? NetworkImage(user!.avatarUrl!)
+                              : null,
+                          child: user?.avatarUrl == null
+                              ? Text(
+                                  (user?.name.isNotEmpty == true
+                                          ? user!.name[0]
+                                          : 'K')
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                    fontFamily: 'PlayfairDisplay',
+                                    color: KinovaColors.gold,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -183,7 +275,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              user?.email ?? 'Connectez-vous pour vos avantages',
+                              user == null
+                                  ? 'Connectez-vous pour vos avantages'
+                                  : (user.email?.isNotEmpty == true
+                                      ? user.email!
+                                      : (user.phone ?? 'Compte KINOVA')),
                               style: const TextStyle(
                                 color: KinovaColors.sand,
                                 fontSize: 12,
@@ -322,6 +418,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Column(
                 children: [
+                  if (auth.isLoggedIn) ...[
+                    _Tile(
+                      icon: Icons.manage_accounts_outlined,
+                      title: 'Modifier mon profil',
+                      onTap: _openEditProfile,
+                    ),
+                    const Divider(
+                      height: 1,
+                      indent: 48,
+                      color: KinovaColors.surfaceMuted,
+                    ),
+                  ],
                   _Tile(
                     icon: Icons.local_shipping_outlined,
                     title: 'Suivi de ma livraison',
@@ -384,6 +492,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  if (auth.isLoggedIn) ...[
+                    const Divider(
+                      height: 1,
+                      indent: 48,
+                      color: KinovaColors.surfaceMuted,
+                    ),
+                    _Tile(
+                      icon: Icons.delete_forever_outlined,
+                      title: 'Supprimer mon compte',
+                      onTap: _confirmDeleteAccount,
+                    ),
+                  ],
                 ],
               ),
             ),

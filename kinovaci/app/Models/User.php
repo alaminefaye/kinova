@@ -19,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
     'role',
     'is_blocked',
     'phone',
+    'avatar_url',
     'address',
     'city',
     'loyalty_points',
