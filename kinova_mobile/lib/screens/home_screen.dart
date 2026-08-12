@@ -9,6 +9,7 @@ import 'package:kinova_mobile/screens/notifications_screen.dart';
 import 'package:kinova_mobile/screens/search_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
+import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/animated_logo_badge.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
@@ -80,6 +81,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _openCatalog();
   }
 
+  Future<void> _refreshAll() async {
+    final catalog = context.read<CatalogController>();
+    final auth = context.read<AuthController>();
+    final favorites = context.read<FavoritesController>();
+
+    final tasks = <Future<void>>[catalog.load()];
+
+    if (auth.isLoggedIn) {
+      tasks.add(auth.refreshProfile());
+      tasks.add(favorites.loadFromApi());
+    }
+
+    await Future.wait(tasks);
+  }
+
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogController>();
@@ -95,302 +111,338 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Scaffold(
         backgroundColor: KinovaColors.background,
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // ===== Header sombre luxe + carrousel en chevauchement =====
-            SliverToBoxAdapter(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Column(
-                    children: [
-                      _DarkHeader(
-                        userName: auth.user?.name,
-                        onSearchTap: _openSearch,
-                        onBellTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const NotificationsScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      SizedBox(height: heroSlides.isEmpty ? 24 : 118),
-                    ],
-                  ),
-                  if (heroSlides.isNotEmpty)
-                    Positioned(
-                      left: 18,
-                      right: 18,
-                      bottom: 0,
-                      child: FadeSlideIn(
+        body: Column(
+          children: [
+            // ===== Zone fixe : header + recherche + slider =====
+            Material(
+              color: KinovaColors.background,
+              elevation: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: KinovaColors.background,
+                  boxShadow: [
+                    BoxShadow(
+                      color: KinovaColors.brown.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _DarkHeader(
+                          userName: auth.user?.name,
+                          onSearchTap: _openSearch,
+                          onBellTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const NotificationsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: heroSlides.isEmpty ? 12 : 118),
+                      ],
+                    ),
+                    if (heroSlides.isNotEmpty)
+                      Positioned(
+                        left: 18,
+                        right: 18,
+                        bottom: 10,
                         child: SizedBox(
-                          height: 212,
+                          height: 200,
                           child: _buildHeroCarousel(context, heroSlides),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            // ===== Bandeau avantages défilant doré =====
-            SliverToBoxAdapter(
-              child: FadeSlideIn(
-                delay: const Duration(milliseconds: 80),
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(18, 18, 18, 0),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+            // ===== Contenu scrollable =====
+            Expanded(
+              child: RefreshIndicator(
+                color: KinovaColors.goldRich,
+                backgroundColor: KinovaColors.surface,
+                displacement: 36,
+                onRefresh: _refreshAll,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
                   ),
-                  decoration: BoxDecoration(
-                    gradient: KinovaColors.goldGradient,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(
-                        Icons.local_shipping_rounded,
-                        color: KinovaColors.brown,
-                        size: 16,
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'LIVRAISON OFFERTE DÈS 100 FCFA  •  RETOURS 14 JOURS',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: KinovaColors.brown,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.1,
+                  slivers: [
+                    // ===== Bandeau avantages =====
+                    SliverToBoxAdapter(
+                      child: FadeSlideIn(
+                        delay: const Duration(milliseconds: 80),
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ===== Catégories =====
-            SliverToBoxAdapter(
-              child: FadeSlideIn(
-                delay: const Duration(milliseconds: 110),
-                child: _SectionHeader(
-                  title: 'Nos Univers',
-                  actionLabel: 'Tout voir',
-                  onAction: _openCatalog,
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 168,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: catalog.categories.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 13),
-                  itemBuilder: (context, index) {
-                    final cat = catalog.categories[index];
-                    final count = catalog.byCategory(cat.id).length;
-                    return FadeSlideIn(
-                      delay: Duration(milliseconds: 70 * index),
-                      child: _UniverseCard(
-                        name: cat.name,
-                        imageUrl: cat.imageUrl,
-                        count: count,
-                        onTap: () => _openCatalog(categoryId: cat.id),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            // ===== Sélection Premium =====
-            const SliverToBoxAdapter(
-              child: _SectionHeader(
-                title: 'Sélection Premium',
-                trailingIcon: Icons.auto_awesome_rounded,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 275,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: featured.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 14),
-                  itemBuilder: (context, index) {
-                    return FadeSlideIn(
-                      delay: Duration(milliseconds: 60 * index),
-                      child: ProductCard(
-                        product: featured[index],
-                        width: 175,
-                        heroTag: 'featured-${featured[index].id}',
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            // ===== Bannière Cercle VIP (si non connecté) =====
-            if (!auth.isLoggedIn)
-              SliverToBoxAdapter(
-                child: FadeSlideIn(
-                  delay: const Duration(milliseconds: 140),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
-                    child: PressableScale(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const AuthScreen(),
+                          decoration: BoxDecoration(
+                            gradient: KinovaColors.goldGradient,
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: KinovaColors.darkLuxuryGradient,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: KinovaColors.gold.withOpacity(0.45),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: KinovaColors.brown.withOpacity(0.30),
-                              blurRadius: 18,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: KinovaColors.gold.withOpacity(0.15),
-                                border: Border.all(
-                                  color: KinovaColors.gold.withOpacity(0.5),
+                          child: Row(
+                            children: const [
+                              Icon(
+                                Icons.local_shipping_rounded,
+                                color: KinovaColors.brown,
+                                size: 16,
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'LIVRAISON OFFERTE DÈS 100 FCFA  •  RETOURS 14 JOURS',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: KinovaColors.brown,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.1,
+                                  ),
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.workspace_premium_rounded,
-                                color: KinovaColors.goldRich,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Rejoignez le Cercle VIP',
-                                    style: TextStyle(
-                                      fontFamily: 'PlayfairDisplay',
-                                      color: Color(0xFFF7E7CE),
-                                      fontSize: 15.5,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  SizedBox(height: 3),
-                                  Text(
-                                    '1 FCFA dépensé = 1 point. Avantages exclusifs.',
-                                    style: TextStyle(
-                                      color: KinovaColors.sand,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: KinovaColors.gold,
-                              size: 15,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ),
 
-            // ===== Engagements =====
-            SliverToBoxAdapter(
-              child: FadeSlideIn(
-                delay: const Duration(milliseconds: 160),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: KinovaColors.surfaceMuted,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: KinovaColors.gold.withOpacity(0.2),
-                        width: 1,
+                    // ===== Catégories =====
+                    SliverToBoxAdapter(
+                      child: FadeSlideIn(
+                        delay: const Duration(milliseconds: 110),
+                        child: _SectionHeader(
+                          title: 'Nos Univers',
+                          actionLabel: 'Tout voir',
+                          onAction: _openCatalog,
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        _PerkItem(
-                          icon: Icons.local_shipping_outlined,
-                          title: 'Livraison Offerte',
-                          subtitle: 'Dès 100 FCFA d’achat',
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 168,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: catalog.categories.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 13),
+                          itemBuilder: (context, index) {
+                            final cat = catalog.categories[index];
+                            final count = catalog.byCategory(cat.id).length;
+                            return FadeSlideIn(
+                              delay: Duration(milliseconds: 70 * index),
+                              child: _UniverseCard(
+                                name: cat.name,
+                                imageUrl: cat.imageUrl,
+                                count: count,
+                                onTap: () => _openCatalog(categoryId: cat.id),
+                              ),
+                            );
+                          },
                         ),
-                        _PerkItem(
-                          icon: Icons.eco_outlined,
-                          title: 'Soins Naturels',
-                          subtitle: 'Formules pures',
-                        ),
-                        _PerkItem(
-                          icon: Icons.verified_user_outlined,
-                          title: 'Garantie KINOVA',
-                          subtitle: 'Satisfait ou remboursé',
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ),
 
-            // ===== Nouveautés =====
-            const SliverToBoxAdapter(
-              child: _SectionHeader(title: 'Nouveautés & Incontournables'),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 36),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.65,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => FadeSlideIn(
-                    delay: Duration(milliseconds: 50 * index),
-                    child: ProductCard(
-                      product: news[index],
-                      heroTag: 'news-${news[index].id}',
+                    // ===== Sélection Premium =====
+                    const SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: 'Sélection Premium',
+                        trailingIcon: Icons.auto_awesome_rounded,
+                      ),
                     ),
-                  ),
-                  childCount: news.length,
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 275,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: featured.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: 14),
+                          itemBuilder: (context, index) {
+                            return FadeSlideIn(
+                              delay: Duration(milliseconds: 60 * index),
+                              child: ProductCard(
+                                product: featured[index],
+                                width: 175,
+                                heroTag: 'featured-${featured[index].id}',
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // ===== Bannière Cercle VIP (si non connecté) =====
+                    if (!auth.isLoggedIn)
+                      SliverToBoxAdapter(
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 140),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
+                            child: PressableScale(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const AuthScreen(),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  gradient: KinovaColors.darkLuxuryGradient,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: KinovaColors.gold.withOpacity(0.45),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          KinovaColors.brown.withOpacity(0.30),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: KinovaColors.gold
+                                            .withOpacity(0.15),
+                                        border: Border.all(
+                                          color: KinovaColors.gold
+                                              .withOpacity(0.5),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.workspace_premium_rounded,
+                                        color: KinovaColors.goldRich,
+                                        size: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: const [
+                                          Text(
+                                            'Rejoignez le Cercle VIP',
+                                            style: TextStyle(
+                                              fontFamily: 'PlayfairDisplay',
+                                              color: Color(0xFFF7E7CE),
+                                              fontSize: 15.5,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          SizedBox(height: 3),
+                                          Text(
+                                            '1 FCFA dépensé = 1 point. Avantages exclusifs.',
+                                            style: TextStyle(
+                                              color: KinovaColors.sand,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      color: KinovaColors.gold,
+                                      size: 15,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // ===== Engagements =====
+                    SliverToBoxAdapter(
+                      child: FadeSlideIn(
+                        delay: const Duration(milliseconds: 160),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: KinovaColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: KinovaColors.gold.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: const [
+                                _PerkItem(
+                                  icon: Icons.local_shipping_outlined,
+                                  title: 'Livraison Offerte',
+                                  subtitle: 'Dès 100 FCFA d’achat',
+                                ),
+                                _PerkItem(
+                                  icon: Icons.eco_outlined,
+                                  title: 'Soins Naturels',
+                                  subtitle: 'Formules pures',
+                                ),
+                                _PerkItem(
+                                  icon: Icons.verified_user_outlined,
+                                  title: 'Garantie KINOVA',
+                                  subtitle: 'Satisfait ou remboursé',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ===== Nouveautés =====
+                    const SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: 'Nouveautés & Incontournables',
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 36),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: 0.65,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => FadeSlideIn(
+                            delay: Duration(milliseconds: 50 * index),
+                            child: ProductCard(
+                              product: news[index],
+                              heroTag: 'news-${news[index].id}',
+                            ),
+                          ),
+                          childCount: news.length,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

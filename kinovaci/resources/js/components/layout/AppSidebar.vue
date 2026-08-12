@@ -277,6 +277,11 @@ const menuGroups = [
         name: "Fidélité VIP",
         path: "/loyalty",
       },
+      {
+        icon: UserCircleIcon,
+        name: "Utilisateurs",
+        path: "/users",
+      },
     ],
   },
 ];

@@ -65,6 +65,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($user->is_blocked) {
+            throw ValidationException::withMessages([
+                'email' => ['Votre compte a été bloqué par un administrateur.'],
+            ]);
+        }
+
         $token = $user->createToken('kinova-mobile')->plainTextToken;
 
         return response()->json([

@@ -56,6 +56,12 @@ const router = createRouter({
       meta: { title: 'Fidélité', requiresAuth: true },
     },
     {
+      path: '/users',
+      name: 'Users',
+      component: () => import('../views/Admin/UsersPage.vue'),
+      meta: { title: 'Utilisateurs', requiresAuth: true },
+    },
+    {
       path: '/signin',
       name: 'Signin',
       component: () => import('../views/Auth/Signin.vue'),

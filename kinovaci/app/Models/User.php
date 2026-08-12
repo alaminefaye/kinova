@@ -17,6 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
     'email',
     'password',
     'role',
+    'is_blocked',
     'phone',
     'address',
     'city',
@@ -35,6 +36,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'loyalty_points' => 'integer',
+            'is_blocked' => 'boolean',
         ];
     }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/checkout_screen.dart';
+import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
@@ -235,12 +237,40 @@ class CartScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const CheckoutScreen(),
-                              ),
-                            );
+                          onPressed: () async {
+                            final auth = context.read<AuthController>();
+                            if (!auth.isLoggedIn) {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  duration: Duration(seconds: 2),
+                                  backgroundColor: KinovaColors.brown,
+                                  behavior: SnackBarBehavior.floating,
+                                  content: Text(
+                                    'Veuillez vous connecter pour passer votre commande',
+                                    style: TextStyle(color: KinovaColors.cream),
+                                  ),
+                                ),
+                              );
+                              final loggedIn = await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(
+                                  builder: (_) => const AuthScreen(),
+                                ),
+                              );
+                              if (loggedIn == true && context.mounted) {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const CheckoutScreen(),
+                                  ),
+                                );
+                              }
+                            } else {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const CheckoutScreen(),
+                                ),
+                              );
+                            }
                           },
                           child: const Text('PASSER LA COMMANDE'),
                         ),

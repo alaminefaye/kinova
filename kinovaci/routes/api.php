@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\MediaController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
@@ -112,5 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/loyalty/customers', [AdminLoyaltyController::class, 'customers']);
         Route::post('/loyalty/customers/{user}/adjust', [AdminLoyaltyController::class, 'adjust']);
+
+        Route::apiResource('users', AdminUserController::class);
+        Route::post('/users/{user}/toggle-block', [AdminUserController::class, 'toggleBlock']);
     });
 });

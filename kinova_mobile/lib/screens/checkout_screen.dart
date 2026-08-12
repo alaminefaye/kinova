@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
+import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/order_success_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
@@ -29,8 +30,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<AuthController>().user;
-      if (user == null || !mounted) return;
+      if (!mounted) return;
+      final auth = context.read<AuthController>();
+      if (!auth.isLoggedIn) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
+        );
+        return;
+      }
+      final user = auth.user;
+      if (user == null) return;
       setState(() {
         _name.text = user.name;
         _phone.text = user.phone ?? '';
