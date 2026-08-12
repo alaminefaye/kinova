@@ -84,79 +84,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _confirmDeleteAccount() async {
-    final codeController = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final deleted = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer mon compte'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Cette action est définitive. Pour confirmer, tapez le code :',
-              style: TextStyle(fontSize: 13.5),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'kinovaci',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                color: KinovaColors.brown,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: codeController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Code de confirmation',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (ctx) => const _DeleteAccountDialog(),
     );
 
-    if (confirmed != true || !mounted) {
-      codeController.dispose();
-      return;
-    }
+    if (deleted != true || !mounted) return;
 
-    try {
-      await context.read<AuthController>().deleteAccount(codeController.text);
-      if (!mounted) return;
-      context.read<FavoritesController>().clearLocal();
-      context.read<CartController>().setOrders(const []);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Compte supprimé')),
-      );
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Suppression impossible')),
-      );
-    } finally {
-      codeController.dispose();
-    }
+    context.read<FavoritesController>().clearLocal();
+    context.read<CartController>().setOrders(const []);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Compte supprimé')),
+    );
   }
 
   @override
@@ -241,13 +181,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  user != null ? user.name : 'Invité KINOVA',
-                                  style: const TextStyle(
-                                    color: KinovaColors.cream,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.5,
+                                Flexible(
+                                  child: Text(
+                                    user != null ? user.name : 'Invité KINOVA',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: KinovaColors.cream,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -280,6 +224,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : (user.email?.isNotEmpty == true
                                       ? user.email!
                                       : (user.phone ?? 'Compte KINOVA')),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: KinovaColors.sand,
                                 fontSize: 12,
@@ -696,6 +642,115 @@ class _Tile extends StatelessWidget {
         size: 20,
       ),
       onTap: onTap,
+    );
+  }
+}
+
+/// Dialogue sécurisé : la suppression se fait ici (loading + validation),
+/// pour éviter les crashs liés au controller / au clavier.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _codeController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    final code = _codeController.text.trim();
+    if (code.toLowerCase() != 'kinovaci') {
+      setState(() => _error = 'Code incorrect. Tapez « kinovaci ».');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      await context.read<AuthController>().deleteAccount(code);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Suppression impossible. Réessayez.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Supprimer mon compte'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Cette action est définitive. Pour confirmer, tapez le code :',
+            style: TextStyle(fontSize: 13.5),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'kinovaci',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: KinovaColors.brown,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _codeController,
+            enabled: !_loading,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _loading ? null : _submit(),
+            decoration: InputDecoration(
+              hintText: 'Code de confirmation',
+              border: const OutlineInputBorder(),
+              errorText: _error,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context, false),
+          child: const Text('Annuler'),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _submit,
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Supprimer'),
+        ),
+      ],
     );
   }
 }

@@ -131,7 +131,7 @@ class AuthController extends ChangeNotifier {
 
   /// Suppression définitive — le code de confirmation doit être `kinovaci`.
   Future<void> deleteAccount(String confirmationCode) async {
-    await _api.delete('/customer/profile', body: {
+    await _api.post('/customer/profile/delete', body: {
       'confirmation_code': confirmationCode.trim(),
     });
     await _clearToken();
