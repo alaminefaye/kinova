@@ -43,6 +43,7 @@ export type UserProfile = {
   city?: string | null
   avatar_url?: string | null
   vip?: boolean
+  vip_tier?: string
   loyalty_points?: number
 }
 

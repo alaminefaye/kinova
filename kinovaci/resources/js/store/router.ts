@@ -74,6 +74,12 @@ const router = createRouter({
       meta: { title: 'Notifications' },
     },
     {
+      path: '/aide',
+      name: 'help',
+      component: () => import('./pages/HelpPage.vue'),
+      meta: { title: 'Aide' },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

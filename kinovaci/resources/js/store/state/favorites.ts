@@ -80,5 +80,10 @@ export function useFavorites() {
     }
   }
 
-  return { state, count, isFavorite, loadFromApi, toggle, sync }
+  function clear() {
+    state.ids = []
+    persistLocal()
+  }
+
+  return { state, count, isFavorite, loadFromApi, toggle, sync, clear }
 }

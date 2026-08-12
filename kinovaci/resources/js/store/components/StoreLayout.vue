@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TypewriterHint from './TypewriterHint.vue'
+import { getToken } from '../api/client'
 import { useAuth } from '../state/auth'
 import { useCart } from '../state/cart'
 import { resolveMediaUrl } from '../lib/format'
@@ -17,6 +18,30 @@ const firstName = computed(() => {
 })
 
 const hideChrome = computed(() => !!route.meta.hideChrome)
+const cartCount = computed(() => cart.itemCount.value)
+const loggedIn = computed(() => !!getToken())
+
+const tabs = [
+  { name: 'home', label: 'Accueil', icon: '⌂' },
+  { name: 'catalog', label: 'Boutique', icon: '▦' },
+  { name: 'cart', label: 'Panier', icon: '🛒', cart: true },
+  { name: 'favorites', label: 'Favoris', icon: '♡' },
+  { name: 'account', label: 'Compte', icon: '◎', account: true },
+] as const
+
+function go(tab: (typeof tabs)[number]) {
+  if (tab.account) {
+    if (loggedIn.value) router.push({ name: 'account' })
+    else router.push({ name: 'auth', query: { redirect: '/compte' } })
+    return
+  }
+  router.push({ name: tab.name })
+}
+
+function isActive(tab: (typeof tabs)[number]) {
+  if (tab.account) return route.name === 'account' || route.name === 'auth' || route.name === 'edit-profile'
+  return route.name === tab.name
+}
 </script>
 
 <template>
@@ -56,38 +81,25 @@ const hideChrome = computed(() => !!route.meta.hideChrome)
       <slot />
     </main>
 
-    <nav v-if="!hideChrome" class="bottom">
-      <RouterLink :to="{ name: 'home' }" class="tab" active-class="active">
-        <span>⌂</span>
-        Accueil
-      </RouterLink>
-      <RouterLink :to="{ name: 'catalog' }" class="tab" active-class="active">
-        <span>▦</span>
-        Boutique
-      </RouterLink>
-      <RouterLink :to="{ name: 'cart' }" class="cart-tab">
-        <span class="cart-bubble">
+    <nav v-if="!hideChrome" class="bottom" aria-label="Navigation principale">
+      <button
+        v-for="tab in tabs"
+        :key="tab.name"
+        type="button"
+        class="tab"
+        :class="{ active: isActive(tab), cart: tab.cart }"
+        @click="go(tab)"
+      >
+        <span v-if="tab.cart" class="cart-bubble">
           🛒
-          <i v-if="cart.itemCount.value">{{ cart.itemCount.value }}</i>
+          <i v-if="cartCount">{{ cartCount }}</i>
         </span>
-        Panier
-      </RouterLink>
-      <RouterLink :to="{ name: 'favorites' }" class="tab" active-class="active">
-        <span>♡</span>
-        Favoris
-      </RouterLink>
-      <RouterLink :to="{ name: auth.isLoggedIn.value ? 'account' : 'auth' }" class="tab" active-class="active">
-        <span>
-          <img
-            v-if="auth.state.user?.avatar_url"
-            class="avatar"
-            :src="resolveMediaUrl(auth.state.user.avatar_url)"
-            alt=""
-          />
-          <template v-else>◎</template>
+        <span v-else-if="tab.account && auth.state.user?.avatar_url" class="avatar-wrap">
+          <img class="avatar" :src="resolveMediaUrl(auth.state.user.avatar_url)" alt="" />
         </span>
-        Compte
-      </RouterLink>
+        <span v-else class="ico">{{ tab.icon }}</span>
+        <em>{{ tab.label }}</em>
+      </button>
     </nav>
   </div>
 </template>
@@ -199,42 +211,47 @@ const hideChrome = computed(() => !!route.meta.hideChrome)
   bottom: 0;
   width: min(560px, 100%);
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: end;
-  gap: 0.15rem;
-  padding: 0.45rem 0.5rem calc(0.55rem + env(safe-area-inset-bottom));
-  background: rgba(253, 251, 247, 0.94);
+  gap: 0;
+  padding: 0.35rem 0.25rem calc(0.45rem + env(safe-area-inset-bottom));
+  background: rgba(253, 251, 247, 0.96);
   backdrop-filter: blur(12px);
   border-top: 1px solid rgba(197, 160, 128, 0.22);
   z-index: 50;
 }
 .tab {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  justify-content: flex-end;
+  gap: 0.12rem;
+  min-height: 52px;
+  border: none;
+  background: transparent;
+  color: var(--kv-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.1rem;
+  font-family: inherit;
+}
+.tab em {
+  font-style: normal;
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--kv-muted);
-  padding: 0.35rem 0.2rem;
 }
-.tab span {
+.tab .ico {
   font-size: 1.05rem;
   line-height: 1;
 }
 .tab.active {
   color: var(--kv-brown);
 }
-.cart-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  font-size: 0.58rem;
-  font-weight: 700;
-  color: var(--kv-muted);
-  margin-top: -1.35rem;
+.tab.cart {
+  z-index: 1;
+  margin-top: -1.2rem;
 }
 .cart-bubble {
   position: relative;
@@ -248,6 +265,7 @@ const hideChrome = computed(() => !!route.meta.hideChrome)
   font-size: 1.2rem;
   box-shadow: 0 8px 18px rgba(62, 39, 35, 0.28);
   border: 2px solid rgba(212, 175, 55, 0.55);
+  pointer-events: none;
 }
 .cart-bubble i {
   position: absolute;
@@ -265,10 +283,16 @@ const hideChrome = computed(() => !!route.meta.hideChrome)
   display: grid;
   place-items: center;
 }
-.avatar {
-  width: 18px;
-  height: 18px;
+.avatar-wrap {
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(197, 160, 128, 0.5);
+}
+.avatar {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 </style>

@@ -9,7 +9,7 @@ const state = reactive({
 })
 
 export function useAuth() {
-  const isLoggedIn = computed(() => !!getToken() && !!state.user)
+  const isLoggedIn = computed(() => !!getToken())
 
   async function bootstrap() {
     if (!getToken()) {
