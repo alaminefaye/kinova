@@ -1,7 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:kinova_mobile/api/api_client.dart';
+import 'package:kinova_mobile/api/api_mappers.dart';
 import 'package:kinova_mobile/models/models.dart';
 
 class CartController extends ChangeNotifier {
+  CartController(this._api);
+
+  final ApiClient _api;
   final List<CartItem> _items = [];
   final List<Order> _orders = [];
 
@@ -48,16 +53,44 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Order placeOrder() {
-    final order = Order(
-      id: 'KV-${DateTime.now().millisecondsSinceEpoch % 100000}',
-      items: _items
-          .map((i) => CartItem(product: i.product, quantity: i.quantity))
+  void setOrders(List<Order> orders) {
+    _orders
+      ..clear()
+      ..addAll(orders);
+    notifyListeners();
+  }
+
+  Future<Order> placeOrder({
+    required String customerName,
+    required String customerPhone,
+    String? customerEmail,
+    required String address,
+    required String city,
+    required String paymentMethod,
+  }) async {
+    final res = await _api.post('/orders', body: {
+      'customer_name': customerName,
+      'customer_phone': customerPhone,
+      if (customerEmail != null && customerEmail.isNotEmpty)
+        'customer_email': customerEmail,
+      'address': address,
+      'city': city,
+      'payment_method': paymentMethod,
+      'items': _items
+          .map(
+            (i) => {
+              'product_id': int.tryParse(i.product.id) ?? i.product.id,
+              'quantity': i.quantity,
+            },
+          )
           .toList(),
-      total: total,
-      createdAt: DateTime.now(),
-      status: 'En préparation',
-    );
+    });
+
+    final data = res is Map && res['data'] is Map
+        ? Map<String, dynamic>.from(res['data'] as Map)
+        : Map<String, dynamic>.from(res as Map);
+
+    final order = ApiMappers.order(data);
     _orders.insert(0, order);
     clear();
     return order;

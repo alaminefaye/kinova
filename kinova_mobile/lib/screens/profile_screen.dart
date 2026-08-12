@@ -1,25 +1,99 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/screens/auth_screen.dart';
+import 'package:kinova_mobile/screens/favorites_screen.dart';
+import 'package:kinova_mobile/screens/help_screen.dart';
+import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
+import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
+import 'package:kinova_mobile/widgets/kinova_loader.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _loadingOrders = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadOrders());
+  }
+
+  Future<void> _loadOrders() async {
+    final auth = context.read<AuthController>();
+    if (!auth.isLoggedIn) return;
+    setState(() => _loadingOrders = true);
+    try {
+      final orders = await auth.fetchOrders();
+      if (!mounted) return;
+      context.read<CartController>().setOrders(orders);
+      await auth.refreshProfile();
+    } catch (_) {
+      // keep existing local orders
+    } finally {
+      if (mounted) setState(() => _loadingOrders = false);
+    }
+  }
+
+  String _tierLabel(String tier) {
+    return switch (tier.toLowerCase()) {
+      'vip' => 'VIP',
+      'gold' => 'OR',
+      'silver' => 'ARGENT',
+      _ => 'STANDARD',
+    };
+  }
+
+  Future<void> _openAuth() async {
+    final ok = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
+    );
+    if (ok == true && mounted) {
+      await _loadOrders();
+    }
+  }
+
+  Future<void> _logout() async {
+    final auth = context.read<AuthController>();
+    final favorites = context.read<FavoritesController>();
+    final cart = context.read<CartController>();
+    await auth.logout();
+    favorites.clearLocal();
+    cart.setOrders(const []);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
     final orders = context.watch<CartController>().orders;
+    final user = auth.user;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Compte Privilège')),
+      appBar: AppBar(
+        title: const Text('Compte Privilège'),
+        actions: [
+          if (auth.isLoggedIn)
+            IconButton(
+              onPressed: _logout,
+              icon: const Icon(Icons.logout),
+              tooltip: 'Déconnexion',
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 36),
         children: [
-          // Carte VIP Membre KINOVA
           FadeSlideIn(
             child: Container(
               padding: const EdgeInsets.all(22),
@@ -51,12 +125,15 @@ class ProfileScreen extends StatelessWidget {
                             width: 1.8,
                           ),
                         ),
-                        child: const CircleAvatar(
+                        child: CircleAvatar(
                           radius: 26,
                           backgroundColor: KinovaColors.brown,
                           child: Text(
-                            'K',
-                            style: TextStyle(
+                            (user?.name.isNotEmpty == true
+                                    ? user!.name[0]
+                                    : 'K')
+                                .toUpperCase(),
+                            style: const TextStyle(
                               fontFamily: 'PlayfairDisplay',
                               color: KinovaColors.gold,
                               fontSize: 22,
@@ -72,9 +149,9 @@ class ProfileScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                const Text(
-                                  'Membre VIP',
-                                  style: TextStyle(
+                                Text(
+                                  user != null ? user.name : 'Invité KINOVA',
+                                  style: const TextStyle(
                                     color: KinovaColors.cream,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
@@ -91,9 +168,11 @@ class ProfileScreen extends StatelessWidget {
                                     color: KinovaColors.gold,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Text(
-                                    'OR',
-                                    style: TextStyle(
+                                  child: Text(
+                                    user != null
+                                        ? _tierLabel(user.vipTier)
+                                        : 'GUEST',
+                                    style: const TextStyle(
                                       color: KinovaColors.brown,
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
@@ -103,9 +182,9 @@ class ProfileScreen extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 3),
-                            const Text(
-                              'membre.vip@kinova.com',
-                              style: TextStyle(
+                            Text(
+                              user?.email ?? 'Connectez-vous pour vos avantages',
+                              style: const TextStyle(
                                 color: KinovaColors.sand,
                                 fontSize: 12,
                               ),
@@ -127,8 +206,8 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             'FIDÉLITÉ KINOVA',
                             style: TextStyle(
                               color: KinovaColors.gold,
@@ -137,10 +216,12 @@ class ProfileScreen extends StatelessWidget {
                               letterSpacing: 1.2,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            '1 450 Points',
-                            style: TextStyle(
+                            user != null
+                                ? '${user.loyaltyPoints} Points'
+                                : '— Points',
+                            style: const TextStyle(
                               color: KinovaColors.cream,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -148,26 +229,14 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
+                      TextButton(
+                        onPressed: auth.isLoggedIn ? _loadOrders : _openAuth,
+                        style: TextButton.styleFrom(
+                          foregroundColor: KinovaColors.cream,
+                          backgroundColor: KinovaColors.gold.withOpacity(0.2),
                         ),
-                        decoration: BoxDecoration(
-                          color: KinovaColors.gold.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: KinovaColors.gold.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: const Text(
-                          'Mes Avantages',
-                          style: TextStyle(
-                            color: KinovaColors.cream,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Text(
+                          auth.isLoggedIn ? 'Actualiser' : 'Se connecter',
                         ),
                       ),
                     ],
@@ -177,8 +246,6 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-
-          // En-tête Commandes
           FadeSlideIn(
             delay: const Duration(milliseconds: 80),
             child: Row(
@@ -191,7 +258,9 @@ class ProfileScreen extends StatelessWidget {
                       ),
                 ),
                 Text(
-                  '${orders.length} commande${orders.length > 1 ? 's' : ''}',
+                  _loadingOrders
+                      ? '…'
+                      : '${orders.length} commande${orders.length > 1 ? 's' : ''}',
                   style: const TextStyle(
                     color: KinovaColors.mutedBrown,
                     fontSize: 12,
@@ -201,54 +270,31 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-
-          // Liste des Commandes (Cartes modernisées)
-          if (orders.isEmpty)
+          if (!auth.isLoggedIn)
             FadeSlideIn(
               delay: const Duration(milliseconds: 120),
-              child: Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: KinovaColors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: KinovaColors.cardShadow,
-                  border: Border.all(
-                    color: KinovaColors.gold.withOpacity(0.15),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: KinovaColors.surfaceMuted,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: KinovaColors.sand,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Aucune commande active',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Vos futurs achats apparaîtront ici.',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              child: _EmptyCard(
+                title: 'Connectez-vous',
+                subtitle: 'Retrouvez vos commandes et votre suivi livraison.',
+                icon: Icons.lock_outline,
+              ),
+            )
+          else if (_loadingOrders && orders.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 26),
+              child: KinovaLoader(
+                size: 58,
+                compact: true,
+                message: 'Chargement des commandes',
+              ),
+            )
+          else if (orders.isEmpty)
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 120),
+              child: const _EmptyCard(
+                title: 'Aucune commande active',
+                subtitle: 'Vos futurs achats apparaîtront ici.',
+                icon: Icons.shopping_bag_outlined,
               ),
             )
           else
@@ -257,100 +303,10 @@ class ProfileScreen extends StatelessWidget {
               final order = entry.value;
               return FadeSlideIn(
                 delay: Duration(milliseconds: 80 + i * 40),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: KinovaColors.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: KinovaColors.cardShadow,
-                    border: Border.all(
-                      color: KinovaColors.gold.withOpacity(0.16),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: KinovaColors.surfaceMuted,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.receipt_long_rounded,
-                          color: KinovaColors.brown,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  order.id,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE8F5E9),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    order.status,
-                                    style: const TextStyle(
-                                      color: Color(0xFF2E7D32),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Text(
-                                  '${dateFormat.format(order.createdAt)} · ${order.items.length} article${order.items.length > 1 ? 's' : ''}',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const Spacer(),
-                                Text(
-                                  formatMoney(order.total),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        color: KinovaColors.brown,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                child: _OrderCard(order: order, dateFormat: dateFormat),
               );
             }),
           const SizedBox(height: 28),
-
-          // Menu Actions & Services
           FadeSlideIn(
             delay: const Duration(milliseconds: 160),
             child: Container(
@@ -365,25 +321,68 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               child: Column(
-                children: const [
+                children: [
                   _Tile(
                     icon: Icons.local_shipping_outlined,
                     title: 'Suivi de ma livraison',
+                    onTap: () {
+                      if (orders.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Aucune commande à suivre'),
+                          ),
+                        );
+                        return;
+                      }
+                      final o = orders.first;
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: Text(o.id),
+                          content: Text(
+                            'Statut: ${o.status}\n'
+                            'Transporteur: ${o.carrier ?? '—'}\n'
+                            'Suivi: ${o.trackingNumber ?? '—'}',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                  Divider(height: 1, indent: 48, color: KinovaColors.surfaceMuted),
+                  const Divider(
+                    height: 1,
+                    indent: 48,
+                    color: KinovaColors.surfaceMuted,
+                  ),
                   _Tile(
                     icon: Icons.favorite_border_rounded,
                     title: 'Mes pièces enregistrées',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const FavoritesScreen(),
+                        ),
+                      );
+                    },
                   ),
-                  Divider(height: 1, indent: 48, color: KinovaColors.surfaceMuted),
+                  const Divider(
+                    height: 1,
+                    indent: 48,
+                    color: KinovaColors.surfaceMuted,
+                  ),
                   _Tile(
                     icon: Icons.help_outline_rounded,
                     title: 'Service Client & Assistance',
-                  ),
-                  Divider(height: 1, indent: 48, color: KinovaColors.surfaceMuted),
-                  _Tile(
-                    icon: Icons.info_outline_rounded,
-                    title: 'Maison KINOVA & Engagements',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const HelpScreen()),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -395,11 +394,162 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
+class _EmptyCard extends StatelessWidget {
+  const _EmptyCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: KinovaColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: KinovaColors.cardShadow,
+        border: Border.all(
+          color: KinovaColors.gold.withOpacity(0.15),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: KinovaColors.surfaceMuted,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: KinovaColors.sand, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({required this.order, required this.dateFormat});
+
+  final Order order;
+  final DateFormat dateFormat;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KinovaColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: KinovaColors.cardShadow,
+        border: Border.all(
+          color: KinovaColors.gold.withOpacity(0.16),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: KinovaColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: KinovaColors.brown,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      order.id,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        order.status,
+                        style: const TextStyle(
+                          color: Color(0xFF2E7D32),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${dateFormat.format(order.createdAt)} · ${order.items.length} article${order.items.length > 1 ? 's' : ''}'
+                        '${order.trackingNumber != null ? ' · ${order.trackingNumber}' : ''}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    Text(
+                      formatMoney(order.total),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: KinovaColors.brown,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Tile extends StatelessWidget {
-  const _Tile({required this.icon, required this.title});
+  const _Tile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String title;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -425,23 +575,7 @@ class _Tile extends StatelessWidget {
         color: KinovaColors.sand,
         size: 20,
       ),
-      onTap: () {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: KinovaColors.brown,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            content: Text(
-              '$title — Service KINOVA actif',
-              style: const TextStyle(color: KinovaColors.cream),
-            ),
-          ),
-        );
-      },
+      onTap: onTap,
     );
   }
 }
-

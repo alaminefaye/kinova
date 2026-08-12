@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\ContactMessageController as AdminContactMessageController;
 use App\Http\Controllers\Api\Admin\DashboardController;
+use App\Http\Controllers\Api\Admin\HeroSlideController as AdminHeroSlideController;
 use App\Http\Controllers\Api\Admin\LoyaltyController as AdminLoyaltyController;
 use App\Http\Controllers\Api\Admin\MediaController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\HeroSlideController;
 use App\Http\Controllers\Api\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Api\Customer\FavoriteController;
 use App\Http\Controllers\Api\Customer\LoyaltyController as CustomerLoyaltyController;
@@ -36,6 +38,7 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
+Route::get('/hero-slides', [HeroSlideController::class, 'index']);
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/{reference}', [OrderController::class, 'show']);
 Route::get('/help', [ContactController::class, 'help']);
@@ -94,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', DashboardController::class);
         Route::apiResource('categories', AdminCategoryController::class);
         Route::apiResource('products', AdminProductController::class);
+        Route::apiResource('hero-slides', AdminHeroSlideController::class);
         Route::apiResource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
 
         Route::post('/media', [MediaController::class, 'store']);

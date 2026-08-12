@@ -5,6 +5,7 @@ import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
+import 'package:kinova_mobile/widgets/cart_fly.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -164,8 +165,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   context.read<CartController>().add(product, quantity: _qty);
+                  CartFly.fly(context, product.imageUrl);
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
+                      duration: const Duration(milliseconds: 1400),
                       backgroundColor: KinovaColors.brown,
                       behavior: SnackBarBehavior.floating,
                       content: Text(

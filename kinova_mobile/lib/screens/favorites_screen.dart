@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kinova_mobile/data/shop_data.dart';
+import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
@@ -12,8 +12,10 @@ class FavoritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fav = context.watch<FavoritesController>();
-    final products =
-        ShopData.products.where((p) => fav.ids.contains(p.id)).toList();
+    final catalog = context.watch<CatalogController>();
+    final products = fav.products.isNotEmpty
+        ? fav.products
+        : catalog.products.where((p) => fav.ids.contains(p.id)).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Favoris')),

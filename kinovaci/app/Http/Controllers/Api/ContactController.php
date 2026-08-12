@@ -49,7 +49,7 @@ class ContactController extends Controller
                     ],
                     [
                         'q' => 'Comment fonctionnent les points VIP ?',
-                        'a' => '1 € dépensé = 1 point. Les paliers débloquent Silver, Gold puis VIP.',
+                        'a' => '1 FCFA dépensé = 1 point. Les paliers débloquent Silver, Gold puis VIP.',
                     ],
                     [
                         'q' => 'Puis-je retourner un article ?',

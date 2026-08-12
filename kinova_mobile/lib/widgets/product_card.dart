@@ -6,6 +6,7 @@ import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
+import 'package:kinova_mobile/widgets/cart_fly.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 
 class ProductCard extends StatelessWidget {
@@ -27,7 +28,8 @@ class ProductCard extends StatelessWidget {
     final cart = context.read<CartController>();
     final tagToUse = heroTag ?? 'product-${product.id}';
 
-    return Container(
+    return PressableScale(
+      child: Container(
       width: width,
       decoration: BoxDecoration(
         color: KinovaColors.surface,
@@ -235,36 +237,8 @@ class ProductCard extends StatelessWidget {
                         GestureDetector(
                           onTap: () {
                             cart.add(product);
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                duration: const Duration(milliseconds: 1400),
-                                backgroundColor: KinovaColors.brown,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                content: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.check_circle_outline,
-                                      color: KinovaColors.gold,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        '${product.name} ajouté au panier',
-                                        style: const TextStyle(
-                                          color: KinovaColors.cream,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
+                            // Le produit s'envole vers le panier
+                            CartFly.fly(context, product.imageUrl);
                           },
                           child: Container(
                             width: 30,
@@ -295,6 +269,7 @@ class ProductCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

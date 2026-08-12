@@ -1,6 +1,6 @@
 # KINOVA — Backend & Dashboard (procédure)
 
-> L’app mobile **n’est pas encore connectée**. On prépare API + dashboard d’abord.
+> Mobile Flutter branché sur la prod : `https://kinovaci.com/api` (`kinova_mobile/lib/api/api_config.dart`).
 
 ## Structure
 
@@ -35,6 +35,7 @@ Pages admin :
 - `/` Dashboard
 - `/products` CRUD + upload image
 - `/categories` CRUD
+- `/hero-slides` CRUD slider accueil
 - `/orders` statut + tracking livraison
 - `/notifications` envoi / historique
 - `/contact-messages` aide & contact
@@ -56,6 +57,7 @@ Pages admin :
 | GET | `/api/categories/{id}` | Détail + produits |
 | GET | `/api/products` | Liste (`?category=`, `?featured=1`, `?new=1`, `?q=`) |
 | GET | `/api/products/{id}` | Détail produit |
+| GET | `/api/hero-slides` | Slides actifs du carrousel accueil |
 | POST | `/api/orders` | Créer commande (optionnel Bearer client) |
 | GET | `/api/orders/{reference}` | Suivi commande (tracking inclus) |
 | GET | `/api/help` | FAQ + contacts |
@@ -93,6 +95,7 @@ Pages admin :
 | GET | `/api/admin/dashboard` | Stats |
 | CRUD | `/api/admin/categories` | Catégories |
 | CRUD | `/api/admin/products` | Produits |
+| CRUD | `/api/admin/hero-slides` | Slider accueil (app mobile) |
 | GET/PUT | `/api/admin/orders` | Commandes / statut / tracking |
 | POST | `/api/admin/media` | Upload image (`multipart` field `image`) |
 | GET/POST/DELETE | `/api/admin/notifications` | Notifications |
@@ -109,7 +112,7 @@ Pages admin :
 | gold | 1500 |
 | vip | 3000 |
 
-À la livraison d’une commande liée à un compte : **1 € ≈ 1 point** (+ notification).
+À la livraison d’une commande liée à un compte : **1 FCFA ≈ 1 point** (+ notification).
 
 ## Seed démo
 
@@ -117,6 +120,6 @@ Pages admin :
 - 1 admin + 1 client
 - favoris, commande avec tracking, notifications, message contact, bonus points
 
-## Prochaine étape (plus tard)
+## Mobile
 
-Connecter `kinova_mobile` aux endpoints ci-dessus à la place des mocks `ShopData`.
+L’app `kinova_mobile` utilise ces endpoints. Compte démo client : `client@kinova.test` / `password`.

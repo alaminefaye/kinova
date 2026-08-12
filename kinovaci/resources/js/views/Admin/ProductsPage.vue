@@ -119,7 +119,7 @@ async function onUpload(e: Event) {
 }
 
 const money = (v: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(Number(v) || 0)
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(Number(v) || 0)
 
 onMounted(load)
 </script>

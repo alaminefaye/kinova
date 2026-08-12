@@ -3,11 +3,33 @@ class Category {
     required this.id,
     required this.name,
     required this.imageUrl,
+    this.slug = '',
   });
 
   final String id;
   final String name;
   final String imageUrl;
+  final String slug;
+}
+
+class HeroSlide {
+  const HeroSlide({
+    required this.id,
+    required this.title,
+    required this.imageUrl,
+    this.tag = '',
+    this.ctaLabel = 'DÉCOUVRIR',
+    this.linkType = 'catalog',
+    this.linkValue,
+  });
+
+  final String id;
+  final String title;
+  final String imageUrl;
+  final String tag;
+  final String ctaLabel;
+  final String linkType;
+  final String? linkValue;
 }
 
 class Product {
@@ -57,6 +79,8 @@ class Order {
     required this.total,
     required this.createdAt,
     required this.status,
+    this.trackingNumber,
+    this.carrier,
   });
 
   final String id;
@@ -64,4 +88,41 @@ class Order {
   final double total;
   final DateTime createdAt;
   final String status;
+  final String? trackingNumber;
+  final String? carrier;
+}
+
+class AppUser {
+  const AppUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.phone,
+    this.address,
+    this.city,
+    this.loyaltyPoints = 0,
+    this.vipTier = 'standard',
+  });
+
+  final String id;
+  final String name;
+  final String email;
+  final String? phone;
+  final String? address;
+  final String? city;
+  final int loyaltyPoints;
+  final String vipTier;
+
+  factory AppUser.fromJson(Map<String, dynamic> json) {
+    return AppUser(
+      id: '${json['id']}',
+      name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      phone: json['phone']?.toString(),
+      address: json['address']?.toString(),
+      city: json['city']?.toString(),
+      loyaltyPoints: int.tryParse('${json['loyalty_points'] ?? 0}') ?? 0,
+      vipTier: (json['vip_tier'] ?? 'standard').toString(),
+    );
+  }
 }

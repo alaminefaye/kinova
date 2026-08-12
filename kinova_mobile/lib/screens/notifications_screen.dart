@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:kinova_mobile/api/api_client.dart';
+import 'package:kinova_mobile/api/api_exception.dart';
+import 'package:kinova_mobile/screens/auth_screen.dart';
+import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
+import 'package:kinova_mobile/widgets/kinova_loader.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 
 class NotificationItem {
@@ -9,7 +16,7 @@ class NotificationItem {
   final String time;
   final IconData icon;
   final Color iconColor;
-  final String category; // 'order', 'vip', 'promo'
+  final String category;
   bool isRead;
 
   NotificationItem({
@@ -33,53 +40,83 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   String _selectedFilter = 'all';
+  final List<NotificationItem> _notifications = [];
+  bool _loading = true;
+  String? _error;
 
-  final List<NotificationItem> _notifications = [
-    NotificationItem(
-      id: 'n1',
-      title: 'Commande #KN-8492 Expédiée 📦',
-      message:
-          'Votre commande contenant le Sérum Rose Dorée a été confiée à Chronopost. Numéro de suivi : 6A0948271.',
-      time: 'Il y a 2h',
-      icon: Icons.local_shipping_rounded,
-      iconColor: KinovaColors.brown,
-      category: 'order',
-      isRead: false,
-    ),
-    NotificationItem(
-      id: 'n2',
-      title: 'Bonus VIP KINOVA Crédité 👑',
-      message:
-          'Félicitations ! Vos +200 Points de fidélité ont été crédités sur votre compte suite à votre dernier achat.',
-      time: 'Hier, 16:45',
-      icon: Icons.workspace_premium_rounded,
-      iconColor: KinovaColors.goldRich,
-      category: 'vip',
-      isRead: false,
-    ),
-    NotificationItem(
-      id: 'n3',
-      title: 'Nouvelle Collection 2026 ✨',
-      message:
-          'Découvrez notre nouvelle ligne de soins d’exception et d’accessoires en cuir grainé couleur sable.',
-      time: 'Il y a 2 jours',
-      icon: Icons.auto_awesome_rounded,
-      iconColor: KinovaColors.gold,
-      category: 'promo',
-      isRead: false,
-    ),
-    NotificationItem(
-      id: 'n4',
-      title: 'Livraison Confirmée ✔️',
-      message:
-          'Votre colis pour la commande #KN-8210 a été déposé dans votre boîte aux lettres avec succès.',
-      time: 'Il y a 5 jours',
-      icon: Icons.check_circle_outline_rounded,
-      iconColor: Colors.green.shade700,
-      category: 'order',
-      isRead: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    final auth = context.read<AuthController>();
+    if (!auth.isLoggedIn) {
+      setState(() {
+        _loading = false;
+        _notifications.clear();
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final res = await context.read<ApiClient>().get('/customer/notifications');
+      final list = res is Map && res['data'] is List ? res['data'] as List : const [];
+      final mapped = list.whereType<Map>().map((raw) {
+        final json = Map<String, dynamic>.from(raw);
+        final category = (json['category'] ?? 'system').toString();
+        final created = DateTime.tryParse('${json['created_at']}');
+        return NotificationItem(
+          id: '${json['id']}',
+          title: (json['title'] ?? '').toString(),
+          message: (json['message'] ?? '').toString(),
+          time: created != null
+              ? DateFormat('dd/MM/yyyy HH:mm').format(created.toLocal())
+              : '',
+          icon: _iconFor(category),
+          iconColor: _colorFor(category),
+          category: category,
+          isRead: json['is_read'] == true || json['is_read'] == 1,
+        );
+      }).toList();
+
+      setState(() {
+        _notifications
+          ..clear()
+          ..addAll(mapped);
+      });
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  IconData _iconFor(String category) {
+    return switch (category) {
+      'order' => Icons.local_shipping_rounded,
+      'vip' => Icons.workspace_premium_rounded,
+      'promo' => Icons.auto_awesome_rounded,
+      _ => Icons.notifications_rounded,
+    };
+  }
+
+  Color _colorFor(String category) {
+    return switch (category) {
+      'order' => KinovaColors.brown,
+      'vip' => KinovaColors.goldRich,
+      'promo' => KinovaColors.gold,
+      _ => KinovaColors.sand,
+    };
+  }
 
   List<NotificationItem> get _filteredNotifications {
     if (_selectedFilter == 'unread') {
@@ -87,27 +124,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } else if (_selectedFilter == 'order') {
       return _notifications.where((n) => n.category == 'order').toList();
     } else if (_selectedFilter == 'vip') {
-      return _notifications.where((n) => n.category == 'vip' || n.category == 'promo').toList();
+      return _notifications
+          .where((n) => n.category == 'vip' || n.category == 'promo')
+          .toList();
     }
     return _notifications;
   }
 
-  void _markAllAsRead() {
+  Future<void> _markAllAsRead() async {
     setState(() {
-      for (var item in _notifications) {
+      for (final item in _notifications) {
         item.isRead = true;
       }
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Toutes les notifications ont été marquées comme lues.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      await context.read<ApiClient>().post('/customer/notifications/read-all');
+    } catch (_) {}
+  }
+
+  Future<void> _markRead(NotificationItem item) async {
+    setState(() => item.isRead = true);
+    try {
+      await context
+          .read<ApiClient>()
+          .post('/customer/notifications/${item.id}/read');
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
     final unreadCount = _notifications.where((n) => !n.isRead).length;
 
     return Scaffold(
@@ -115,7 +161,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: const Text('Notifications'),
         centerTitle: true,
         actions: [
-          if (unreadCount > 0)
+          if (auth.isLoggedIn && unreadCount > 0)
             TextButton.icon(
               onPressed: _markAllAsRead,
               icon: const Icon(
@@ -135,192 +181,203 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(width: 6),
         ],
       ),
-      body: Column(
-        children: [
-          // Pills de filtrage
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+      body: !auth.isLoggedIn
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _FilterPill(
-                    label: 'Toutes (${_notifications.length})',
-                    isSelected: _selectedFilter == 'all',
-                    onTap: () => setState(() => _selectedFilter = 'all'),
-                  ),
-                  const SizedBox(width: 10),
-                  _FilterPill(
-                    label: 'Non lues ($unreadCount)',
-                    isSelected: _selectedFilter == 'unread',
-                    onTap: () => setState(() => _selectedFilter = 'unread'),
-                  ),
-                  const SizedBox(width: 10),
-                  _FilterPill(
-                    label: 'Commandes',
-                    isSelected: _selectedFilter == 'order',
-                    onTap: () => setState(() => _selectedFilter = 'order'),
-                  ),
-                  const SizedBox(width: 10),
-                  _FilterPill(
-                    label: 'Offres & VIP',
-                    isSelected: _selectedFilter == 'vip',
-                    onTap: () => setState(() => _selectedFilter = 'vip'),
+                  const Text('Connectez-vous pour vos notifications'),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final ok = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(builder: (_) => const AuthScreen()),
+                      );
+                      if (ok == true) _load();
+                    },
+                    child: const Text('Se connecter'),
                   ),
                 ],
               ),
-            ),
-          ),
-
-          // Liste des Notifications
-          Expanded(
-            child: _filteredNotifications.isEmpty
-                ? Center(
-                    child: FadeSlideIn(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: KinovaColors.surface,
-                              shape: BoxShape.circle,
-                              boxShadow: KinovaColors.cardShadow,
+            )
+          : _loading
+              ? const KinovaLoader(message: 'Chargement des notifications')
+              : Column(
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _FilterPill(
+                              label: 'Toutes (${_notifications.length})',
+                              isSelected: _selectedFilter == 'all',
+                              onTap: () => setState(() => _selectedFilter = 'all'),
                             ),
-                            child: const Icon(
-                              Icons.notifications_off_outlined,
-                              size: 44,
-                              color: KinovaColors.sand,
+                            const SizedBox(width: 10),
+                            _FilterPill(
+                              label: 'Non lues ($unreadCount)',
+                              isSelected: _selectedFilter == 'unread',
+                              onTap: () =>
+                                  setState(() => _selectedFilter = 'unread'),
                             ),
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            'Aucune notification',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Vous êtes à jour ! Vos notifications apparaîtront ici.',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            _FilterPill(
+                              label: 'Commandes',
+                              isSelected: _selectedFilter == 'order',
+                              onTap: () =>
+                                  setState(() => _selectedFilter = 'order'),
+                            ),
+                            const SizedBox(width: 10),
+                            _FilterPill(
+                              label: 'Offres & VIP',
+                              isSelected: _selectedFilter == 'vip',
+                              onTap: () => setState(() => _selectedFilter = 'vip'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: _filteredNotifications.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = _filteredNotifications[index];
-                      return FadeSlideIn(
-                        delay: Duration(milliseconds: 50 * index),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              item.isRead = true;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: item.isRead
-                                  ? KinovaColors.surface.withOpacity(0.7)
-                                  : KinovaColors.surface,
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: item.isRead ? [] : KinovaColors.cardShadow,
-                              border: Border.all(
-                                color: item.isRead
-                                    ? KinovaColors.gold.withOpacity(0.1)
-                                    : KinovaColors.gold.withOpacity(0.35),
-                                width: item.isRead ? 0.8 : 1.2,
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Icône de catégorie
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: item.iconColor.withOpacity(0.12),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    item.icon,
-                                    color: item.iconColor,
-                                    size: 20,
-                                  ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _load,
+                        child: _filteredNotifications.isEmpty
+                            ? ListView(
+                                children: const [
+                                  SizedBox(height: 120),
+                                  Center(child: Text('Aucune notification')),
+                                ],
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
+                                physics: const AlwaysScrollableScrollPhysics(
+                                  parent: BouncingScrollPhysics(),
                                 ),
-                                const SizedBox(width: 14),
-                                // Détails
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              item.title,
-                                              style: TextStyle(
-                                                color: KinovaColors.brown,
-                                                fontSize: 14,
-                                                fontWeight: item.isRead
-                                                    ? FontWeight.w600
-                                                    : FontWeight.w800,
-                                              ),
-                                            ),
+                                itemCount: _filteredNotifications.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (context, index) {
+                                  final item = _filteredNotifications[index];
+                                  return FadeSlideIn(
+                                    delay: Duration(milliseconds: 50 * index),
+                                    child: GestureDetector(
+                                      onTap: () => _markRead(item),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 300),
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: item.isRead
+                                              ? KinovaColors.surface
+                                                  .withOpacity(0.7)
+                                              : KinovaColors.surface,
+                                          borderRadius: BorderRadius.circular(18),
+                                          boxShadow: item.isRead
+                                              ? []
+                                              : KinovaColors.cardShadow,
+                                          border: Border.all(
+                                            color: item.isRead
+                                                ? KinovaColors.gold
+                                                    .withOpacity(0.1)
+                                                : KinovaColors.gold
+                                                    .withOpacity(0.35),
+                                            width: item.isRead ? 0.8 : 1.2,
                                           ),
-                                          if (!item.isRead)
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
                                             Container(
-                                              width: 8,
-                                              height: 8,
-                                              margin: const EdgeInsets.only(left: 6),
-                                              decoration: const BoxDecoration(
-                                                color: KinovaColors.goldRich,
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                color: item.iconColor
+                                                    .withOpacity(0.12),
                                                 shape: BoxShape.circle,
                                               ),
+                                              child: Icon(
+                                                item.icon,
+                                                color: item.iconColor,
+                                                size: 20,
+                                              ),
                                             ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        item.message,
-                                        style: TextStyle(
-                                          color: item.isRead
-                                              ? KinovaColors.mutedBrown.withOpacity(0.7)
-                                              : KinovaColors.mutedBrown,
-                                          fontSize: 12.5,
-                                          height: 1.35,
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          item.title,
+                                                          style: TextStyle(
+                                                            color:
+                                                                KinovaColors.brown,
+                                                            fontSize: 14,
+                                                            fontWeight: item.isRead
+                                                                ? FontWeight.w600
+                                                                : FontWeight.w800,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      if (!item.isRead)
+                                                        Container(
+                                                          width: 8,
+                                                          height: 8,
+                                                          margin:
+                                                              const EdgeInsets.only(
+                                                            left: 6,
+                                                          ),
+                                                          decoration:
+                                                              const BoxDecoration(
+                                                            color: KinovaColors
+                                                                .goldRich,
+                                                            shape:
+                                                                BoxShape.circle,
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Text(
+                                                    item.message,
+                                                    style: TextStyle(
+                                                      color: KinovaColors
+                                                          .mutedBrown,
+                                                      fontSize: 12.5,
+                                                      height: 1.35,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    item.time,
+                                                    style: const TextStyle(
+                                                      color: KinovaColors.sand,
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        item.time,
-                                        style: TextStyle(
-                                          color: KinovaColors.sand,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
     );
   }
 }

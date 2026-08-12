@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/order_success_screen.dart';
+import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
@@ -21,6 +23,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _city = TextEditingController();
   String _payment = 'card';
   bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthController>().user;
+      if (user == null || !mounted) return;
+      setState(() {
+        _name.text = user.name;
+        _phone.text = user.phone ?? '';
+        _address.text = user.address ?? '';
+        _city.text = user.city ?? '';
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -33,21 +51,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    final order = context.read<CartController>().placeOrder();
-    setState(() => _submitting = false);
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, animation, _) => FadeTransition(
-          opacity: animation,
-          child: OrderSuccessScreen(order: order),
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final auth = context.read<AuthController>();
+      final order = await context.read<CartController>().placeOrder(
+            customerName: _name.text.trim(),
+            customerPhone: _phone.text.trim(),
+            customerEmail: auth.user?.email,
+            address: _address.text.trim(),
+            city: _city.text.trim(),
+            paymentMethod: _payment,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 500),
+          pageBuilder: (_, animation, _) => FadeTransition(
+            opacity: animation,
+            child: OrderSuccessScreen(order: order),
+          ),
         ),
-      ),
-    );
+      );
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -155,6 +189,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            ],
             const SizedBox(height: 24),
             FadeSlideIn(
               delay: const Duration(milliseconds: 280),

@@ -1,7 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
+import 'package:kinova_mobile/state/auth_controller.dart';
+import 'package:kinova_mobile/state/catalog_controller.dart';
+import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/animated_logo_badge.dart';
 
@@ -21,8 +24,6 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _textFade;
   late final Animation<Offset> _textSlide;
   late final Animation<double> _lineWidth;
-
-  Timer? _autoNavTimer;
 
   @override
   void initState() {
@@ -85,9 +86,38 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
+    // Attendre la fin du premier build pour éviter notifyListeners pendant build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrapAndNavigate();
+    });
+  }
 
-    // Transition automatique au bout de 5 secondes
-    _autoNavTimer = Timer(const Duration(seconds: 5), _navigateToHome);
+  Future<void> _bootstrapAndNavigate() async {
+    if (!mounted) return;
+    final started = DateTime.now();
+    final catalog = context.read<CatalogController>();
+    final auth = context.read<AuthController>();
+    final favorites = context.read<FavoritesController>();
+
+    await Future.wait([
+      catalog.load(),
+      auth.bootstrap(),
+    ]);
+
+    if (auth.isLoggedIn) {
+      try {
+        await favorites.loadFromApi();
+      } catch (_) {}
+    }
+
+    final elapsed = DateTime.now().difference(started);
+    const minSplash = Duration(milliseconds: 2200);
+    if (elapsed < minSplash) {
+      await Future<void>.delayed(minSplash - elapsed);
+    }
+
+    if (!mounted) return;
+    _navigateToHome();
   }
 
   void _navigateToHome() {
@@ -122,7 +152,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _autoNavTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

@@ -6,6 +6,7 @@ use App\Models\AppNotification;
 use App\Models\Category;
 use App\Models\ContactMessage;
 use App\Models\Favorite;
+use App\Models\HeroSlide;
 use App\Models\LoyaltyTransaction;
 use App\Models\Order;
 use App\Models\Product;
@@ -76,6 +77,41 @@ class KinovaSeeder extends Seeder
                 $category + ['is_active' => true]
             );
             $categoryIds[$category['slug']] = $model->id;
+        }
+
+        $heroSlides = [
+            [
+                'title' => "Une sélection\npremium pour vous",
+                'tag' => 'COLLECTION 2026',
+                'image_url' => 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&q=80',
+                'cta_label' => 'DÉCOUVRIR',
+                'link_type' => 'catalog',
+                'sort_order' => 1,
+            ],
+            [
+                'title' => "Savoir-Faire\n& Art de Vivre",
+                'tag' => 'ÉDITION LIMITÉE',
+                'image_url' => 'https://images.unsplash.com/photo-1603006905003-be21c6d3c0d6?w=1200&q=80',
+                'cta_label' => 'EXPLORER',
+                'link_type' => 'catalog',
+                'sort_order' => 2,
+            ],
+            [
+                'title' => "Cuir & Finitions\nOr Métallique",
+                'tag' => 'ACCESSOIRES',
+                'image_url' => 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1200&q=80',
+                'cta_label' => 'VOIR LA SÉLECTION',
+                'link_type' => 'category',
+                'link_value' => (string) $categoryIds['accessories'],
+                'sort_order' => 3,
+            ],
+        ];
+
+        foreach ($heroSlides as $slide) {
+            HeroSlide::query()->updateOrCreate(
+                ['sort_order' => $slide['sort_order'], 'tag' => $slide['tag']],
+                $slide + ['is_active' => true, 'link_value' => $slide['link_value'] ?? null]
+            );
         }
 
         $products = [

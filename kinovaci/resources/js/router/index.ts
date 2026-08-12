@@ -26,6 +26,12 @@ const router = createRouter({
       meta: { title: 'Catégories', requiresAuth: true },
     },
     {
+      path: '/hero-slides',
+      name: 'HeroSlides',
+      component: () => import('../views/Admin/HeroSlidesPage.vue'),
+      meta: { title: 'Slider Accueil', requiresAuth: true },
+    },
+    {
       path: '/orders',
       name: 'Orders',
       component: () => import('../views/Admin/OrdersPage.vue'),

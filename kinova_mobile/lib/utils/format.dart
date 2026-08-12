@@ -1,9 +1,6 @@
 import 'package:intl/intl.dart';
 
-final moneyFormat = NumberFormat.currency(
-  locale: 'en_US',
-  symbol: '€',
-  decimalDigits: 2,
-);
+final _amountFormat = NumberFormat('#,##0', 'fr_FR');
 
-String formatMoney(num value) => moneyFormat.format(value);
+/// Montants en Franc CFA (sans décimales), ex. `12 500 FCFA`.
+String formatMoney(num value) => '${_amountFormat.format(value.round())} FCFA';

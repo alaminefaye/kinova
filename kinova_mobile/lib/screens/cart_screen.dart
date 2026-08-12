@@ -51,7 +51,24 @@ class CartScreen extends StatelessWidget {
                       final item = cart.items[index];
                       return FadeSlideIn(
                         delay: Duration(milliseconds: 40 * index),
-                        child: Container(
+                        child: Dismissible(
+                          key: ValueKey(item.product.id),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (_) => cart.remove(item.product.id),
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 22),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC62828),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: KinovaColors.surface,
@@ -102,39 +119,71 @@ class CartScreen extends StatelessWidget {
                                     const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        _MiniQty(
-                                          icon: Icons.remove,
-                                          onTap: () => cart.setQuantity(
-                                            item.product.id,
-                                            item.quantity - 1,
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: Text(
-                                            '${item.quantity}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: KinovaColors.surfaceMuted,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: KinovaColors.gold
+                                                  .withOpacity(0.3),
                                             ),
                                           ),
-                                        ),
-                                        _MiniQty(
-                                          icon: Icons.add,
-                                          onTap: () => cart.setQuantity(
-                                            item.product.id,
-                                            item.quantity + 1,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              _MiniQty(
+                                                icon: Icons.remove_rounded,
+                                                onTap: () => cart.setQuantity(
+                                                  item.product.id,
+                                                  item.quantity - 1,
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding: const EdgeInsets
+                                                    .symmetric(horizontal: 10),
+                                                child: AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                    milliseconds: 200,
+                                                  ),
+                                                  transitionBuilder:
+                                                      (child, anim) =>
+                                                          ScaleTransition(
+                                                    scale: anim,
+                                                    child: child,
+                                                  ),
+                                                  child: Text(
+                                                    '${item.quantity}',
+                                                    key: ValueKey(
+                                                      item.quantity,
+                                                    ),
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      fontSize: 13.5,
+                                                      color:
+                                                          KinovaColors.brown,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              _MiniQty(
+                                                icon: Icons.add_rounded,
+                                                onTap: () => cart.setQuantity(
+                                                  item.product.id,
+                                                  item.quantity + 1,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                         const Spacer(),
-                                        IconButton(
-                                          onPressed: () =>
-                                              cart.remove(item.product.id),
-                                          icon: const Icon(
-                                            Icons.delete_outline_rounded,
-                                            color: KinovaColors.mutedBrown,
-                                            size: 20,
+                                        Text(
+                                          formatMoney(item.lineTotal),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13,
+                                            color: KinovaColors.brown,
                                           ),
                                         ),
                                       ],
@@ -143,6 +192,7 @@ class CartScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
                           ),
                         ),
                       );
@@ -249,17 +299,18 @@ class _MiniQty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 28,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          border: Border.all(color: KinovaColors.sand),
-          borderRadius: BorderRadius.circular(4),
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          child: Icon(icon, size: 16, color: KinovaColors.brown),
         ),
-        child: Icon(icon, size: 14, color: KinovaColors.brown),
       ),
     );
   }

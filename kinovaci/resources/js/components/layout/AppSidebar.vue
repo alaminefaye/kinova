@@ -253,6 +253,11 @@ const menuGroups = [
         path: "/categories",
       },
       {
+        icon: PageIcon,
+        name: "Slider Accueil",
+        path: "/hero-slides",
+      },
+      {
         icon: TableIcon,
         name: "Commandes",
         path: "/orders",
