@@ -1,3 +1,5 @@
+import 'package:kinova_mobile/api/api_config.dart';
+
 class Category {
   const Category({
     required this.id,
@@ -118,12 +120,15 @@ class AppUser {
   factory AppUser.fromJson(Map<String, dynamic> json) {
     final email = json['email']?.toString();
     final avatar = json['avatar_url']?.toString();
+    final resolved = (avatar == null || avatar.isEmpty)
+        ? null
+        : ApiConfig.resolveMediaUrl(avatar);
     return AppUser(
       id: '${json['id']}',
       name: (json['name'] ?? '').toString(),
       email: (email == null || email.isEmpty) ? null : email,
       phone: json['phone']?.toString(),
-      avatarUrl: (avatar == null || avatar.isEmpty) ? null : avatar,
+      avatarUrl: (resolved == null || resolved.isEmpty) ? null : resolved,
       address: json['address']?.toString(),
       city: json['city']?.toString(),
       loyaltyPoints: int.tryParse('${json['loyalty_points'] ?? 0}') ?? 0,

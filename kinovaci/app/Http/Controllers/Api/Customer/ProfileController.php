@@ -67,11 +67,14 @@ class ProfileController extends Controller
         $file = $request->file('avatar');
         $name = Str::uuid().'.'.$file->getClientOriginalExtension();
         $path = $file->storeAs('avatars', $name, 'public');
-        $url = Storage::disk('public')->url($path);
+
+        // URL absolue utilisable par l'app mobile
+        $url = $this->absoluteUrl(Storage::disk('public')->url($path));
 
         // Supprime l'ancienne image locale si possible
-        if ($user->avatar_url && str_contains($user->avatar_url, '/storage/avatars/')) {
-            $old = str_replace('/storage/', '', parse_url($user->avatar_url, PHP_URL_PATH) ?? '');
+        if ($user->avatar_url && str_contains((string) $user->avatar_url, '/storage/avatars/')) {
+            $oldPath = parse_url((string) $user->avatar_url, PHP_URL_PATH) ?: '';
+            $old = ltrim(str_replace('/storage/', '', $oldPath), '/');
             if ($old !== '') {
                 Storage::disk('public')->delete($old);
             }
@@ -126,12 +129,25 @@ class ProfileController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
-            'avatar_url' => $user->avatar_url,
+            'avatar_url' => $this->absoluteUrl($user->avatar_url),
             'address' => $user->address,
             'city' => $user->city,
             'loyalty_points' => $user->loyalty_points,
             'vip_tier' => $user->vip_tier,
             'role' => $user->role,
         ];
+    }
+
+    private function absoluteUrl(?string $url): ?string
+    {
+        if ($url === null || trim($url) === '') {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        return url($url);
     }
 }

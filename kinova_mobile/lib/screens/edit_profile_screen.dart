@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
+import 'package:kinova_mobile/widgets/kinova_avatar.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -130,33 +131,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Center(
               child: Stack(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: KinovaColors.gold, width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 48,
-                      backgroundColor: KinovaColors.brown,
-                      backgroundImage: user?.avatarUrl != null
-                          ? NetworkImage(user!.avatarUrl!)
-                          : null,
-                      child: user?.avatarUrl == null
-                          ? Text(
-                              (user?.name.isNotEmpty == true
-                                      ? user!.name[0]
-                                      : 'K')
-                                  .toUpperCase(),
-                              style: const TextStyle(
-                                fontFamily: 'PlayfairDisplay',
-                                color: KinovaColors.gold,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : null,
-                    ),
+                  KinovaAvatar(
+                    name: user?.name ?? 'K',
+                    imageUrl: user?.avatarUrl,
+                    radius: 48,
                   ),
                   Positioned(
                     right: 0,

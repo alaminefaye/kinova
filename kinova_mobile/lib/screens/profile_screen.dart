@@ -12,6 +12,7 @@ import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
+import 'package:kinova_mobile/widgets/kinova_avatar.dart';
 import 'package:kinova_mobile/widgets/kinova_loader.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 
@@ -143,36 +144,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: KinovaColors.gold,
-                            width: 1.8,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          radius: 26,
-                          backgroundColor: KinovaColors.brown,
-                          backgroundImage: user?.avatarUrl != null
-                              ? NetworkImage(user!.avatarUrl!)
-                              : null,
-                          child: user?.avatarUrl == null
-                              ? Text(
-                                  (user?.name.isNotEmpty == true
-                                          ? user!.name[0]
-                                          : 'K')
-                                      .toUpperCase(),
-                                  style: const TextStyle(
-                                    fontFamily: 'PlayfairDisplay',
-                                    color: KinovaColors.gold,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                )
-                              : null,
-                        ),
+                      KinovaAvatar(
+                        name: user?.name ?? 'K',
+                        imageUrl: user?.avatarUrl,
+                        radius: 26,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
