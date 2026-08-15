@@ -309,15 +309,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Row(
                               children: [
-                                const Text(
-                                  'Espace Administrateur',
-                                  style: TextStyle(
-                                    color: KinovaColors.cream,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 15,
+                                const Flexible(
+                                  child: Text(
+                                    'Espace Administrateur',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: KinovaColors.cream,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14.5,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
