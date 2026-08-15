@@ -48,7 +48,9 @@
 		</dict>
 	</dict>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>KINOVA a besoin d’accéder à vos photos pour votre avatar de profil.</string>
+	<string>KINOVA a besoin d’accéder à vos photos pour vos photos de profil et images de produits.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>KINOVA a besoin d’accéder à votre appareil photo pour capturer des images de produits.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

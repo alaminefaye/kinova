@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_config.dart';
+import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
@@ -1986,6 +1989,8 @@ class _ProductFormModalState extends State<_ProductFormModal> {
   int? _selectedCategoryId;
   List<dynamic> _categories = [];
   bool _saving = false;
+  bool _uploadingImage = false;
+  File? _pickedImageFile;
   String? _error;
 
   @override
@@ -2028,6 +2033,58 @@ class _ProductFormModalState extends State<_ProductFormModal> {
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final file = File(picked.path);
+      setState(() {
+        _pickedImageFile = file;
+        _uploadingImage = true;
+        _error = null;
+      });
+
+      if (!mounted) return;
+      final api = context.read<ApiClient>();
+      final res = await api.postMultipart('/admin/media', field: 'image', file: file);
+
+      if (res is Map && res['data'] is Map) {
+        final rawUrl = res['data']['url']?.toString() ?? res['data']['path']?.toString() ?? '';
+        final resolved = ApiConfig.resolveMediaUrl(rawUrl);
+        if (mounted) {
+          setState(() {
+            _imageUrlController.text = resolved;
+            _uploadingImage = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image importée avec succès !'),
+              backgroundColor: KinovaColors.brown,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        throw ApiException('Réponse inattendue du serveur');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _uploadingImage = false;
+          _error = 'Erreur lors du téléversement de l\'image : $e';
+        });
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -2241,12 +2298,173 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                 ),
                 const SizedBox(height: 12),
 
-                // Image URL
-                _buildInputLabel('URL de l\'image'),
-                TextFormField(
-                  controller: _imageUrlController,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                  decoration: _buildInputDecoration('https://... ou /images/...'),
+                // Image du Produit (Upload & URL)
+                _buildInputLabel('Photo du Produit'),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22160F),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Zone d'aperçu
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 140,
+                          width: double.infinity,
+                          color: const Color(0xFF140D08),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              if (_pickedImageFile != null)
+                                Image.file(
+                                  _pickedImageFile!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: 140,
+                                )
+                              else if (_imageUrlController.text.trim().isNotEmpty)
+                                Image.network(
+                                  ApiConfig.resolveMediaUrl(_imageUrlController.text.trim()),
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: 140,
+                                  errorBuilder: (_, _, _) => Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.broken_image_rounded, color: KinovaColors.sand, size: 36),
+                                      SizedBox(height: 4),
+                                      Text('Image introuvable', style: TextStyle(color: KinovaColors.sand, fontSize: 11)),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.add_photo_alternate_rounded, color: KinovaColors.sand, size: 40),
+                                    SizedBox(height: 6),
+                                    Text('Aucune image sélectionnée', style: TextStyle(color: KinovaColors.sand, fontSize: 12)),
+                                  ],
+                                ),
+                              if (_uploadingImage)
+                                Container(
+                                  color: Colors.black54,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        CircularProgressIndicator(color: KinovaColors.gold, strokeWidth: 2.5),
+                                        SizedBox(height: 8),
+                                        Text('Téléversement en cours...', style: TextStyle(color: KinovaColors.cream, fontSize: 12, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              if ((_pickedImageFile != null || _imageUrlController.text.trim().isNotEmpty) && !_uploadingImage)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _pickedImageFile = null;
+                                        _imageUrlController.clear();
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black87,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Boutons d'upload (Galerie & Appareil photo)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _uploadingImage ? null : () => _pickAndUploadImage(ImageSource.gallery),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 9),
+                                decoration: BoxDecoration(
+                                  color: KinovaColors.gold.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.4)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.photo_library_rounded, size: 17, color: KinovaColors.gold),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Galerie',
+                                      style: TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w700, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _uploadingImage ? null : () => _pickAndUploadImage(ImageSource.camera),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 9),
+                                decoration: BoxDecoration(
+                                  color: KinovaColors.gold.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.4)),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.camera_alt_rounded, size: 17, color: KinovaColors.gold),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Photo',
+                                      style: TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w700, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Ou coller une URL
+                      TextFormField(
+                        controller: _imageUrlController,
+                        style: const TextStyle(color: KinovaColors.cream, fontSize: 11.5),
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Ou saisir une URL directe...',
+                          hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.5), fontSize: 11.5),
+                          prefixIcon: const Icon(Icons.link_rounded, color: KinovaColors.sand, size: 16),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          filled: true,
+                          fillColor: const Color(0xFF18100A),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
 
