@@ -2602,6 +2602,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
   final _addressController = TextEditingController(text: 'Abidjan');
   final _cityController = TextEditingController(text: 'Abidjan');
   final _notesController = TextEditingController();
+  final _productSearchController = TextEditingController();
 
   List<dynamic> _products = [];
   int? _selectedProductId;
@@ -2612,11 +2613,24 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
   String _paymentMethod = 'cash_on_delivery';
   bool _saving = false;
   String? _error;
+  String _productSearchQuery = '';
+  bool _isSearchingProduct = false;
 
   @override
   void initState() {
     super.initState();
     _fetchProducts();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _notesController.dispose();
+    _productSearchController.dispose();
+    super.dispose();
   }
 
   Map<String, dynamic>? get _selectedProduct {
@@ -2627,6 +2641,19 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
       }
     }
     return null;
+  }
+
+  List<dynamic> get _filteredProducts {
+    if (_productSearchQuery.trim().isEmpty) {
+      return _products;
+    }
+    final q = _productSearchQuery.toLowerCase().trim();
+    return _products.where((p) {
+      if (p is! Map) return false;
+      final name = (p['name'] ?? '').toString().toLowerCase();
+      final cat = (p['category'] is Map ? p['category']['name'] : p['category'] ?? '').toString().toLowerCase();
+      return name.contains(q) || cat.contains(q);
+    }).toList();
   }
 
   List<String> get _availableSizes {
@@ -2657,6 +2684,16 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
     return int.tryParse('${p['stock']}') ?? 0;
   }
 
+  void _selectProduct(Map<String, dynamic> p) {
+    _onProductChanged(p['id'] as int);
+    _productSearchController.text = p['name']?.toString() ?? '';
+    setState(() {
+      _isSearchingProduct = false;
+      _productSearchQuery = '';
+    });
+    FocusScope.of(context).unfocus();
+  }
+
   void _onProductChanged(int? id) {
     setState(() {
       _selectedProductId = id;
@@ -2683,6 +2720,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
             _products = res['data'] as List;
             if (_products.isNotEmpty) {
               _selectedProductId = _products.first['id'] as int;
+              _productSearchController.text = _products.first['name']?.toString() ?? '';
               _onProductChanged(_selectedProductId);
             }
           });
@@ -2901,56 +2939,249 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                 ],
                 const SizedBox(height: 14),
 
-                // Produit à commander
+                // Produit à commander (Barre de recherche avec suggestions en temps réel)
                 _buildLabel('Article à commander *'),
                 if (_products.isEmpty)
                   const Text('Chargement des articles...', style: TextStyle(color: KinovaColors.sand, fontSize: 12))
-                else
-                  DropdownButtonFormField<int>(
-                    initialValue: _selectedProductId,
-                    dropdownColor: const Color(0xFF22160F),
+                else ...[
+                  TextFormField(
+                    controller: _productSearchController,
                     style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                    decoration: _buildDecor(''),
-                    items: _products.map((p) {
-                      final price = double.tryParse('${p['promo_price'] ?? p['price']}') ?? 0.0;
-                      return DropdownMenuItem<int>(
-                        value: p['id'] as int,
-                        child: Text('${p['name']} (${formatMoney(price)})'),
-                      );
-                    }).toList(),
-                    onChanged: (val) => _onProductChanged(val),
+                    onTap: () => setState(() => _isSearchingProduct = true),
+                    onChanged: (val) {
+                      setState(() {
+                        _productSearchQuery = val;
+                        _isSearchingProduct = true;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher un article (ex: Sérum, Robe, Parfum)...',
+                      hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.45), fontSize: 12),
+                      prefixIcon: const Icon(Icons.search_rounded, color: KinovaColors.gold, size: 20),
+                      suffixIcon: _productSearchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, color: KinovaColors.sand, size: 18),
+                              onPressed: () {
+                                _productSearchController.clear();
+                                setState(() {
+                                  _productSearchQuery = '';
+                                  _isSearchingProduct = true;
+                                });
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFF22160F),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: _isSearchingProduct ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.2)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: KinovaColors.gold, width: 1.5),
+                      ),
+                    ),
                   ),
-                if (_selectedProduct != null) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: _availableStock == 0
-                              ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
-                              : (_availableStock <= 5
-                                  ? const Color(0xFFFFA726).withValues(alpha: 0.2)
-                                  : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _availableStock == 0
-                              ? 'Rupture de stock !'
-                              : 'Stock disponible : $_availableStock unités',
-                          style: TextStyle(
+                  const SizedBox(height: 8),
+
+                  // Liste de suggestions en direct
+                  if (_isSearchingProduct) ...[
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 210),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1009),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.35)),
+                      ),
+                      child: _filteredProducts.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: Text(
+                                  'Aucun produit correspondant trouvé',
+                                  style: TextStyle(color: KinovaColors.sand, fontSize: 12),
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: _filteredProducts.length,
+                              separatorBuilder: (context, index) => Divider(color: KinovaColors.sand.withValues(alpha: 0.1), height: 1),
+                              itemBuilder: (context, idx) {
+                                final p = _filteredProducts[idx] as Map<String, dynamic>;
+                                final isSelected = p['id'] == _selectedProductId;
+                                final name = p['name']?.toString() ?? '';
+                                final price = double.tryParse('${p['promo_price'] ?? p['price']}') ?? 0.0;
+                                final stock = int.tryParse('${p['stock']}') ?? 0;
+                                final img = p['image']?.toString() ?? (p['images'] is List && (p['images'] as List).isNotEmpty ? p['images'][0].toString() : null);
+                                final cat = p['category'] is Map ? p['category']['name']?.toString() : p['category']?.toString();
+
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      color: const Color(0xFF2C1B12),
+                                      child: img != null
+                                          ? Image.network(
+                                              ApiConfig.resolveMediaUrl(img),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (c, e, s) => const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 18),
+                                            )
+                                          : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 18),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isSelected ? KinovaColors.gold : KinovaColors.cream,
+                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${cat != null && cat.isNotEmpty ? "$cat • " : ""}${formatMoney(price)}',
+                                    style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
+                                  ),
+                                  trailing: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: (stock > 5 ? const Color(0xFF2E7D32) : (stock > 0 ? const Color(0xFFFFA726) : const Color(0xFFD32F2F))).withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      stock == 0 ? 'Rupture' : '$stock en stock',
+                                      style: TextStyle(
+                                        color: stock > 5 ? const Color(0xFF81C784) : (stock > 0 ? const Color(0xFFFFB74D) : const Color(0xFFEF5350)),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  onTap: () => _selectProduct(p),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // Carte du produit sélectionné
+                  if (_selectedProduct != null && !_isSearchingProduct) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF22160F),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              color: const Color(0xFF332016),
+                              child: () {
+                                final img = _selectedProduct!['image']?.toString() ??
+                                    (_selectedProduct!['images'] is List && (_selectedProduct!['images'] as List).isNotEmpty
+                                        ? _selectedProduct!['images'][0].toString()
+                                        : null);
+                                return img != null
+                                    ? Image.network(
+                                        ApiConfig.resolveMediaUrl(img),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (c, e, s) => const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 20),
+                                      )
+                                    : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 20);
+                              }(),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedProduct!['name']?.toString() ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: KinovaColors.cream, fontWeight: FontWeight.w700, fontSize: 13),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  formatMoney(double.tryParse('${_selectedProduct!['promo_price'] ?? _selectedProduct!['price']}') ?? 0.0),
+                                  style: const TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w800, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isSearchingProduct = true;
+                                _productSearchQuery = '';
+                                _productSearchController.clear();
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: KinovaColors.gold.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'Changer',
+                                style: TextStyle(color: KinovaColors.gold, fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
                             color: _availableStock == 0
-                                ? const Color(0xFFEF5350)
+                                ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
                                 : (_availableStock <= 5
-                                    ? const Color(0xFFFFB74D)
-                                    : const Color(0xFF81C784)),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                                    ? const Color(0xFFFFA726).withValues(alpha: 0.2)
+                                    : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _availableStock == 0
+                                ? 'Rupture de stock !'
+                                : 'Stock disponible : $_availableStock unités',
+                            style: TextStyle(
+                              color: _availableStock == 0
+                                  ? const Color(0xFFEF5350)
+                                  : (_availableStock <= 5
+                                      ? const Color(0xFFFFB74D)
+                                      : const Color(0xFF81C784)),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 12),
 
