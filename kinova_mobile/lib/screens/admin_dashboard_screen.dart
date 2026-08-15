@@ -2605,6 +2605,8 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
 
   List<dynamic> _products = [];
   int? _selectedProductId;
+  String? _selectedSize;
+  String? _selectedColor;
   int _quantity = 1;
   String _paymentMethod = 'cash_on_delivery';
   bool _saving = false;
@@ -2614,6 +2616,60 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
   void initState() {
     super.initState();
     _fetchProducts();
+  }
+
+  Map<String, dynamic>? get _selectedProduct {
+    if (_selectedProductId == null) return null;
+    for (final p in _products) {
+      if (p is Map && p['id'] == _selectedProductId) {
+        return p as Map<String, dynamic>;
+      }
+    }
+    return null;
+  }
+
+  List<String> get _availableSizes {
+    final p = _selectedProduct;
+    if (p == null) return [];
+    final raw = p['sizes'];
+    if (raw is! List) return [];
+    return raw
+        .map((s) => (s is Map ? s['name'] : s).toString().trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> get _availableColors {
+    final p = _selectedProduct;
+    if (p == null) return [];
+    final raw = p['colors'];
+    if (raw is! List) return [];
+    return raw
+        .map((c) => (c is Map ? c['name'] : c).toString().trim())
+        .where((c) => c.isNotEmpty)
+        .toList();
+  }
+
+  int get _availableStock {
+    final p = _selectedProduct;
+    if (p == null) return 0;
+    return int.tryParse('${p['stock']}') ?? 0;
+  }
+
+  void _onProductChanged(int? id) {
+    setState(() {
+      _selectedProductId = id;
+      final sizes = _availableSizes;
+      _selectedSize = sizes.isNotEmpty ? sizes.first : null;
+
+      final colors = _availableColors;
+      _selectedColor = colors.isNotEmpty ? colors.first : null;
+
+      final stock = _availableStock;
+      if (stock > 0 && _quantity > stock) {
+        _quantity = stock;
+      }
+    });
   }
 
   Future<void> _fetchProducts() async {
@@ -2626,6 +2682,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
             _products = res['data'] as List;
             if (_products.isNotEmpty) {
               _selectedProductId = _products.first['id'] as int;
+              _onProductChanged(_selectedProductId);
             }
           });
         }
@@ -2659,6 +2716,8 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
           {
             'product_id': _selectedProductId,
             'quantity': _quantity,
+            if (_selectedSize != null) 'selected_size': _selectedSize,
+            if (_selectedColor != null) 'selected_color': _selectedColor,
           }
         ],
       };
@@ -2798,9 +2857,101 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                         child: Text('${p['name']} (${formatMoney(price)})'),
                       );
                     }).toList(),
-                    onChanged: (val) => setState(() => _selectedProductId = val),
+                    onChanged: (val) => _onProductChanged(val),
                   ),
+                if (_selectedProduct != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _availableStock == 0
+                              ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
+                              : (_availableStock <= 5
+                                  ? const Color(0xFFFFA726).withValues(alpha: 0.2)
+                                  : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _availableStock == 0
+                              ? 'Rupture de stock !'
+                              : 'Stock disponible : $_availableStock unités',
+                          style: TextStyle(
+                            color: _availableStock == 0
+                                ? const Color(0xFFEF5350)
+                                : (_availableStock <= 5
+                                    ? const Color(0xFFFFB74D)
+                                    : const Color(0xFF81C784)),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 12),
+
+                // Sélection de la Taille / Pointure si disponible
+                if (_availableSizes.isNotEmpty) ...[
+                  _buildLabel('Taille / Pointure *'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: _availableSizes.map((size) {
+                      final isSelected = _selectedSize == size;
+                      return ChoiceChip(
+                        label: Text(size),
+                        selected: isSelected,
+                        selectedColor: KinovaColors.gold,
+                        backgroundColor: const Color(0xFF1E140E),
+                        labelStyle: TextStyle(
+                          color: isSelected ? KinovaColors.brown : KinovaColors.cream,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.25),
+                        ),
+                        onSelected: (selected) {
+                          setState(() => _selectedSize = selected ? size : null);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Sélection de la Couleur si disponible
+                if (_availableColors.isNotEmpty) ...[
+                  _buildLabel('Couleur *'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: _availableColors.map((color) {
+                      final isSelected = _selectedColor == color;
+                      return ChoiceChip(
+                        label: Text(color),
+                        selected: isSelected,
+                        selectedColor: KinovaColors.gold,
+                        backgroundColor: const Color(0xFF1E140E),
+                        labelStyle: TextStyle(
+                          color: isSelected ? KinovaColors.brown : KinovaColors.cream,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.25),
+                        ),
+                        onSelected: (selected) {
+                          setState(() => _selectedColor = selected ? color : null);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // Quantité
                 Row(
@@ -2819,7 +2970,9 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold),
-                          onPressed: () => setState(() => _quantity++),
+                          onPressed: (_availableStock == 0 || _quantity < _availableStock)
+                              ? () => setState(() => _quantity++)
+                              : null,
                         ),
                       ],
                     ),

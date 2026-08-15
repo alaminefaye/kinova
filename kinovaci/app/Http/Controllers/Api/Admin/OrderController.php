@@ -52,6 +52,14 @@ class OrderController extends Controller
         $order->update($data);
         $order = $order->fresh()->load('items');
 
+        if (isset($data['status']) && $data['status'] === 'cancelled' && $previousStatus !== 'cancelled') {
+            foreach ($order->items as $item) {
+                if ($item->product_id && $product = \App\Models\Product::find($item->product_id)) {
+                    $product->increment('stock', $item->quantity);
+                }
+            }
+        }
+
         if (isset($data['status']) && $data['status'] !== $previousStatus) {
             $notifications->notifyOrderStatus($order);
         } elseif (! empty($data['tracking_number'])) {
@@ -95,6 +103,14 @@ class OrderController extends Controller
             $qty = (int) $it['quantity'];
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
+
+            if ($product) {
+                if ($product->stock >= $qty) {
+                    $product->decrement('stock', $qty);
+                } else {
+                    $product->update(['stock' => 0]);
+                }
+            }
 
             $orderItemsData[] = [
                 'product_id' => $product->id,
