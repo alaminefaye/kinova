@@ -96,7 +96,7 @@ class AppTheme {
           backgroundColor: KinovaColors.brown,
           foregroundColor: KinovaColors.cream,
           elevation: 0,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(0, 48),
           textStyle: const TextStyle(
             fontFamily: 'Montserrat',
             letterSpacing: 1.6,
@@ -110,7 +110,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: KinovaColors.brown,
           side: const BorderSide(color: KinovaColors.gold, width: 1.2),
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(0, 48),
           textStyle: const TextStyle(
             fontFamily: 'Montserrat',
             letterSpacing: 1.6,

@@ -1027,22 +1027,29 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                 ),
                 Row(
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: _openCreateOrderModal,
-                      icon: const Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
-                      label: const Text(
-                        'Créer',
-                        style: TextStyle(
-                          color: KinovaColors.brown,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12.5,
+                    GestureDetector(
+                      onTap: _openCreateOrderModal,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: KinovaColors.gold,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: KinovaColors.gold,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
+                            SizedBox(width: 4),
+                            Text(
+                              'Créer',
+                              style: TextStyle(
+                                color: KinovaColors.brown,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1388,22 +1395,29 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                 ),
                 Row(
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _openProductModal(null),
-                      icon: const Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
-                      label: const Text(
-                        'Nouveau',
-                        style: TextStyle(
-                          color: KinovaColors.brown,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12.5,
+                    GestureDetector(
+                      onTap: () => _openProductModal(null),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: KinovaColors.gold,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: KinovaColors.gold,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
+                            SizedBox(width: 4),
+                            Text(
+                              'Nouveau',
+                              style: TextStyle(
+                                color: KinovaColors.brown,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
