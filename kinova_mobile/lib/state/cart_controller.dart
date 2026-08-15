@@ -21,18 +21,50 @@ class CartController extends ChangeNotifier {
 
   double get total => subtotal + shipping;
 
-  void add(Product product, {int quantity = 1}) {
-    final index = _items.indexWhere((i) => i.product.id == product.id);
+  void add(
+    Product product, {
+    int quantity = 1,
+    String? selectedSize,
+    String? selectedColor,
+  }) {
+    final index = _items.indexWhere(
+      (i) =>
+          i.product.id == product.id &&
+          i.selectedSize == selectedSize &&
+          i.selectedColor == selectedColor,
+    );
     if (index >= 0) {
       _items[index].quantity += quantity;
     } else {
-      _items.add(CartItem(product: product, quantity: quantity));
+      _items.add(
+        CartItem(
+          product: product,
+          quantity: quantity,
+          selectedSize: selectedSize,
+          selectedColor: selectedColor,
+        ),
+      );
     }
     notifyListeners();
   }
 
   void remove(String productId) {
     _items.removeWhere((i) => i.product.id == productId);
+    notifyListeners();
+  }
+
+  void removeItem(CartItem item) {
+    _items.remove(item);
+    notifyListeners();
+  }
+
+  void setItemQuantity(CartItem item, int quantity) {
+    if (quantity <= 0) {
+      _items.remove(item);
+      notifyListeners();
+      return;
+    }
+    item.quantity = quantity;
     notifyListeners();
   }
 
@@ -81,6 +113,8 @@ class CartController extends ChangeNotifier {
             (i) => {
               'product_id': int.tryParse(i.product.id) ?? i.product.id,
               'quantity': i.quantity,
+              if (i.selectedSize != null) 'selected_size': i.selectedSize,
+              if (i.selectedColor != null) 'selected_color': i.selectedColor,
             },
           )
           .toList(),

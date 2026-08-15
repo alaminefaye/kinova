@@ -16,6 +16,7 @@ const form = reactive({
   name: '',
   description: '',
   price: 0,
+  promo_price: null as number | null,
   stock: 0,
   image_url: '',
   is_active: true,
@@ -48,6 +49,7 @@ function reset() {
   form.name = ''
   form.description = ''
   form.price = 0
+  form.promo_price = null
   form.stock = 0
   form.image_url = ''
   form.is_active = true
@@ -62,6 +64,7 @@ function edit(p: any) {
   form.name = p.name
   form.description = p.description || ''
   form.price = Number(p.price)
+  form.promo_price = p.promo_price != null ? Number(p.promo_price) : null
   form.stock = Number(p.stock)
   form.image_url = p.image_url || ''
   form.is_active = !!p.is_active
@@ -78,6 +81,7 @@ async function save() {
       name: form.name,
       description: form.description,
       price: Number(form.price),
+      promo_price: form.promo_price && Number(form.promo_price) > 0 ? Number(form.promo_price) : null,
       stock: Number(form.stock),
       image_url: form.image_url || null,
       is_active: form.is_active,
@@ -140,8 +144,9 @@ onMounted(load)
         <select v-model="form.category_id" required class="rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
           <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
-        <input v-model.number="form.price" type="number" step="0.01" min="0" required placeholder="Prix" class="rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
-        <input v-model.number="form.stock" type="number" min="0" required placeholder="Stock" class="rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
+        <input v-model.number="form.price" type="number" step="0.01" min="0" required placeholder="Prix standard" class="rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
+        <input v-model.number="form.promo_price" type="number" step="0.01" min="0" placeholder="Prix Promo (optionnel)" class="rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
+        <input v-model.number="form.stock" type="number" min="0" required placeholder="Stock" class="md:col-span-2 rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
         <input v-model="form.image_url" type="text" placeholder="URL image ou upload" class="md:col-span-2 rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
         <label class="md:col-span-2 text-sm text-gray-500">
           Upload image
@@ -182,8 +187,21 @@ onMounted(load)
                 </div>
               </td>
               <td>{{ p.category?.name || '—' }}</td>
-              <td>{{ money(p.price) }}</td>
-              <td :class="p.stock <= 5 ? 'text-error-500' : ''">{{ p.stock }}</td>
+              <td>
+                <div v-if="p.promo_price && Number(p.promo_price) > 0" class="flex items-baseline gap-1.5">
+                  <span class="text-xs text-gray-400 line-through">{{ money(p.price) }}</span>
+                  <span class="font-semibold text-error-600 dark:text-error-400">{{ money(p.promo_price) }}</span>
+                  <span class="text-[10px] bg-error-50 dark:bg-error-900/30 text-error-600 dark:text-error-400 px-1 py-0.5 rounded font-bold">PROMO</span>
+                </div>
+                <div v-else>
+                  {{ money(p.price) }}
+                </div>
+              </td>
+              <td>
+                <span v-if="p.stock <= 0" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Épuisé (0)</span>
+                <span v-else-if="p.stock <= 5" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{{ p.stock }} (Faible)</span>
+                <span v-else class="text-gray-700 dark:text-gray-300">{{ p.stock }}</span>
+              </td>
               <td class="text-right space-x-2">
                 <button class="text-brand-500" @click="edit(p)">Éditer</button>
                 <button class="text-error-500" @click="remove(p.id)">Suppr.</button>

@@ -8,6 +8,7 @@ import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
 import 'package:kinova_mobile/widgets/cart_fly.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
+import 'package:kinova_mobile/widgets/promo_badge.dart';
 
 class ProductCard extends StatelessWidget {
   const ProductCard({
@@ -86,8 +87,47 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
 
-                    // Badge NOUVEAU / BESTSELLER
-                    if (product.isNew || product.isFeatured)
+                    // Badge ÉPUISÉ / PROMO / NOUVEAU / BESTSELLER
+                    if (product.isOutOfStock)
+                      Positioned(
+                        left: 10,
+                        top: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 4.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF64748B),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.18),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'ÉPUISÉ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (product.hasPromo)
+                      Positioned(
+                        left: 10,
+                        top: 10,
+                        child: AnimatedPromoBadge(
+                          discountPercent: product.discountPercent,
+                        ),
+                      )
+                    else if (product.isNew || product.isFeatured)
                       Positioned(
                         left: 10,
                         top: 10,
@@ -149,8 +189,8 @@ class ProductCard extends StatelessWidget {
                             const SizedBox(width: 3),
                             Text(
                               product.ratingsCount > 0
-                                  ? product.rating.toStringAsFixed(1)
-                                  : '—',
+                                   ? product.rating.toStringAsFixed(1)
+                                   : '—',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -226,40 +266,76 @@ class ProductCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          formatMoney(product.price),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: KinovaColors.brown,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
+                        if (product.hasPromo)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                formatMoney(product.price),
+                                style: const TextStyle(
+                                  color: Color(0xFF9E8E82),
+                                  fontSize: 11,
+                                  decoration: TextDecoration.lineThrough,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                        ),
-                        // Bouton d'ajout rapide au panier (+)
+                              Text(
+                                formatMoney(product.promoPrice!),
+                                style: const TextStyle(
+                                  color: Color(0xFFB71C1C),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            formatMoney(product.price),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: KinovaColors.brown,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                          ),
+                        // Bouton d'ajout rapide au panier (+) ou désactivé si épuisé
                         GestureDetector(
-                          onTap: () {
-                            cart.add(product);
-                            // Le produit s'envole vers le panier
-                            CartFly.fly(context, product.imageUrl);
-                          },
+                          onTap: product.isOutOfStock
+                              ? null
+                              : () {
+                                  cart.add(product);
+                                  // Le produit s'envole vers le panier
+                                  CartFly.fly(context, product.imageUrl);
+                                },
                           child: Container(
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(
-                              color: KinovaColors.brown,
+                              color: product.isOutOfStock
+                                  ? const Color(0xFFE2E8F0)
+                                  : KinovaColors.brown,
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: KinovaColors.brown.withOpacity(0.25),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              boxShadow: product.isOutOfStock
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: KinovaColors.brown.withOpacity(0.25),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                             ),
-                            child: const Icon(
-                              Icons.add_rounded,
-                              color: KinovaColors.cream,
-                              size: 19,
+                            child: Icon(
+                              product.isOutOfStock
+                                  ? Icons.remove_rounded
+                                  : Icons.add_rounded,
+                              color: product.isOutOfStock
+                                  ? const Color(0xFF94A3B8)
+                                  : KinovaColors.cream,
+                              size: product.isOutOfStock ? 15 : 19,
                             ),
                           ),
                         ),

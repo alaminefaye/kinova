@@ -98,6 +98,26 @@ async function submit() {
       </label>
       <label>Notes<textarea v-model="form.notes" class="kv-input" rows="3" /></label>
 
+      <div v-if="cart.state.items.length" class="order-items-recap">
+        <div
+          v-for="item in cart.state.items"
+          :key="item.product.id + (item.selectedSize || '') + (item.selectedColor || '')"
+          class="recap-row"
+        >
+          <div class="recap-info">
+            <span class="recap-name">{{ item.product.name }} × {{ item.quantity }}</span>
+            <span v-if="item.selectedSize || item.selectedColor" class="recap-variants">
+              <span v-if="item.selectedSize">Taille : {{ item.selectedSize }}</span>
+              <span v-if="item.selectedSize && item.selectedColor"> · </span>
+              <span v-if="item.selectedColor">Couleur : {{ item.selectedColor }}</span>
+            </span>
+          </div>
+          <span class="recap-price">
+            {{ formatMoney((item.product.promoPrice && item.product.promoPrice < item.product.price ? item.product.promoPrice : item.product.price) * item.quantity) }}
+          </span>
+        </div>
+      </div>
+
       <div class="sum">
         Total à payer : <strong>{{ formatMoney(cart.total.value) }}</strong>
       </div>
@@ -124,6 +144,44 @@ label {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--kv-muted);
+}
+.order-items-recap {
+  background: var(--kv-surface);
+  border-radius: 14px;
+  border: 1px solid rgba(197, 160, 128, 0.2);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.recap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px dashed rgba(197, 160, 128, 0.25);
+}
+.recap-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.recap-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recap-name {
+  font-weight: 700;
+  color: var(--kv-brown);
+}
+.recap-variants {
+  font-size: 0.72rem;
+  color: var(--kv-muted);
+}
+.recap-price {
+  font-weight: 800;
+  color: var(--kv-gold);
 }
 .sum {
   margin-top: 0.35rem;

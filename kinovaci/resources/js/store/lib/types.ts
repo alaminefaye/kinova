@@ -15,14 +15,29 @@ export type HeroSlide = {
   linkValue?: string | null
 }
 
+export type ProductSize = {
+  name: string
+  stock: number
+}
+
+export type ProductColor = {
+  name: string
+  hex?: string
+  stock: number
+}
+
 export type Product = {
   id: string
   name: string
   description: string
   price: number
+  promoPrice?: number | null
   categoryId: string
   imageUrl: string
   images: string[]
+  sizes: ProductSize[]
+  colors: ProductColor[]
+  stock: number
   rating: number
   ratingsCount: number
   isNew: boolean
@@ -32,6 +47,8 @@ export type Product = {
 export type CartItem = {
   product: Product
   quantity: number
+  selectedSize?: string | null
+  selectedColor?: string | null
 }
 
 export type UserProfile = {
@@ -85,14 +102,46 @@ export function mapProduct(json: any): Product {
     }
   }
   const imageUrl = String(json.image_url ?? (gallery[0] ?? ''))
+  const promoPrice =
+    json.promo_price != null && Number(json.promo_price) > 0 ? Number(json.promo_price) : null
+
+  const sizes: ProductSize[] = []
+  if (Array.isArray(json.sizes)) {
+    for (const s of json.sizes) {
+      if (s && s.name) {
+        sizes.push({
+          name: String(s.name),
+          stock: Number(s.stock ?? 0),
+        })
+      }
+    }
+  }
+
+  const colors: ProductColor[] = []
+  if (Array.isArray(json.colors)) {
+    for (const c of json.colors) {
+      if (c && c.name) {
+        colors.push({
+          name: String(c.name),
+          hex: c.hex ? String(c.hex) : undefined,
+          stock: Number(c.stock ?? 0),
+        })
+      }
+    }
+  }
+
   return {
     id: String(json.id),
     name: String(json.name ?? ''),
     description: String(json.description ?? ''),
     price: Number(json.price ?? 0),
+    promoPrice,
     categoryId: String(json.category_id ?? ''),
     imageUrl,
     images: gallery.length ? gallery : imageUrl ? [imageUrl] : [],
+    sizes,
+    colors,
+    stock: Number(json.stock ?? 0),
     rating: Number(json.rating ?? 0),
     ratingsCount: Number(json.ratings_count ?? 0),
     isNew: json.is_new === true || json.is_new === 1,

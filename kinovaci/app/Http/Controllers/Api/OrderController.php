@@ -25,6 +25,8 @@ class OrderController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.selected_size' => ['nullable', 'string', 'max:50'],
+            'items.*.selected_color' => ['nullable', 'string', 'max:50'],
         ]);
 
         $userId = $request->user()?->id ?? auth('sanctum')->id();
@@ -44,9 +46,29 @@ class OrderController extends Controller
                     abort(422, "Stock insuffisant pour {$product->name}");
                 }
 
-                $lineTotal = $product->price * $item['quantity'];
+                // Vérifier le stock de la taille si spécifiée
+                if (!empty($item['selected_size']) && is_array($product->sizes)) {
+                    $sizeOption = collect($product->sizes)->firstWhere('name', $item['selected_size']);
+                    if ($sizeOption && isset($sizeOption['stock']) && $sizeOption['stock'] < $item['quantity']) {
+                        abort(422, "Taille {$item['selected_size']} épuisée pour {$product->name}");
+                    }
+                }
+
+                // Vérifier le stock de la couleur si spécifiée
+                if (!empty($item['selected_color']) && is_array($product->colors)) {
+                    $colorOption = collect($product->colors)->firstWhere('name', $item['selected_color']);
+                    if ($colorOption && isset($colorOption['stock']) && $colorOption['stock'] < $item['quantity']) {
+                        abort(422, "Couleur {$item['selected_color']} épuisée pour {$product->name}");
+                    }
+                }
+
+                $unitPrice = ($product->promo_price !== null && $product->promo_price > 0 && $product->promo_price < $product->price)
+                    ? (float) $product->promo_price
+                    : (float) $product->price;
+
+                $lineTotal = $unitPrice * $item['quantity'];
                 $subtotal += $lineTotal;
-                $lines[] = compact('product', 'item', 'lineTotal');
+                $lines[] = compact('product', 'item', 'unitPrice', 'lineTotal');
             }
 
             $shipping = $subtotal >= 100 ? 0 : 6.5;
@@ -72,7 +94,9 @@ class OrderController extends Controller
                 $order->items()->create([
                     'product_id' => $line['product']->id,
                     'product_name' => $line['product']->name,
-                    'unit_price' => $line['product']->price,
+                    'selected_size' => $line['item']['selected_size'] ?? null,
+                    'selected_color' => $line['item']['selected_color'] ?? null,
+                    'unit_price' => $line['unitPrice'],
                     'quantity' => $line['item']['quantity'],
                     'line_total' => $line['lineTotal'],
                 ]);

@@ -203,6 +203,8 @@ class ApiOrderParser {
               imageUrl: '',
             ),
             quantity: int.tryParse('${map['quantity']}') ?? 1,
+            selectedSize: map['selected_size']?.toString(),
+            selectedColor: map['selected_color']?.toString(),
           ),
         );
       }

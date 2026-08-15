@@ -38,14 +38,57 @@ class ApiMappers {
     final imageUrl = (json['image_url'] ?? (gallery.isNotEmpty ? gallery.first : ''))
         .toString();
 
+    final sizes = <ProductSize>[];
+    final rawSizes = json['sizes'];
+    if (rawSizes is List) {
+      for (final item in rawSizes) {
+        if (item is Map) {
+          final sMap = Map<String, dynamic>.from(item);
+          final name = (sMap['name'] ?? '').toString();
+          if (name.isNotEmpty) {
+            sizes.add(
+              ProductSize(
+                name: name,
+                stock: int.tryParse('${sMap['stock'] ?? 0}') ?? 0,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    final colors = <ProductColor>[];
+    final rawColors = json['colors'];
+    if (rawColors is List) {
+      for (final item in rawColors) {
+        if (item is Map) {
+          final cMap = Map<String, dynamic>.from(item);
+          final name = (cMap['name'] ?? '').toString();
+          if (name.isNotEmpty) {
+            colors.add(
+              ProductColor(
+                name: name,
+                hex: cMap['hex']?.toString(),
+                stock: int.tryParse('${cMap['stock'] ?? 0}') ?? 0,
+              ),
+            );
+          }
+        }
+      }
+    }
+
     return Product(
       id: '${json['id']}',
       name: (json['name'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       price: _toDouble(json['price']),
+      promoPrice: json['promo_price'] != null ? _toDouble(json['promo_price']) : null,
       categoryId: '${json['category_id']}',
       imageUrl: imageUrl,
       images: gallery,
+      sizes: sizes,
+      colors: colors,
+      stock: int.tryParse('${json['stock'] ?? 0}') ?? 0,
       rating: _toDouble(json['rating'], fallback: 4.8),
       ratingsCount: int.tryParse('${json['ratings_count'] ?? 0}') ?? 0,
       isNew: json['is_new'] == true || json['is_new'] == 1,
@@ -72,6 +115,8 @@ class ApiMappers {
           CartItem(
             product: product,
             quantity: int.tryParse('${map['quantity']}') ?? 1,
+            selectedSize: map['selected_size']?.toString(),
+            selectedColor: map['selected_color']?.toString(),
           ),
         );
       }

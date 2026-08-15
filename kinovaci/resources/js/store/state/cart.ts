@@ -4,7 +4,12 @@ import type { CartItem, Product } from '../lib/types'
 
 const CART_KEY = 'kinova_cart'
 
-type StoredLine = { product: Product; quantity: number }
+type StoredLine = {
+  product: Product
+  quantity: number
+  selectedSize?: string | null
+  selectedColor?: string | null
+}
 
 const state = reactive({
   items: [] as CartItem[],
@@ -20,7 +25,12 @@ function hydrate() {
     if (!raw) return
     const parsed = JSON.parse(raw) as StoredLine[]
     if (Array.isArray(parsed)) {
-      state.items = parsed.map((i) => ({ product: i.product, quantity: i.quantity }))
+      state.items = parsed.map((i) => ({
+        product: i.product,
+        quantity: i.quantity,
+        selectedSize: i.selectedSize ?? null,
+        selectedColor: i.selectedColor ?? null,
+      }))
     }
   } catch {
     /* ignore */
@@ -29,10 +39,17 @@ function hydrate() {
 
 hydrate()
 
+export function getProductEffectivePrice(product: Product): number {
+  if (product.promoPrice != null && product.promoPrice > 0 && product.promoPrice < product.price) {
+    return product.promoPrice
+  }
+  return product.price
+}
+
 export function useCart() {
   const itemCount = computed(() => state.items.reduce((s, i) => s + i.quantity, 0))
   const subtotal = computed(() =>
-    state.items.reduce((s, i) => s + i.product.price * i.quantity, 0),
+    state.items.reduce((s, i) => s + getProductEffectivePrice(i.product) * i.quantity, 0),
   )
   const shipping = computed(() => {
     if (!state.items.length) return 0
@@ -40,26 +57,48 @@ export function useCart() {
   })
   const total = computed(() => subtotal.value + shipping.value)
 
-  function add(product: Product, quantity = 1) {
-    const idx = state.items.findIndex((i) => i.product.id === product.id)
+  function add(
+    product: Product,
+    quantity = 1,
+    selectedSize?: string | null,
+    selectedColor?: string | null,
+  ) {
+    const idx = state.items.findIndex(
+      (i) =>
+        i.product.id === product.id &&
+        (i.selectedSize ?? null) === (selectedSize ?? null) &&
+        (i.selectedColor ?? null) === (selectedColor ?? null),
+    )
     if (idx >= 0) state.items[idx].quantity += quantity
-    else state.items.push({ product, quantity })
+    else
+      state.items.push({
+        product,
+        quantity,
+        selectedSize: selectedSize ?? null,
+        selectedColor: selectedColor ?? null,
+      })
     persist()
   }
 
-  function remove(productId: string) {
+  function remove(index: number) {
+    if (index >= 0 && index < state.items.length) {
+      state.items.splice(index, 1)
+      persist()
+    }
+  }
+
+  function removeById(productId: string) {
     state.items = state.items.filter((i) => i.product.id !== productId)
     persist()
   }
 
-  function setQuantity(productId: string, quantity: number) {
+  function setQuantity(index: number, quantity: number) {
     if (quantity <= 0) {
-      remove(productId)
+      remove(index)
       return
     }
-    const item = state.items.find((i) => i.product.id === productId)
-    if (item) {
-      item.quantity = quantity
+    if (state.items[index]) {
+      state.items[index].quantity = quantity
       persist()
     }
   }
@@ -85,6 +124,8 @@ export function useCart() {
         items: state.items.map((i) => ({
           product_id: Number(i.product.id),
           quantity: i.quantity,
+          selected_size: i.selectedSize ?? null,
+          selected_color: i.selectedColor ?? null,
         })),
       },
     })
@@ -100,6 +141,7 @@ export function useCart() {
     total,
     add,
     remove,
+    removeById,
     setQuantity,
     clear,
     placeOrder,

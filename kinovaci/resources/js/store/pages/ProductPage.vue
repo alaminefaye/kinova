@@ -26,6 +26,9 @@ const myRating = ref<number | null>(null)
 const ratingLoading = ref(false)
 const toast = ref('')
 
+const selectedSize = ref<string | null>(null)
+const selectedColor = ref<string | null>(null)
+
 const product = computed(() => {
   return catalog.byId(String(route.params.id)) || remote.value
 })
@@ -36,6 +39,53 @@ const gallery = computed(() => {
   const imgs = p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : []
   return imgs
 })
+
+const hasPromo = computed(() => {
+  const p = product.value
+  return Boolean(p && p.promoPrice != null && p.promoPrice > 0 && p.promoPrice < p.price)
+})
+
+const discountPercent = computed(() => {
+  const p = product.value
+  if (!p || !hasPromo.value) return 0
+  return Math.round(((p.price - (p.promoPrice ?? 0)) / p.price) * 100)
+})
+
+const availableSizes = computed(() => {
+  return product.value?.sizes?.filter((s) => s.stock > 0) ?? []
+})
+
+const availableColors = computed(() => {
+  return product.value?.colors?.filter((c) => c.stock > 0) ?? []
+})
+
+const isOutOfStock = computed(() => {
+  const p = product.value
+  if (!p) return false
+  if (p.stock <= 0) return true
+  if (p.sizes?.length && availableSizes.value.length === 0) return true
+  if (p.colors?.length && availableColors.value.length === 0) return true
+  return false
+})
+
+watch(
+  product,
+  (p) => {
+    if (p) {
+      if (availableSizes.value.length > 0) {
+        selectedSize.value = availableSizes.value[0].name
+      } else {
+        selectedSize.value = null
+      }
+      if (availableColors.value.length > 0) {
+        selectedColor.value = availableColors.value[0].name
+      } else {
+        selectedColor.value = null
+      }
+    }
+  },
+  { immediate: true },
+)
 
 async function ensureProduct() {
   const id = String(route.params.id)
@@ -118,8 +168,8 @@ async function rate(stars: number) {
 }
 
 function addToCart() {
-  if (!product.value) return
-  cart.add(product.value, qty.value)
+  if (!product.value || isOutOfStock.value) return
+  cart.add(product.value, qty.value, selectedSize.value, selectedColor.value)
   toast.value = qty.value > 1 ? `Ajouté ×${qty.value}` : 'Ajouté au panier'
   setTimeout(() => (toast.value = ''), 1800)
 }
@@ -137,6 +187,15 @@ function addToCart() {
       <button class="fav" type="button" @click="favorites.toggle(product.id)">
         {{ favorites.isFavorite(product.id) ? '♥' : '♡' }}
       </button>
+
+      <!-- Badge Rupture / Promo / Nouveau -->
+      <span v-if="isOutOfStock" class="media-badge out-badge">RUPTURE DE STOCK</span>
+      <span v-else-if="hasPromo" class="media-badge promo-badge">
+        <span class="promo-pulse" />
+        <span class="promo-text">OFFRE SPÉCIALE {{ discountPercent > 0 ? `-${discountPercent}%` : '' }}</span>
+      </span>
+      <span v-else-if="product.isNew" class="media-badge new-badge">NOUVEAU</span>
+
       <div v-if="gallery.length > 1" class="dots">
         <button
           v-for="(img, i) in gallery"
@@ -149,11 +208,64 @@ function addToCart() {
     </div>
 
     <div class="kv-container body">
-      <p class="price">{{ formatMoney(product.price) }}</p>
+      <div v-if="hasPromo" class="price-container">
+        <div class="price-row">
+          <span class="old-price">{{ formatMoney(product.price) }}</span>
+          <span class="price promo-price-val">{{ formatMoney(product.promoPrice!) }}</span>
+          <span class="discount-pill">-{{ discountPercent }}%</span>
+        </div>
+      </div>
+      <p v-else class="price">{{ formatMoney(product.price) }}</p>
+      
       <h1 class="kv-display">{{ product.name }}</h1>
       <p class="desc">{{ product.description }}</p>
 
-      <div class="qty-row">
+      <!-- Sélecteur de Tailles / Formats Dynamique -->
+      <div v-if="availableSizes.length > 0" class="options-section">
+        <div class="options-label">
+          <span>Taille / Format</span>
+          <strong v-if="selectedSize">{{ selectedSize }}</strong>
+        </div>
+        <div class="options-grid">
+          <button
+            v-for="s in availableSizes"
+            :key="s.name"
+            type="button"
+            class="option-pill"
+            :class="{ active: selectedSize === s.name }"
+            @click="selectedSize = s.name"
+          >
+            {{ s.name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Sélecteur de Couleurs Dynamique -->
+      <div v-if="availableColors.length > 0" class="options-section">
+        <div class="options-label">
+          <span>Couleur</span>
+          <strong v-if="selectedColor">{{ selectedColor }}</strong>
+        </div>
+        <div class="colors-grid">
+          <button
+            v-for="c in availableColors"
+            :key="c.name"
+            type="button"
+            class="color-pill"
+            :class="{ active: selectedColor === c.name }"
+            @click="selectedColor = c.name"
+          >
+            <span
+              class="color-dot"
+              :style="{ backgroundColor: c.hex || '#c5a080' }"
+            />
+            <span>{{ c.name }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quantité & Rupture de stock -->
+      <div v-if="!isOutOfStock" class="qty-row">
         <span>Quantité</span>
         <div class="qty">
           <button type="button" @click="qty = Math.max(1, qty - 1)">−</button>
@@ -181,8 +293,21 @@ function addToCart() {
         </div>
       </section>
 
-      <button class="kv-btn kv-btn-dark full" type="button" @click="addToCart">
+      <button
+        v-if="!isOutOfStock"
+        class="kv-btn kv-btn-dark full"
+        type="button"
+        @click="addToCart"
+      >
         Ajouter au panier
+      </button>
+      <button
+        v-else
+        class="kv-btn full disabled-btn"
+        type="button"
+        disabled
+      >
+        Article Épuisé
       </button>
     </div>
 
@@ -249,11 +374,103 @@ function addToCart() {
   border-radius: 24px 24px 0 0;
   padding: 1.35rem 0 2rem;
 }
+.media-badge {
+  position: absolute;
+  left: 1rem;
+  bottom: 2.2rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.new-badge {
+  background: linear-gradient(135deg, #d4af37, #c5a080);
+  color: var(--kv-brown);
+}
+.out-badge {
+  background: #64748b;
+  color: #fff;
+}
+.promo-badge {
+  background: linear-gradient(135deg, #b91c1c, #dc2626, #ea580c);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(220, 38, 38, 0.4);
+  animation: promoFloat 2.8s ease-in-out infinite alternate;
+}
+.promo-pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 0 6px #ffffff;
+  animation: promoPulseDot 1.4s infinite ease-in-out;
+}
+.promo-text {
+  position: relative;
+  z-index: 1;
+}
+@keyframes promoFloat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes promoPulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.4);
+  }
+}
+.price-container {
+  margin-bottom: 0.25rem;
+}
+.price-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.old-price {
+  font-size: 0.95rem;
+  color: #9e8e82;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+.promo-price-val {
+  color: #b91c1c !important;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.discount-pill {
+  background: rgba(185, 28, 28, 0.12);
+  color: #b91c1c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(185, 28, 28, 0.25);
+}
 .price {
   margin: 0;
   color: var(--kv-gold);
   font-weight: 800;
   letter-spacing: 0.04em;
+  font-size: 1.15rem;
 }
 .body h1 {
   margin: 0.35rem 0 0.75rem;
@@ -328,6 +545,88 @@ function addToCart() {
 }
 .full {
   width: 100%;
+}
+.options-section {
+  margin: 1.1rem 0;
+}
+.options-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--kv-muted);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+.options-label strong {
+  color: var(--kv-brown);
+  font-weight: 700;
+}
+.options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.option-pill {
+  border: 1px solid rgba(197, 160, 128, 0.35);
+  background: var(--kv-surface);
+  color: var(--kv-brown);
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.option-pill:hover {
+  border-color: var(--kv-gold);
+}
+.option-pill.active {
+  background: var(--kv-brown);
+  color: var(--kv-cream);
+  border-color: var(--kv-brown);
+  box-shadow: 0 2px 8px rgba(37, 22, 20, 0.25);
+}
+.colors-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.color-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(197, 160, 128, 0.35);
+  background: var(--kv-surface);
+  color: var(--kv-brown);
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.color-pill:hover {
+  border-color: var(--kv-gold);
+}
+.color-pill.active {
+  background: var(--kv-brown);
+  color: var(--kv-cream);
+  border-color: var(--kv-brown);
+  box-shadow: 0 2px 8px rgba(37, 22, 20, 0.25);
+}
+.color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+}
+.disabled-btn {
+  background: #cbd5e1 !important;
+  color: #64748b !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
 }
 .toast {
   position: fixed;

@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'order_id',
     'product_id',
     'product_name',
+    'selected_size',
+    'selected_color',
     'unit_price',
     'quantity',
     'line_total',
