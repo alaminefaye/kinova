@@ -31,6 +31,8 @@ class AuthController extends Controller
             'vip_tier' => 'standard',
         ]);
 
+        $user->assignRole('customer');
+
         $notifications->notifyUser(
             $user,
             'Bienvenue chez KINOVA',

@@ -13,6 +13,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::query()
+            ->with(['roles:id,name', 'permissions:id,name'])
             ->withCount('orders')
             ->orderByDesc('created_at');
 
@@ -26,7 +27,11 @@ class UserController extends Controller
         }
 
         if ($request->filled('role')) {
-            $query->where('role', $request->string('role'));
+            $roleName = $request->string('role')->toString();
+            $query->where(function ($b) use ($roleName) {
+                $b->whereHas('roles', fn ($r) => $r->where('name', $roleName))
+                    ->orWhere('role', $roleName);
+            });
         }
 
         if ($request->filled('status')) {
@@ -38,7 +43,21 @@ class UserController extends Controller
             }
         }
 
-        return response()->json($query->paginate(20));
+        $paginator = $query->paginate(20);
+
+        $paginator->getCollection()->transform(function (User $user) {
+            $roleNames = $user->roles->pluck('name')->toArray();
+            if (empty($roleNames) && $user->role) {
+                $roleNames = [$user->role];
+            }
+
+            return array_merge($user->toArray(), [
+                'roles' => $roleNames,
+                'permissions' => $user->permissions->pluck('name')->toArray(),
+            ]);
+        });
+
+        return response()->json($paginator);
     }
 
     public function store(Request $request)
@@ -47,7 +66,11 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:160', 'unique:users,email'],
             'password' => ['required', 'string', Password::defaults()],
-            'role' => ['required', 'string', Rule::in(['admin', 'customer'])],
+            'role' => ['nullable', 'string'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['string'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string'],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
@@ -56,11 +79,23 @@ class UserController extends Controller
             'is_blocked' => ['nullable', 'boolean'],
         ]);
 
+        // Détermination des rôles (défaut 'customer' si non spécifié)
+        $assignedRoles = ! empty($data['roles'])
+            ? $data['roles']
+            : (! empty($data['role']) ? [$data['role']] : ['customer']);
+
+        $primaryRole = in_array('super-admin', $assignedRoles)
+            || in_array('admin', $assignedRoles)
+            || in_array('manager', $assignedRoles)
+            || in_array('support', $assignedRoles)
+            ? 'admin'
+            : 'customer';
+
         $user = User::query()->create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
-            'role' => $data['role'],
+            'role' => $primaryRole,
             'phone' => $data['phone'] ?? null,
             'address' => $data['address'] ?? null,
             'city' => $data['city'] ?? null,
@@ -69,18 +104,39 @@ class UserController extends Controller
             'is_blocked' => $data['is_blocked'] ?? false,
         ]);
 
+        if (! empty($assignedRoles)) {
+            $user->syncRoles($assignedRoles);
+        }
+
+        if (isset($data['permissions'])) {
+            $user->syncPermissions($data['permissions']);
+        }
+
+        $user->load(['roles:id,name', 'permissions:id,name'])->loadCount('orders');
+
         return response()->json([
             'message' => 'Utilisateur créé avec succès.',
-            'user' => $user->fresh(),
+            'user' => array_merge($user->toArray(), [
+                'roles' => $user->roles->pluck('name')->toArray(),
+                'permissions' => $user->permissions->pluck('name')->toArray(),
+            ]),
         ], 201);
     }
 
     public function show(User $user)
     {
-        $user->loadCount('orders');
+        $user->load(['roles:id,name', 'permissions:id,name'])->loadCount('orders');
+
+        $roleNames = $user->roles->pluck('name')->toArray();
+        if (empty($roleNames) && $user->role) {
+            $roleNames = [$user->role];
+        }
 
         return response()->json([
-            'user' => $user,
+            'user' => array_merge($user->toArray(), [
+                'roles' => $roleNames,
+                'permissions' => $user->permissions->pluck('name')->toArray(),
+            ]),
             'recent_orders' => $user->orders()->latest()->take(5)->get(),
         ]);
     }
@@ -91,7 +147,11 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:160', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', Password::defaults()],
-            'role' => ['required', 'string', Rule::in(['admin', 'customer'])],
+            'role' => ['nullable', 'string'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['string'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string'],
             'phone' => ['nullable', 'string', 'max:40'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
@@ -100,16 +160,28 @@ class UserController extends Controller
             'is_blocked' => ['nullable', 'boolean'],
         ]);
 
+        $assignedRoles = ! empty($data['roles'])
+            ? $data['roles']
+            : (! empty($data['role']) ? [$data['role']] : null);
+
         $updateData = [
             'name' => $data['name'],
             'email' => $data['email'],
-            'role' => $data['role'],
             'phone' => $data['phone'] ?? null,
             'address' => $data['address'] ?? null,
             'city' => $data['city'] ?? null,
             'vip_tier' => $data['vip_tier'] ?? 'standard',
             'loyalty_points' => $data['loyalty_points'] ?? 0,
         ];
+
+        if ($assignedRoles !== null) {
+            $updateData['role'] = in_array('super-admin', $assignedRoles)
+                || in_array('admin', $assignedRoles)
+                || in_array('manager', $assignedRoles)
+                || in_array('support', $assignedRoles)
+                ? 'admin'
+                : 'customer';
+        }
 
         if (isset($data['is_blocked'])) {
             $updateData['is_blocked'] = (bool) $data['is_blocked'];
@@ -124,9 +196,22 @@ class UserController extends Controller
 
         $user->update($updateData);
 
+        if ($assignedRoles !== null) {
+            $user->syncRoles($assignedRoles);
+        }
+
+        if (isset($data['permissions'])) {
+            $user->syncPermissions($data['permissions']);
+        }
+
+        $user->load(['roles:id,name', 'permissions:id,name'])->loadCount('orders');
+
         return response()->json([
             'message' => 'Utilisateur mis à jour avec succès.',
-            'user' => $user->fresh(),
+            'user' => array_merge($user->toArray(), [
+                'roles' => $user->roles->pluck('name')->toArray(),
+                'permissions' => $user->permissions->pluck('name')->toArray(),
+            ]),
         ]);
     }
 

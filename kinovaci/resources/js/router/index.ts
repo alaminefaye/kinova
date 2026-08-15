@@ -62,6 +62,12 @@ const router = createRouter({
       meta: { title: 'Utilisateurs', requiresAuth: true },
     },
     {
+      path: '/roles',
+      name: 'Roles',
+      component: () => import('../views/Admin/RolesPage.vue'),
+      meta: { title: 'Rôles & Permissions', requiresAuth: true },
+    },
+    {
       path: '/signin',
       name: 'Signin',
       component: () => import('../views/Auth/Signin.vue'),

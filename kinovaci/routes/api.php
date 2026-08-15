@@ -8,7 +8,9 @@ use App\Http\Controllers\Api\Admin\LoyaltyController as AdminLoyaltyController;
 use App\Http\Controllers\Api\Admin\MediaController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Api\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
@@ -124,5 +126,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::apiResource('users', AdminUserController::class);
         Route::post('/users/{user}/toggle-block', [AdminUserController::class, 'toggleBlock']);
+
+        Route::apiResource('roles', AdminRoleController::class);
+        Route::get('/permissions', [AdminPermissionController::class, 'index']);
     });
 });

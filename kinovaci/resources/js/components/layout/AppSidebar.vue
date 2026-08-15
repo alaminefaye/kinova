@@ -282,6 +282,11 @@ const menuGroups = [
         name: "Utilisateurs",
         path: "/users",
       },
+      {
+        icon: PlugInIcon,
+        name: "Rôles & Permissions",
+        path: "/roles",
+      },
     ],
   },
 ];
