@@ -12,13 +12,26 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::query()->withCount('items')->latest();
+        $query = Order::query()
+            ->with(['items', 'user:id,name,phone,email,avatar_url'])
+            ->withCount('items')
+            ->latest();
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
         }
 
-        return response()->json($query->paginate(20));
+        if ($request->filled('q')) {
+            $q = $request->string('q');
+            $query->where(function ($b) use ($q) {
+                $b->where('reference', 'like', "%{$q}%")
+                    ->orWhere('customer_name', 'like', "%{$q}%")
+                    ->orWhere('customer_phone', 'like', "%{$q}%")
+                    ->orWhere('customer_email', 'like', "%{$q}%");
+            });
+        }
+
+        return response()->json($query->paginate(25));
     }
 
     public function show(Order $order)
