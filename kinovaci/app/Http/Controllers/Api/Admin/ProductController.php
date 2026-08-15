@@ -53,6 +53,28 @@ class ProductController extends Controller
 
     private function validated(Request $request, ?int $productId = null): array
     {
+        if ($request->has('sizes') && is_array($request->input('sizes'))) {
+            $sizes = array_map(function ($s) {
+                if (is_string($s)) {
+                    return ['name' => $s, 'stock' => null];
+                }
+
+                return $s;
+            }, $request->input('sizes'));
+            $request->merge(['sizes' => $sizes]);
+        }
+
+        if ($request->has('colors') && is_array($request->input('colors'))) {
+            $colors = array_map(function ($c) {
+                if (is_string($c)) {
+                    return ['name' => $c, 'hex' => null, 'stock' => null];
+                }
+
+                return $c;
+            }, $request->input('colors'));
+            $request->merge(['colors' => $colors]);
+        }
+
         return $request->validate([
             'category_id' => [$productId ? 'sometimes' : 'required', 'exists:categories,id'],
             'name' => [$productId ? 'sometimes' : 'required', 'string', 'max:160'],

@@ -725,7 +725,7 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
 }
 
 // -----------------------------------------------------------------------------
-// 3. TAB 2 : GESTION DES COMMANDES (_AdminOrdersTab)
+// 3. TAB 2 : GESTION DES COMMANDES (_AdminOrdersTab) + CRÉATION MANUELLE
 // -----------------------------------------------------------------------------
 class _AdminOrdersTab extends StatefulWidget {
   const _AdminOrdersTab();
@@ -839,8 +839,8 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
       ),
       builder: (ctx) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.65,
-          maxChildSize: 0.9,
+          initialChildSize: 0.7,
+          maxChildSize: 0.95,
           minChildSize: 0.4,
           expand: false,
           builder: (_, scrollCtrl) {
@@ -992,6 +992,22 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
     );
   }
 
+  void _openCreateOrderModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A100A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _CreateOrderModal(
+        onSuccess: () {
+          _fetchOrders();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -1011,9 +1027,32 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
-                IconButton(
-                  onPressed: _fetchOrders,
-                  icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _openCreateOrderModal,
+                      icon: const Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
+                      label: const Text(
+                        'Créer',
+                        style: TextStyle(
+                          color: KinovaColors.brown,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KinovaColors.gold,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      onPressed: _fetchOrders,
+                      icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1166,7 +1205,7 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
 }
 
 // -----------------------------------------------------------------------------
-// 4. TAB 3 : GESTION DES PRODUITS & STOCKS (_AdminProductsTab)
+// 4. TAB 3 : GESTION DES PRODUITS & STOCKS + CRÉATION / ÉDITION
 // -----------------------------------------------------------------------------
 class _AdminProductsTab extends StatefulWidget {
   const _AdminProductsTab();
@@ -1251,6 +1290,73 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
     }
   }
 
+  Future<void> _deleteProduct(dynamic productId, String productName) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF22160F),
+        title: const Text('Supprimer le produit', style: TextStyle(color: KinovaColors.cream)),
+        content: Text('Êtes-vous sûr de vouloir supprimer "$productName" ?', style: const TextStyle(color: KinovaColors.sand)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler', style: TextStyle(color: KinovaColors.sand)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+    if (!mounted) return;
+
+    try {
+      final api = context.read<ApiClient>();
+      await api.delete('/admin/products/$productId');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Produit supprimé avec succès'),
+            backgroundColor: KinovaColors.brown,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      await _fetchProducts();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la suppression'),
+            backgroundColor: Color(0xFFB71C1C),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openProductModal([Map<String, dynamic>? product]) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1A100A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _ProductFormModal(
+        product: product,
+        onSuccess: () {
+          _fetchProducts();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     List<dynamic> filtered = _products;
@@ -1282,9 +1388,32 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                         fontWeight: FontWeight.w800,
                       ),
                 ),
-                IconButton(
-                  onPressed: _fetchProducts,
-                  icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _openProductModal(null),
+                      icon: const Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
+                      label: const Text(
+                        'Nouveau',
+                        style: TextStyle(
+                          color: KinovaColors.brown,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KinovaColors.gold,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      onPressed: _fetchProducts,
+                      icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1373,109 +1502,120 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                               final rawImg = p['image_url']?.toString();
                               final imgUrl = (rawImg != null && rawImg.isNotEmpty) ? ApiConfig.resolveMediaUrl(rawImg) : null;
 
-                              return Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF22160F),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: stock == 0
-                                        ? const Color(0xFFD32F2F).withValues(alpha: 0.5)
-                                        : (stock <= 5
-                                            ? const Color(0xFFFFA726).withValues(alpha: 0.4)
-                                            : KinovaColors.sand.withValues(alpha: 0.18)),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    // Image
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Container(
-                                        width: 52,
-                                        height: 52,
-                                        color: const Color(0xFF332016),
-                                        child: imgUrl != null
-                                            ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_rounded, color: KinovaColors.sand, size: 24))
-                                            : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 24),
-                                      ),
+                              return GestureDetector(
+                                onTap: () => _openProductModal(p),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF22160F),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: stock == 0
+                                          ? const Color(0xFFD32F2F).withValues(alpha: 0.5)
+                                          : (stock <= 5
+                                              ? const Color(0xFFFFA726).withValues(alpha: 0.4)
+                                              : KinovaColors.sand.withValues(alpha: 0.18)),
                                     ),
-                                    const SizedBox(width: 12),
-                                    // Info
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: KinovaColors.cream,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13.5,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // Image
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Container(
+                                          width: 52,
+                                          height: 52,
+                                          color: const Color(0xFF332016),
+                                          child: imgUrl != null
+                                              ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_rounded, color: KinovaColors.sand, size: 24))
+                                              : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 24),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // Info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: KinovaColors.cream,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13.5,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Row(
-                                            children: [
-                                              if (catName.isNotEmpty)
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                if (catName.isNotEmpty)
+                                                  Text(
+                                                    '$catName • ',
+                                                    style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
+                                                  ),
                                                 Text(
-                                                  '$catName • ',
-                                                  style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
+                                                  formatMoney(promoPrice ?? price),
+                                                  style: const TextStyle(
+                                                    color: KinovaColors.gold,
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
-                                              Text(
-                                                formatMoney(promoPrice ?? price),
-                                                style: const TextStyle(
-                                                  color: KinovaColors.gold,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          // Badge stock
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: stock == 0
-                                                  ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
-                                                  : (stock <= 5
-                                                      ? const Color(0xFFFFA726).withValues(alpha: 0.2)
-                                                      : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
-                                              borderRadius: BorderRadius.circular(6),
+                                              ],
                                             ),
-                                            child: Text(
-                                              stock == 0 ? 'RUPTURE DE STOCK' : 'Stock : $stock unités',
-                                              style: TextStyle(
+                                            const SizedBox(height: 4),
+                                            // Badge stock
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
                                                 color: stock == 0
-                                                    ? const Color(0xFFEF5350)
+                                                    ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
                                                     : (stock <= 5
-                                                        ? const Color(0xFFFFB74D)
-                                                        : const Color(0xFF81C784)),
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w800,
+                                                        ? const Color(0xFFFFA726).withValues(alpha: 0.2)
+                                                        : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                stock == 0 ? 'RUPTURE DE STOCK' : 'Stock : $stock unités',
+                                                style: TextStyle(
+                                                  color: stock == 0
+                                                      ? const Color(0xFFEF5350)
+                                                      : (stock <= 5
+                                                          ? const Color(0xFFFFB74D)
+                                                          : const Color(0xFF81C784)),
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
                                               ),
                                             ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Boutons Actions & Ajusteur rapide de stock
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand, size: 22),
+                                            onPressed: stock > 0 ? () => _adjustStock(p['id'], stock, -1) : null,
+                                            tooltip: 'Diminuer stock',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold, size: 22),
+                                            onPressed: () => _adjustStock(p['id'], stock, 1),
+                                            tooltip: 'Augmenter stock',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFE57373), size: 20),
+                                            onPressed: () => _deleteProduct(p['id'], name),
+                                            tooltip: 'Supprimer',
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    // Ajusteur rapide de stock + / -
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand, size: 22),
-                                          onPressed: stock > 0 ? () => _adjustStock(p['id'], stock, -1) : null,
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold, size: 22),
-                                          onPressed: () => _adjustStock(p['id'], stock, 1),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
                             },
@@ -1792,6 +1932,705 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                           ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 6. MODAL CRÉATION / ÉDITION DE PRODUIT (_ProductFormModal)
+// -----------------------------------------------------------------------------
+class _ProductFormModal extends StatefulWidget {
+  const _ProductFormModal({this.product, required this.onSuccess});
+
+  final Map<String, dynamic>? product;
+  final VoidCallback onSuccess;
+
+  @override
+  State<_ProductFormModal> createState() => _ProductFormModalState();
+}
+
+class _ProductFormModalState extends State<_ProductFormModal> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _priceController;
+  late TextEditingController _promoPriceController;
+  late TextEditingController _stockController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _imageUrlController;
+  late TextEditingController _sizesController;
+  late TextEditingController _colorsController;
+
+  int? _selectedCategoryId;
+  List<dynamic> _categories = [];
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.product;
+    _nameController = TextEditingController(text: p?['name']?.toString() ?? '');
+    _priceController = TextEditingController(text: p?['price']?.toString() ?? '');
+    _promoPriceController = TextEditingController(text: p?['promo_price']?.toString() ?? '');
+    _stockController = TextEditingController(text: p?['stock']?.toString() ?? '10');
+    _descriptionController = TextEditingController(text: p?['description']?.toString() ?? '');
+    _imageUrlController = TextEditingController(text: p?['image_url']?.toString() ?? '');
+
+    // Formattage sizes & colors
+    final sizesList = p?['sizes'] is List ? (p!['sizes'] as List) : [];
+    final sizesStr = sizesList.map((s) => s is Map ? s['name'] : s.toString()).join(', ');
+    _sizesController = TextEditingController(text: sizesStr);
+
+    final colorsList = p?['colors'] is List ? (p!['colors'] as List) : [];
+    final colorsStr = colorsList.map((c) => c is Map ? c['name'] : c.toString()).join(', ');
+    _colorsController = TextEditingController(text: colorsStr);
+
+    _selectedCategoryId = p?['category_id'] != null ? int.tryParse('${p!['category_id']}') : null;
+
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final api = context.read<ApiClient>();
+      final res = await api.get('/categories');
+      if (res is Map && res['data'] is List) {
+        if (mounted) {
+          setState(() {
+            _categories = res['data'] as List;
+            if (_selectedCategoryId == null && _categories.isNotEmpty) {
+              _selectedCategoryId = _categories.first['id'] as int;
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategoryId == null && _categories.isNotEmpty) {
+      _selectedCategoryId = _categories.first['id'] as int;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final api = context.read<ApiClient>();
+      final isEdit = widget.product != null;
+
+      final sizes = _sizesController.text
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .map((s) => {'name': s, 'stock': null})
+          .toList();
+
+      final colors = _colorsController.text
+          .split(',')
+          .map((c) => c.trim())
+          .where((c) => c.isNotEmpty)
+          .map((c) => {'name': c, 'hex': null, 'stock': null})
+          .toList();
+
+      final payload = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'category_id': _selectedCategoryId,
+        'price': double.tryParse(_priceController.text.trim()) ?? 0,
+        'stock': int.tryParse(_stockController.text.trim()) ?? 0,
+        'description': _descriptionController.text.trim(),
+        'image_url': _imageUrlController.text.trim(),
+        'sizes': sizes,
+        'colors': colors,
+        'is_active': true,
+        'is_new': true,
+      };
+
+      if (_promoPriceController.text.trim().isNotEmpty) {
+        payload['promo_price'] = double.tryParse(_promoPriceController.text.trim());
+      } else {
+        payload['promo_price'] = null;
+      }
+
+      if (isEdit) {
+        final id = widget.product!['id'];
+        await api.put('/admin/products/$id', body: payload);
+      } else {
+        await api.post('/admin/products', body: payload);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEdit ? 'Produit mis à jour avec succès' : 'Produit créé avec succès'),
+            backgroundColor: KinovaColors.brown,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        widget.onSuccess();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Erreur lors de l\'enregistrement : $e';
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.product != null;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      expand: false,
+      builder: (_, scrollController) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              controller: scrollController,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEdit ? 'Modifier le Produit' : 'Nouveau Produit KINOVA',
+                      style: const TextStyle(
+                        color: KinovaColors.cream,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: KinovaColors.sand),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: Color(0xFFEF5350), fontSize: 12)),
+                ],
+                const Divider(color: Color(0xFF3E2723), height: 20),
+
+                // Nom
+                _buildInputLabel('Nom du Produit *'),
+                TextFormField(
+                  controller: _nameController,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Nom obligatoire' : null,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildInputDecoration('ex: Sérum Élixir Rose d’Or'),
+                ),
+                const SizedBox(height: 12),
+
+                // Catégorie
+                _buildInputLabel('Catégorie *'),
+                if (_categories.isEmpty)
+                  const Text('Chargement des catégories...', style: TextStyle(color: KinovaColors.sand, fontSize: 12))
+                else
+                  DropdownButtonFormField<int>(
+                    initialValue: _selectedCategoryId,
+                    dropdownColor: const Color(0xFF22160F),
+                    style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                    decoration: _buildInputDecoration(''),
+                    items: _categories.map((c) {
+                      return DropdownMenuItem<int>(
+                        value: c['id'] as int,
+                        child: Text(c['name']?.toString() ?? 'Catégorie'),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => _selectedCategoryId = val),
+                  ),
+                const SizedBox(height: 12),
+
+                // Prix & Promo
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInputLabel('Prix (FCFA) *'),
+                          TextFormField(
+                            controller: _priceController,
+                            keyboardType: TextInputType.number,
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Prix obligatoire' : null,
+                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                            decoration: _buildInputDecoration('ex: 25000'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInputLabel('Prix Promo (FCFA)'),
+                          TextFormField(
+                            controller: _promoPriceController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                            decoration: _buildInputDecoration('Optionnel'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Stock
+                _buildInputLabel('Quantité en Stock *'),
+                TextFormField(
+                  controller: _stockController,
+                  keyboardType: TextInputType.number,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Stock obligatoire' : null,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildInputDecoration('ex: 50'),
+                ),
+                const SizedBox(height: 12),
+
+                // Tailles & Couleurs
+                _buildInputLabel('Tailles / Pointures (séparées par virgules)'),
+                TextFormField(
+                  controller: _sizesController,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildInputDecoration('ex: S, M, L, XL ou 38, 39, 40'),
+                ),
+                const SizedBox(height: 12),
+
+                _buildInputLabel('Couleurs (séparées par virgules)'),
+                TextFormField(
+                  controller: _colorsController,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildInputDecoration('ex: Noir, Blanc, Or, Doré'),
+                ),
+                const SizedBox(height: 12),
+
+                // Image URL
+                _buildInputLabel('URL de l\'image'),
+                TextFormField(
+                  controller: _imageUrlController,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildInputDecoration('https://... ou /images/...'),
+                ),
+                const SizedBox(height: 12),
+
+                // Description
+                _buildInputLabel('Description du produit'),
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildInputDecoration('Description luxueuse de l\'article...'),
+                ),
+                const SizedBox(height: 20),
+
+                // Bouton Valider
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: KinovaColors.gold,
+                      foregroundColor: KinovaColors.brown,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: KinovaColors.brown),
+                          )
+                        : Text(
+                            isEdit ? 'Mettre à jour le Produit' : 'Créer le Produit',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInputLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: KinovaColors.sand,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.4), fontSize: 12.5),
+      filled: true,
+      fillColor: const Color(0xFF22160F),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 7. MODAL CRÉATION MANUELLE DE COMMANDE (_CreateOrderModal)
+// -----------------------------------------------------------------------------
+class _CreateOrderModal extends StatefulWidget {
+  const _CreateOrderModal({required this.onSuccess});
+
+  final VoidCallback onSuccess;
+
+  @override
+  State<_CreateOrderModal> createState() => _CreateOrderModalState();
+}
+
+class _CreateOrderModalState extends State<_CreateOrderModal> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController(text: 'Abidjan');
+  final _cityController = TextEditingController(text: 'Abidjan');
+  final _notesController = TextEditingController();
+
+  List<dynamic> _products = [];
+  int? _selectedProductId;
+  int _quantity = 1;
+  String _paymentMethod = 'cash_on_delivery';
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    try {
+      final api = context.read<ApiClient>();
+      final res = await api.get('/admin/products');
+      if (res is Map && res['data'] is List) {
+        if (mounted) {
+          setState(() {
+            _products = res['data'] as List;
+            if (_products.isNotEmpty) {
+              _selectedProductId = _products.first['id'] as int;
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _createOrder() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedProductId == null) {
+      setState(() => _error = 'Veuillez sélectionner au moins un article.');
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final api = context.read<ApiClient>();
+      final payload = {
+        'customer_name': _nameController.text.trim(),
+        'customer_phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'city': _cityController.text.trim(),
+        'payment_method': _paymentMethod,
+        'status': 'pending',
+        'notes': _notesController.text.trim(),
+        'items': [
+          {
+            'product_id': _selectedProductId,
+            'quantity': _quantity,
+          }
+        ],
+      };
+
+      await api.post('/admin/orders', body: payload);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Commande créée avec succès'),
+            backgroundColor: KinovaColors.brown,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        widget.onSuccess();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Erreur lors de la création de la commande : $e';
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      expand: false,
+      builder: (_, scrollController) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              controller: scrollController,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Nouvelle Commande',
+                      style: TextStyle(
+                        color: KinovaColors.cream,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: KinovaColors.sand),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: Color(0xFFEF5350), fontSize: 12)),
+                ],
+                const Divider(color: Color(0xFF3E2723), height: 20),
+
+                // Nom du Client
+                _buildLabel('Nom du Client *'),
+                TextFormField(
+                  controller: _nameController,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Nom obligatoire' : null,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildDecor('ex: Aminata Touré'),
+                ),
+                const SizedBox(height: 12),
+
+                // Téléphone
+                _buildLabel('Téléphone Client *'),
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Téléphone obligatoire' : null,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildDecor('ex: +225 07 00 00 00'),
+                ),
+                const SizedBox(height: 12),
+
+                // Adresse & Ville
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Adresse de Livraison *'),
+                          TextFormField(
+                            controller: _addressController,
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Adresse obligatoire' : null,
+                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                            decoration: _buildDecor('ex: Cocody Riviera Golf'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Ville'),
+                          TextFormField(
+                            controller: _cityController,
+                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                            decoration: _buildDecor('Abidjan'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Produit à commander
+                _buildLabel('Article à commander *'),
+                if (_products.isEmpty)
+                  const Text('Chargement des articles...', style: TextStyle(color: KinovaColors.sand, fontSize: 12))
+                else
+                  DropdownButtonFormField<int>(
+                    initialValue: _selectedProductId,
+                    dropdownColor: const Color(0xFF22160F),
+                    style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                    decoration: _buildDecor(''),
+                    items: _products.map((p) {
+                      final price = double.tryParse('${p['promo_price'] ?? p['price']}') ?? 0.0;
+                      return DropdownMenuItem<int>(
+                        value: p['id'] as int,
+                        child: Text('${p['name']} (${formatMoney(price)})'),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => _selectedProductId = val),
+                  ),
+                const SizedBox(height: 12),
+
+                // Quantité
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildLabel('Quantité'),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand),
+                          onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                        ),
+                        Text(
+                          '$_quantity',
+                          style: const TextStyle(color: KinovaColors.cream, fontWeight: FontWeight.w800, fontSize: 16),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold),
+                          onPressed: () => setState(() => _quantity++),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Mode de paiement
+                _buildLabel('Mode de Paiement'),
+                DropdownButtonFormField<String>(
+                  initialValue: _paymentMethod,
+                  dropdownColor: const Color(0xFF22160F),
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildDecor(''),
+                  items: const [
+                    DropdownMenuItem(value: 'cash_on_delivery', child: Text('Espèces à la livraison')),
+                    DropdownMenuItem(value: 'wave', child: Text('Wave')),
+                    DropdownMenuItem(value: 'orange_money', child: Text('Orange Money')),
+                    DropdownMenuItem(value: 'card', child: Text('Carte Bancaire')),
+                  ],
+                  onChanged: (val) => setState(() => _paymentMethod = val ?? 'cash_on_delivery'),
+                ),
+                const SizedBox(height: 12),
+
+                // Notes
+                _buildLabel('Notes internes ou instructions'),
+                TextFormField(
+                  controller: _notesController,
+                  maxLines: 2,
+                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  decoration: _buildDecor('ex: Appel avant livraison'),
+                ),
+                const SizedBox(height: 20),
+
+                // Bouton Valider
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _createOrder,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: KinovaColors.gold,
+                      foregroundColor: KinovaColors.brown,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: KinovaColors.brown),
+                          )
+                        : const Text(
+                            'Créer la Commande',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: KinovaColors.sand,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildDecor(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.4), fontSize: 12.5),
+      filled: true,
+      fillColor: const Color(0xFF22160F),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
       ),
     );
   }
