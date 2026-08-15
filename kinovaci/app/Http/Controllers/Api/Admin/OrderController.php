@@ -75,11 +75,14 @@ class OrderController extends Controller
 
     public function store(Request $request)
     {
+        $isDelivery = $request->boolean('is_delivery', true);
+
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
             'customer_phone' => ['required', 'string', 'max:40'],
             'customer_email' => ['nullable', 'email', 'max:160'],
-            'address' => ['required', 'string', 'max:255'],
+            'is_delivery' => ['nullable', 'boolean'],
+            'address' => [$isDelivery ? 'required' : 'nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
             'payment_method' => ['nullable', 'string', 'max:50'],
             'status' => ['nullable', 'in:pending,processing,shipped,delivered,cancelled'],
@@ -123,8 +126,8 @@ class OrderController extends Controller
             ];
         }
 
-        // Livraison gratuite dès 50 000 FCFA
-        $shipping = $subtotal >= 50000 ? 0.0 : 2500.0;
+        // Livraison : 0 FCFA si retrait en boutique ou si commande >= 50 000 FCFA
+        $shipping = ($isDelivery && $subtotal < 50000) ? 2500.0 : 0.0;
         $total = $subtotal + $shipping;
 
         $reference = 'CMD-'.strtoupper(\Illuminate\Support\Str::random(6));
@@ -134,14 +137,14 @@ class OrderController extends Controller
             'customer_name' => $data['customer_name'],
             'customer_phone' => $data['customer_phone'],
             'customer_email' => $data['customer_email'] ?? null,
-            'address' => $data['address'],
-            'city' => $data['city'] ?? 'Abidjan',
+            'address' => $isDelivery ? $data['address'] : ($data['address'] ?? 'Retrait en boutique KINOVA'),
+            'city' => $isDelivery ? ($data['city'] ?? 'Abidjan') : ($data['city'] ?? 'Abidjan'),
             'payment_method' => $data['payment_method'] ?? 'cash_on_delivery',
             'status' => $data['status'] ?? 'pending',
             'subtotal' => $subtotal,
             'shipping' => $shipping,
             'total' => $total,
-            'notes' => $data['notes'] ?? null,
+            'notes' => $data['notes'] ?? ($isDelivery ? null : 'Retrait en boutique'),
             'tracking_number' => $data['tracking_number'] ?? null,
             'carrier' => $data['carrier'] ?? null,
         ]);

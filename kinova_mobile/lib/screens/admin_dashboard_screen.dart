@@ -2608,6 +2608,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
   String? _selectedSize;
   String? _selectedColor;
   int _quantity = 1;
+  bool _isDelivery = true;
   String _paymentMethod = 'cash_on_delivery';
   bool _saving = false;
   String? _error;
@@ -2707,8 +2708,9 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
       final payload = {
         'customer_name': _nameController.text.trim(),
         'customer_phone': _phoneController.text.trim(),
-        'address': _addressController.text.trim(),
-        'city': _cityController.text.trim(),
+        'is_delivery': _isDelivery,
+        'address': _isDelivery ? _addressController.text.trim() : 'Retrait en boutique KINOVA',
+        'city': _isDelivery ? _cityController.text.trim() : 'Abidjan',
         'payment_method': _paymentMethod,
         'status': 'pending',
         'notes': _notesController.text.trim(),
@@ -2802,42 +2804,101 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                   style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
                   decoration: _buildDecor('ex: +225 07 00 00 00'),
                 ),
+                const SizedBox(height: 14),
+
+                // Option Se faire livrer (Toggle)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22160F),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isDelivery
+                          ? KinovaColors.gold.withValues(alpha: 0.5)
+                          : KinovaColors.sand.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isDelivery ? Icons.local_shipping_rounded : Icons.storefront_rounded,
+                        color: _isDelivery ? KinovaColors.gold : KinovaColors.sand,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Se faire livrer à domicile',
+                              style: TextStyle(
+                                color: KinovaColors.cream,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _isDelivery
+                                  ? 'Livraison à l\'adresse indiquée (+2 500 FCFA / Offerte dès 50k)'
+                                  : 'Retrait en boutique KINOVA (Gratuit - 0 FCFA)',
+                              style: TextStyle(
+                                color: _isDelivery ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.8),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: _isDelivery,
+                        activeThumbColor: KinovaColors.gold,
+                        activeTrackColor: KinovaColors.gold.withValues(alpha: 0.4),
+                        onChanged: (val) => setState(() => _isDelivery = val),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 12),
 
-                // Adresse & Ville
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel('Adresse de Livraison *'),
-                          TextFormField(
-                            controller: _addressController,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Adresse obligatoire' : null,
-                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                            decoration: _buildDecor('ex: Cocody Riviera Golf'),
-                          ),
-                        ],
+                // Adresse & Ville si livraison activée
+                if (_isDelivery) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Adresse de Livraison *'),
+                            TextFormField(
+                              controller: _addressController,
+                              validator: (v) => _isDelivery && (v == null || v.trim().isEmpty) ? 'Adresse obligatoire' : null,
+                              style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                              decoration: _buildDecor('ex: Cocody Riviera Golf'),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel('Ville'),
-                          TextFormField(
-                            controller: _cityController,
-                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                            decoration: _buildDecor('Abidjan'),
-                          ),
-                        ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Ville'),
+                            TextFormField(
+                              controller: _cityController,
+                              style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                              decoration: _buildDecor('Abidjan'),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 const SizedBox(height: 14),
 
                 // Produit à commander

@@ -92,12 +92,16 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  double shippingFor({bool isDelivery = true}) =>
+      (!isDelivery || _items.isEmpty) ? 0 : (subtotal >= 50000 ? 0 : 2500);
+
   Future<Order> placeOrder({
     required String customerName,
     required String customerPhone,
     String? customerEmail,
-    required String address,
-    required String city,
+    bool isDelivery = true,
+    String? address,
+    String? city,
     required String paymentMethod,
   }) async {
     final res = await _api.post('/orders', body: {
@@ -105,8 +109,9 @@ class CartController extends ChangeNotifier {
       'customer_phone': customerPhone,
       if (customerEmail != null && customerEmail.isNotEmpty)
         'customer_email': customerEmail,
-      'address': address,
-      'city': city,
+      'is_delivery': isDelivery,
+      'address': isDelivery ? (address ?? '') : 'Retrait en boutique KINOVA',
+      'city': isDelivery ? (city ?? 'Abidjan') : 'Abidjan',
       'payment_method': paymentMethod,
       'items': _items
           .map(

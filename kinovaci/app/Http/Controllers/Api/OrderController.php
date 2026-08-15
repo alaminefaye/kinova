@@ -14,13 +14,16 @@ class OrderController extends Controller
 {
     public function store(Request $request, NotificationService $notifications)
     {
+        $isDelivery = $request->boolean('is_delivery', true);
+
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
             'customer_phone' => ['required', 'string', 'max:40'],
             'customer_email' => ['nullable', 'email'],
-            'address' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:120'],
-            'payment_method' => ['required', 'in:card,cod'],
+            'is_delivery' => ['nullable', 'boolean'],
+            'address' => [$isDelivery ? 'required' : 'nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'payment_method' => ['required', 'string', 'max:50'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
@@ -31,7 +34,7 @@ class OrderController extends Controller
 
         $userId = $request->user()?->id ?? auth('sanctum')->id();
 
-        $order = DB::transaction(function () use ($data, $userId) {
+        $order = DB::transaction(function () use ($data, $userId, $isDelivery) {
             $subtotal = 0;
             $lines = [];
 
@@ -71,7 +74,8 @@ class OrderController extends Controller
                 $lines[] = compact('product', 'item', 'unitPrice', 'lineTotal');
             }
 
-            $shipping = $subtotal >= 100 ? 0 : 6.5;
+            // Livraison gratuite dès 50 000 FCFA ou si retrait en boutique
+            $shipping = ($isDelivery && $subtotal < 50000) ? 2500.0 : 0.0;
             $total = $subtotal + $shipping;
 
             $order = Order::query()->create([
@@ -80,14 +84,14 @@ class OrderController extends Controller
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
                 'customer_email' => $data['customer_email'] ?? null,
-                'address' => $data['address'],
-                'city' => $data['city'],
+                'address' => $isDelivery ? $data['address'] : ($data['address'] ?? 'Retrait en boutique KINOVA'),
+                'city' => $isDelivery ? ($data['city'] ?? 'Abidjan') : ($data['city'] ?? 'Abidjan'),
                 'payment_method' => $data['payment_method'],
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'shipping' => $shipping,
                 'total' => $total,
-                'notes' => $data['notes'] ?? null,
+                'notes' => $data['notes'] ?? ($isDelivery ? null : 'Retrait en boutique'),
             ]);
 
             foreach ($lines as $line) {

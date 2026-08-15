@@ -22,6 +22,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _city = TextEditingController();
+  bool _isDelivery = true;
   String _payment = 'card';
   bool _submitting = false;
   String? _error;
@@ -70,8 +71,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             customerName: _name.text.trim(),
             customerPhone: _phone.text.trim(),
             customerEmail: auth.user?.email,
-            address: _address.text.trim(),
-            city: _city.text.trim(),
+            isDelivery: _isDelivery,
+            address: _isDelivery ? _address.text.trim() : 'Retrait en boutique KINOVA',
+            city: _isDelivery ? _city.text.trim() : 'Abidjan',
             paymentMethod: _payment,
           );
       if (!mounted) return;
@@ -96,6 +98,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartController>();
+    final shippingFee = cart.shippingFor(isDelivery: _isDelivery);
+    final finalTotal = cart.subtotal + shippingFee;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Paiement')),
@@ -106,7 +110,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             FadeSlideIn(
               child: Text(
-                'Livraison',
+                'Mode de Réception & Coordonnées',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -117,7 +121,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 children: [
                   TextFormField(
                     controller: _name,
-                    decoration: const InputDecoration(hintText: 'Nom complet'),
+                    decoration: const InputDecoration(hintText: 'Nom complet *'),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Requis' : null,
                   ),
@@ -125,24 +129,82 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   TextFormField(
                     controller: _phone,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(hintText: 'Téléphone'),
+                    decoration: const InputDecoration(hintText: 'Téléphone *'),
                     validator: (v) =>
                         (v == null || v.trim().length < 8) ? 'Invalide' : null,
                   ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _address,
-                    decoration: const InputDecoration(hintText: 'Adresse'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                  const SizedBox(height: 14),
+
+                  // Option Se faire livrer (Toggle)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: KinovaColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _isDelivery
+                            ? KinovaColors.gold.withValues(alpha: 0.5)
+                            : KinovaColors.sand.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isDelivery ? Icons.local_shipping_rounded : Icons.storefront_rounded,
+                          color: _isDelivery ? KinovaColors.gold : KinovaColors.sand,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Se faire livrer à domicile',
+                                style: TextStyle(
+                                  color: KinovaColors.cream,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _isDelivery
+                                    ? 'Livraison sécurisée partout à Abidjan'
+                                    : 'Retrait direct en boutique KINOVA (0 FCFA)',
+                                style: TextStyle(
+                                  color: _isDelivery ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.8),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: _isDelivery,
+                          activeThumbColor: KinovaColors.gold,
+                          activeTrackColor: KinovaColors.gold.withValues(alpha: 0.4),
+                          onChanged: (val) => setState(() => _isDelivery = val),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _city,
-                    decoration: const InputDecoration(hintText: 'Ville'),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Requis' : null,
-                  ),
+
+                  // Champs adresse uniquement si livraison cochée
+                  if (_isDelivery) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _address,
+                      decoration: const InputDecoration(hintText: 'Adresse de livraison complète *'),
+                      validator: (v) => _isDelivery && (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _city,
+                      decoration: const InputDecoration(hintText: 'Ville *'),
+                      validator: (v) => _isDelivery && (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -167,7 +229,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onChanged: (v) => setState(() => _payment = v),
                   ),
                   _PayTile(
-                    title: 'Paiement à la livraison',
+                    title: 'Paiement à la livraison / au retrait',
                     subtitle: 'Espèces ou mobile money',
                     value: 'cod',
                     group: _payment,
@@ -190,10 +252,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _line('Articles', formatMoney(cart.subtotal)),
                     _line(
                       'Livraison',
-                      cart.shipping == 0 ? 'Offerte' : formatMoney(cart.shipping),
+                      shippingFee == 0
+                          ? (_isDelivery ? 'Offerte (dès 50 000 FCFA)' : 'Retrait en boutique (Gratuit)')
+                          : formatMoney(shippingFee),
                     ),
                     const Divider(color: KinovaColors.sand),
-                    _line('Total', formatMoney(cart.total), bold: true),
+                    _line('Total', formatMoney(finalTotal), bold: true),
                   ],
                 ),
               ),
