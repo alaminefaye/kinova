@@ -1532,110 +1532,151 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                                               : KinovaColors.sand.withValues(alpha: 0.18)),
                                     ),
                                   ),
-                                  child: Row(
+                                  child: Column(
                                     children: [
-                                      // Image
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Container(
-                                          width: 52,
-                                          height: 52,
-                                          color: const Color(0xFF332016),
-                                          child: imgUrl != null
-                                              ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_rounded, color: KinovaColors.sand, size: 24))
-                                              : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 24),
-                                        ),
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Image
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(10),
+                                            child: Container(
+                                              width: 52,
+                                              height: 52,
+                                              color: const Color(0xFF332016),
+                                              child: imgUrl != null
+                                                  ? Image.network(
+                                                      ApiConfig.resolveMediaUrl(imgUrl),
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_rounded, color: KinovaColors.sand, size: 22),
+                                                    )
+                                                  : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 22),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Info
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  name,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: KinovaColors.cream,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Text.rich(
+                                                  TextSpan(
+                                                    children: [
+                                                      if (catName.isNotEmpty)
+                                                        TextSpan(
+                                                          text: '$catName • ',
+                                                          style: const TextStyle(color: KinovaColors.sand, fontSize: 11.5),
+                                                        ),
+                                                      TextSpan(
+                                                        text: formatMoney(promoPrice ?? price),
+                                                        style: const TextStyle(
+                                                          color: KinovaColors.gold,
+                                                          fontWeight: FontWeight.w800,
+                                                          fontSize: 12.5,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Bouton Supprimer
+                                          GestureDetector(
+                                            onTap: () => _deleteProduct(p['id'], name),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFD32F2F).withValues(alpha: 0.12),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF5350), size: 18),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 12),
-                                      // Info
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              name,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: KinovaColors.cream,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13.5,
+                                      const SizedBox(height: 10),
+                                      // Ligne inférieure : Badge Statut Stock & Stepper [-] [+]
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          // Badge Stock
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: stock == 0
+                                                  ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
+                                                  : (stock <= 5
+                                                      ? const Color(0xFFFFA726).withValues(alpha: 0.2)
+                                                      : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              stock == 0 ? 'RUPTURE DE STOCK' : 'Stock : $stock unités',
+                                              style: TextStyle(
+                                                color: stock == 0
+                                                    ? const Color(0xFFEF5350)
+                                                    : (stock <= 5
+                                                        ? const Color(0xFFFFB74D)
+                                                        : const Color(0xFF81C784)),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
                                               ),
                                             ),
-                                            const SizedBox(height: 2),
-                                            Text.rich(
-                                              TextSpan(
-                                                children: [
-                                                  if (catName.isNotEmpty)
-                                                    TextSpan(
-                                                      text: '$catName • ',
-                                                      style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
-                                                    ),
-                                                  TextSpan(
-                                                    text: formatMoney(promoPrice ?? price),
-                                                    style: const TextStyle(
-                                                      color: KinovaColors.gold,
-                                                      fontWeight: FontWeight.w800,
-                                                      fontSize: 12,
+                                          ),
+                                          // Stepper de stock [-] [+]
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF18100A),
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: stock > 0 ? () => _adjustStock(p['id'], stock, -1) : null,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                                    child: Icon(
+                                                      Icons.remove_rounded,
+                                                      size: 16,
+                                                      color: stock > 0 ? KinovaColors.sand : KinovaColors.sand.withValues(alpha: 0.3),
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            // Badge stock
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: stock == 0
-                                                    ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
-                                                    : (stock <= 5
-                                                        ? const Color(0xFFFFA726).withValues(alpha: 0.2)
-                                                        : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                stock == 0 ? 'RUPTURE DE STOCK' : 'Stock : $stock unités',
-                                                style: TextStyle(
-                                                  color: stock == 0
-                                                      ? const Color(0xFFEF5350)
-                                                      : (stock <= 5
-                                                          ? const Color(0xFFFFB74D)
-                                                          : const Color(0xFF81C784)),
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w800,
                                                 ),
-                                              ),
+                                                Container(
+                                                  width: 1,
+                                                  height: 14,
+                                                  color: KinovaColors.sand.withValues(alpha: 0.2),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () => _adjustStock(p['id'], stock, 1),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                                    child: const Icon(
+                                                      Icons.add_rounded,
+                                                      size: 16,
+                                                      color: KinovaColors.gold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      // Boutons Actions & Ajusteur rapide de stock
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                            padding: const EdgeInsets.all(4),
-                                            icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand, size: 20),
-                                            onPressed: stock > 0 ? () => _adjustStock(p['id'], stock, -1) : null,
-                                            tooltip: 'Diminuer stock',
-                                          ),
-                                          IconButton(
-                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                            padding: const EdgeInsets.all(4),
-                                            icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold, size: 20),
-                                            onPressed: () => _adjustStock(p['id'], stock, 1),
-                                            tooltip: 'Augmenter stock',
-                                          ),
-                                          IconButton(
-                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                            padding: const EdgeInsets.all(4),
-                                            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFE57373), size: 18),
-                                            onPressed: () => _deleteProduct(p['id'], name),
-                                            tooltip: 'Supprimer',
                                           ),
                                         ],
                                       ),
