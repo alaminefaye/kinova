@@ -6,9 +6,11 @@ import UniverseCard from '../components/UniverseCard.vue'
 import SoftImage from '../components/SoftImage.vue'
 import KinovaLoader from '../components/KinovaLoader.vue'
 import { useCatalog } from '../state/catalog'
+import { useAuth } from '../state/auth'
 
 const router = useRouter()
 const catalog = useCatalog()
+const auth = useAuth()
 const heroIndex = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -74,7 +76,63 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <div class="promo">LIVRAISON OFFERTE DÈS 100 FCFA · RETOURS 14 JOURS</div>
+      <div class="promo">LIVRAISON OFFERTE DÈS 50 000 FCFA · RETOURS 14 JOURS</div>
+
+      <!-- Bannière Cercle VIP si non connecté -->
+      <div v-if="!auth.isLoggedIn.value" class="vip-banner" @click="router.push({ name: 'auth' })">
+        <div class="vip-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </div>
+        <div class="vip-content">
+          <h3>Rejoignez le Cercle VIP</h3>
+          <p>10 000 FCFA dépensés = 1 point. Avantages exclusifs.</p>
+        </div>
+        <span class="vip-arrow">›</span>
+      </div>
+
+      <!-- Engagements KINOVA -->
+      <div class="perks-row">
+        <div class="perk-card">
+          <div class="perk-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="1" y="3" width="15" height="13"></rect>
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
+            </svg>
+          </div>
+          <div class="perk-text">
+            <strong>Livraison Offerte</strong>
+            <span>Dès 50 000 FCFA d’achat</span>
+          </div>
+        </div>
+        <div class="perk-card">
+          <div class="perk-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9A9 9 0 0 1 3 11c0-4.97 4.03-9 9-9z"></path>
+              <path d="M12 6v6l4 2"></path>
+            </svg>
+          </div>
+          <div class="perk-text">
+            <strong>Soins Naturels</strong>
+            <span>Formules pures</span>
+          </div>
+        </div>
+        <div class="perk-card">
+          <div class="perk-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+          </div>
+          <div class="perk-text">
+            <strong>Garantie KINOVA</strong>
+            <span>Satisfait ou remboursé</span>
+          </div>
+        </div>
+      </div>
 
       <section class="block">
         <div class="kv-section-title">
@@ -227,7 +285,105 @@ onBeforeUnmount(() => {
   letter-spacing: 0.08em;
   padding: 0.55rem 0.75rem;
   border-radius: 12px;
+  margin-bottom: 0.85rem;
+}
+/* Bannière VIP */
+.vip-banner {
+  background: linear-gradient(135deg, #2b1b14 0%, #1a0f0a 100%);
+  border: 1px solid rgba(197, 160, 128, 0.4);
+  border-radius: 18px;
+  padding: 0.95rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  margin-bottom: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(43, 27, 20, 0.25);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.vip-banner:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 175, 55, 0.7);
+}
+.vip-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f7e7ce;
+  flex-shrink: 0;
+}
+.vip-content {
+  flex: 1;
+}
+.vip-content h3 {
+  font-family: var(--kv-font-display, serif);
+  font-size: 0.98rem;
+  color: #f7e7ce;
+  margin: 0 0 2px;
+  font-weight: 700;
+}
+.vip-content p {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--kv-sand, #d4a373);
+}
+.vip-arrow {
+  color: var(--kv-gold, #d4af37);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+/* Perks Row */
+.perks-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  background: var(--kv-surface);
+  border: 1px solid rgba(197, 160, 128, 0.2);
+  border-radius: 16px;
+  padding: 0.85rem 0.75rem;
   margin-bottom: 1.35rem;
+}
+.perk-card {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.perk-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(197, 160, 128, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--kv-brown);
+  flex-shrink: 0;
+}
+.perk-text {
+  display: flex;
+  flex-direction: column;
+}
+.perk-text strong {
+  font-size: 0.72rem;
+  color: var(--kv-brown);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.perk-text span {
+  font-size: 0.62rem;
+  color: var(--kv-muted);
+  line-height: 1.2;
+}
+@media (max-width: 600px) {
+  .perks-row {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
 }
 .block {
   margin-bottom: 1.75rem;

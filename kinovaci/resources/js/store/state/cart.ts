@@ -53,7 +53,7 @@ export function useCart() {
   )
   const shipping = computed(() => {
     if (!state.items.length) return 0
-    return subtotal.value >= 100 ? 0 : 6.5
+    return subtotal.value >= 50000 ? 0 : 2500
   })
   const total = computed(() => subtotal.value + shipping.value)
 

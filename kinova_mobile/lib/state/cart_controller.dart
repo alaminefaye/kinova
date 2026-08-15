@@ -17,7 +17,7 @@ class CartController extends ChangeNotifier {
 
   double get subtotal => _items.fold(0, (sum, i) => sum + i.lineTotal);
 
-  double get shipping => _items.isEmpty ? 0 : (subtotal >= 100 ? 0 : 6.5);
+  double get shipping => _items.isEmpty ? 0 : (subtotal >= 50000 ? 0 : 2500);
 
   double get total => subtotal + shipping;
 

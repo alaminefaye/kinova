@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'LIVRAISON OFFERTE DÈS 100 FCFA  •  RETOURS 14 JOURS',
+                                  'LIVRAISON OFFERTE DÈS 50 000 FCFA  •  RETOURS 14 JOURS',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
