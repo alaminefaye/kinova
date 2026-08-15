@@ -1560,22 +1560,26 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                                               ),
                                             ),
                                             const SizedBox(height: 2),
-                                            Row(
-                                              children: [
-                                                if (catName.isNotEmpty)
-                                                  Text(
-                                                    '$catName • ',
-                                                    style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
+                                            Text.rich(
+                                              TextSpan(
+                                                children: [
+                                                  if (catName.isNotEmpty)
+                                                    TextSpan(
+                                                      text: '$catName • ',
+                                                      style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
+                                                    ),
+                                                  TextSpan(
+                                                    text: formatMoney(promoPrice ?? price),
+                                                    style: const TextStyle(
+                                                      color: KinovaColors.gold,
+                                                      fontWeight: FontWeight.w800,
+                                                      fontSize: 12,
+                                                    ),
                                                   ),
-                                                Text(
-                                                  formatMoney(promoPrice ?? price),
-                                                  style: const TextStyle(
-                                                    color: KinovaColors.gold,
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 4),
                                             // Badge stock
@@ -3258,13 +3262,18 @@ class _OrderListItem extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${order.reference} • $dateStr',
-                        style: const TextStyle(
-                          color: KinovaColors.sand,
-                          fontSize: 10.5,
+                      Expanded(
+                        child: Text(
+                          '${order.reference} • $dateStr',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: KinovaColors.sand,
+                            fontSize: 10.5,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 7,
