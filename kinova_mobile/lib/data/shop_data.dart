@@ -123,36 +123,62 @@ class ShopData {
     ),
     Product(
       id: 'p7',
-      name: 'Vase Céramique',
+      name: 'Vase Céramique Mate',
       description:
-          'Vase artisanal en céramique mate, tons beige et brun. Pièce unique.',
-      price: 58,
+          'Vase artisanal en céramique mate, tons beige et brun. Forme organique.',
+      price: 32000,
       categoryId: 'home',
       imageUrl:
           'https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=450&q=70',
       isFeatured: true,
       rating: 4.7,
+      stock: 18,
     ),
     Product(
       id: 'p8',
-      name: 'Montre Minimal',
+      name: 'Montre Minimal Cognac',
       description:
           'Montre bracelet cuir cognac, cadran champagne. Design épuré.',
-      price: 210,
+      price: 95000,
+      promoPrice: 76000,
       categoryId: 'accessories',
       imageUrl:
           'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=450&q=70',
+      colors: [
+        ProductColor(name: 'Cuir Cognac', hex: '#92400E', stock: 7),
+        ProductColor(name: 'Cuir Noir', hex: '#1F2937', stock: 5),
+        ProductColor(name: 'Cuir Caramel', hex: '#D97706', stock: 0),
+      ],
+      stock: 12,
       rating: 4.9,
     ),
     Product(
       id: 'p9',
-      name: 'Huile Capillaire',
+      name: 'Pantalon Fluide Sable',
       description:
-          'Huile légère argan & camélia pour des cheveux brillants sans effet gras.',
-      price: 42,
-      categoryId: 'beauty',
+          'Pantalon fluide taille haute, tissu léger couleur sable. Jambe large et confortable. Tailles 34 à 42.',
+      price: 45000,
+      categoryId: 'fashion',
       imageUrl:
-          'https://images.unsplash.com/photo-1608248543800-ba2635b1c1ce?w=450&q=70',
+          'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=450&q=70',
+      images: [
+        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=450&q=70',
+        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=450&q=70',
+      ],
+      sizes: [
+        ProductSize(name: '34 (XS)', stock: 0),
+        ProductSize(name: '36 (S)', stock: 6),
+        ProductSize(name: '38 (M)', stock: 8),
+        ProductSize(name: '40 (L)', stock: 4),
+        ProductSize(name: '42 (XL)', stock: 0),
+      ],
+      colors: [
+        ProductColor(name: 'Sable Doré', hex: '#D4A373', stock: 10),
+        ProductColor(name: 'Noir Chic', hex: '#1F2937', stock: 8),
+        ProductColor(name: 'Blanc Écru', hex: '#FDFBF7', stock: 0),
+      ],
+      stock: 18,
+      isNew: true,
       rating: 4.5,
     ),
     Product(
