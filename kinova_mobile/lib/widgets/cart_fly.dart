@@ -10,7 +10,7 @@ class CartFly {
   CartFly._();
 
   /// Clé posée sur le bouton panier de la barre de navigation.
-  static final GlobalKey cartKey = GlobalKey();
+  static GlobalKey? cartKey;
 
   /// Incrémenté à chaque atterrissage pour faire rebondir le panier.
   static final ValueNotifier<int> bumps = ValueNotifier<int>(0);
@@ -24,7 +24,7 @@ class CartFly {
     final start = box.localToGlobal(box.size.center(Offset.zero));
 
     Offset end;
-    final cartContext = cartKey.currentContext;
+    final cartContext = cartKey?.currentContext;
     if (cartContext != null) {
       final cartBox = cartContext.findRenderObject() as RenderBox;
       end = cartBox.localToGlobal(cartBox.size.center(Offset.zero));

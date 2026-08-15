@@ -252,10 +252,12 @@ class _CartNavButton extends StatefulWidget {
 class _CartNavButtonState extends State<_CartNavButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _bounce;
+  final GlobalKey _cartKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
+    CartFly.cartKey = _cartKey;
     _bounce = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
@@ -269,6 +271,9 @@ class _CartNavButtonState extends State<_CartNavButton>
 
   @override
   void dispose() {
+    if (CartFly.cartKey == _cartKey) {
+      CartFly.cartKey = null;
+    }
     CartFly.bumps.removeListener(_onBump);
     _bounce.dispose();
     super.dispose();
@@ -298,7 +303,7 @@ class _CartNavButtonState extends State<_CartNavButton>
                   return Transform.scale(scale: scale, child: child);
                 },
                 child: AnimatedContainer(
-                  key: CartFly.cartKey,
+                  key: _cartKey,
                   duration: const Duration(milliseconds: 260),
                   curve: Curves.easeOutCubic,
                   width: 58,
