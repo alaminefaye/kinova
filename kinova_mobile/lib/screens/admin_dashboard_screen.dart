@@ -38,15 +38,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF140D08),
-      body: IndexedStack(
-        index: _activeTab,
-        children: [
-          _DashboardOverviewTab(onGoToStore: _goToStore),
-          const _AdminOrdersTab(),
-          const _AdminProductsTab(),
-          const _AdminMessagesTab(),
-        ],
-      ),
+      body: switch (_activeTab) {
+        0 => _DashboardOverviewTab(onGoToStore: _goToStore),
+        1 => const _AdminOrdersTab(),
+        2 => const _AdminProductsTab(),
+        3 => const _AdminMessagesTab(),
+        _ => _DashboardOverviewTab(onGoToStore: _goToStore),
+      },
       bottomNavigationBar: _AdminBottomNavBar(
         currentIndex: _activeTab,
         onTabSelected: (index) {
@@ -1598,17 +1596,23 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand, size: 22),
+                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                            padding: const EdgeInsets.all(4),
+                                            icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand, size: 20),
                                             onPressed: stock > 0 ? () => _adjustStock(p['id'], stock, -1) : null,
                                             tooltip: 'Diminuer stock',
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold, size: 22),
+                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                            padding: const EdgeInsets.all(4),
+                                            icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold, size: 20),
                                             onPressed: () => _adjustStock(p['id'], stock, 1),
                                             tooltip: 'Augmenter stock',
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFE57373), size: 20),
+                                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                            padding: const EdgeInsets.all(4),
+                                            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFE57373), size: 18),
                                             onPressed: () => _deleteProduct(p['id'], name),
                                             tooltip: 'Supprimer',
                                           ),
