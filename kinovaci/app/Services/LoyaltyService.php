@@ -13,9 +13,9 @@ class LoyaltyService
     public static function tierFor(int $points): string
     {
         return match (true) {
-            $points >= 3000 => 'vip',
-            $points >= 1500 => 'gold',
-            $points >= 500 => 'silver',
+            $points >= 100 => 'vip',     // >= 1 000 000 FCFA
+            $points >= 50 => 'gold',     // >= 500 000 FCFA
+            $points >= 20 => 'silver',   // >= 200 000 FCFA
             default => 'standard',
         };
     }
@@ -56,7 +56,8 @@ class LoyaltyService
             return null;
         }
 
-        $points = (int) floor((float) $order->total);
+        // Règle de fidélité : 10 000 FCFA dépensés = 1 point
+        $points = (int) floor(((float) $order->total) / 10000);
         if ($points <= 0) {
             return null;
         }
@@ -76,8 +77,8 @@ class LoyaltyService
 
         app(NotificationService::class)->notifyUser(
             $user,
-            'Points fidélité',
-            "Vous avez gagné {$points} points avec la commande {$order->reference}.",
+            'Points fidélité KINOVA',
+            "Vous avez gagné {$points} point(s) VIP avec votre commande {$order->reference} (10 000 FCFA = 1 point).",
             'vip',
             'star',
             ['order_reference' => $order->reference, 'points' => $points]

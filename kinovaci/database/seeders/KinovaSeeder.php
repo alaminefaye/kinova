@@ -38,8 +38,8 @@ class KinovaSeeder extends Seeder
                 'phone' => '+22507000000',
                 'address' => 'Cocody, Riviera',
                 'city' => 'Abidjan',
-                'loyalty_points' => 620,
-                'vip_tier' => LoyaltyService::tierFor(620),
+                'loyalty_points' => 65,
+                'vip_tier' => LoyaltyService::tierFor(65),
             ]
         );
 

@@ -352,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                           SizedBox(height: 3),
                                           Text(
-                                            '1 FCFA dépensé = 1 point. Avantages exclusifs.',
+                                            '10 000 FCFA dépensés = 1 point. Avantages exclusifs.',
                                             style: TextStyle(
                                               color: KinovaColors.sand,
                                               fontSize: 11,
@@ -396,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _PerkItem(
                                   icon: Icons.local_shipping_outlined,
                                   title: 'Livraison Offerte',
-                                  subtitle: 'Dès 100 FCFA d’achat',
+                                  subtitle: 'Dès 50 000 FCFA d’achat',
                                 ),
                                 _PerkItem(
                                   icon: Icons.eco_outlined,

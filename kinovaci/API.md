@@ -114,14 +114,14 @@ Pages admin :
 
 ## Fidélité VIP
 
-| Palier | Points min |
-|--------|------------|
-| standard | 0 |
-| silver | 500 |
-| gold | 1500 |
-| vip | 3000 |
+| Palier | Points min | Dépenses cumulées |
+|--------|------------|-------------------|
+| standard | 0 | 0 FCFA |
+| silver | 20 | 200 000 FCFA |
+| gold | 50 | 500 000 FCFA |
+| vip | 100 | 1 000 000 FCFA |
 
-À la livraison d’une commande liée à un compte : **1 FCFA ≈ 1 point** (+ notification).
+À la livraison d’une commande liée à un compte : **10 000 FCFA dépensés = 1 point** (+ notification).
 
 ## Seed démo
 
