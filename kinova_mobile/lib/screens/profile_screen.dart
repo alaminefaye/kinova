@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
+import 'package:kinova_mobile/screens/admin_dashboard_screen.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/edit_profile_screen.dart';
 import 'package:kinova_mobile/screens/favorites_screen.dart';
@@ -122,13 +123,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: KinovaColors.brown.withOpacity(0.35),
+                    color: KinovaColors.brown.withValues(alpha: 0.35),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
                 ],
                 border: Border.all(
-                  color: KinovaColors.gold.withOpacity(0.35),
+                  color: KinovaColors.gold.withValues(alpha: 0.35),
                   width: 1.2,
                 ),
               ),
@@ -242,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: auth.isLoggedIn ? _loadOrders : _openAuth,
                         style: TextButton.styleFrom(
                           foregroundColor: KinovaColors.cream,
-                          backgroundColor: KinovaColors.gold.withOpacity(0.2),
+                          backgroundColor: KinovaColors.gold.withValues(alpha: 0.2),
                         ),
                         child: Text(
                           auth.isLoggedIn ? 'Actualiser' : 'Se connecter',
@@ -254,6 +255,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          if (user?.isAdmin == true) ...[
+            const SizedBox(height: 18),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 60),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AdminDashboardScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2C1C13), Color(0xFF1B110B)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: KinovaColors.gold,
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: KinovaColors.gold.withValues(alpha: 0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: KinovaColors.gold.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.dashboard_customize_rounded,
+                          color: KinovaColors.gold,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'Espace Administrateur',
+                                  style: TextStyle(
+                                    color: KinovaColors.cream,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: KinovaColors.gold,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    user?.isSuperAdmin == true
+                                        ? 'SUPER-ADMIN'
+                                        : 'ADMIN',
+                                    style: const TextStyle(
+                                      color: KinovaColors.brown,
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Accéder au tableau de bord & ventes en direct',
+                              style: TextStyle(
+                                color: KinovaColors.sand,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: KinovaColors.gold,
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
           FadeSlideIn(
             delay: const Duration(milliseconds: 80),
@@ -325,7 +433,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: KinovaColors.cardShadow,
                 border: Border.all(
-                  color: KinovaColors.gold.withOpacity(0.16),
+                  color: KinovaColors.gold.withValues(alpha: 0.16),
                   width: 1,
                 ),
               ),
@@ -435,7 +543,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: KinovaColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: KinovaColors.brown.withOpacity(0.18),
+                      color: KinovaColors.brown.withValues(alpha: 0.18),
                     ),
                     boxShadow: KinovaColors.softShadow,
                   ),
@@ -489,7 +597,7 @@ class _EmptyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: KinovaColors.cardShadow,
         border: Border.all(
-          color: KinovaColors.gold.withOpacity(0.15),
+          color: KinovaColors.gold.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -535,7 +643,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: KinovaColors.cardShadow,
         border: Border.all(
-          color: KinovaColors.gold.withOpacity(0.16),
+          color: KinovaColors.gold.withValues(alpha: 0.16),
           width: 1,
         ),
       ),

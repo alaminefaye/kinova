@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
+import 'package:kinova_mobile/screens/admin_dashboard_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
@@ -103,7 +104,15 @@ class _AuthScreenState extends State<AuthScreen>
         await context.read<FavoritesController>().loadFromApi();
       } catch (_) {}
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+
+      if (auth.user?.isAdmin == true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.of(context).pop(true);
+      }
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
@@ -148,8 +157,8 @@ class _AuthScreenState extends State<AuthScreen>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFD4AF37).withOpacity(0.28),
-                      const Color(0xFFC5A080).withOpacity(0.10),
+                      const Color(0xFFD4AF37).withValues(alpha: 0.28),
+                      const Color(0xFFC5A080).withValues(alpha: 0.10),
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.45, 1.0],
@@ -229,13 +238,13 @@ class _AuthScreenState extends State<AuthScreen>
                           ),
                           border: Border(
                             top: BorderSide(
-                              color: KinovaColors.gold.withOpacity(0.5),
+                              color: KinovaColors.gold.withValues(alpha: 0.5),
                               width: 1,
                             ),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.4),
+                              color: Colors.black.withValues(alpha: 0.4),
                               blurRadius: 30,
                               offset: const Offset(0, -8),
                             ),
@@ -405,7 +414,7 @@ class _AuthScreenState extends State<AuthScreen>
                                                 BorderRadius.circular(12),
                                             border: Border.all(
                                               color: const Color(0xFFE57373)
-                                                  .withOpacity(0.5),
+                                                  .withValues(alpha: 0.5),
                                             ),
                                           ),
                                           child: Row(
@@ -450,7 +459,7 @@ class _AuthScreenState extends State<AuthScreen>
                                     Expanded(
                                       child: Divider(
                                         color:
-                                            KinovaColors.sand.withOpacity(0.4),
+                                            KinovaColors.sand.withValues(alpha: 0.4),
                                       ),
                                     ),
                                     const Padding(
@@ -471,7 +480,7 @@ class _AuthScreenState extends State<AuthScreen>
                                     Expanded(
                                       child: Divider(
                                         color:
-                                            KinovaColors.sand.withOpacity(0.4),
+                                            KinovaColors.sand.withValues(alpha: 0.4),
                                       ),
                                     ),
                                   ],
@@ -551,7 +560,7 @@ class _ModeToggle extends StatelessWidget {
       decoration: BoxDecoration(
         color: KinovaColors.surfaceMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: KinovaColors.gold.withOpacity(0.25)),
+        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.25)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -571,7 +580,7 @@ class _ModeToggle extends StatelessWidget {
                     borderRadius: BorderRadius.circular(11),
                     boxShadow: [
                       BoxShadow(
-                        color: KinovaColors.brown.withOpacity(0.35),
+                        color: KinovaColors.brown.withValues(alpha: 0.35),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -676,10 +685,10 @@ class _GoldButton extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: KinovaColors.darkLuxuryGradient,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: KinovaColors.gold.withOpacity(0.55)),
+        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.55)),
         boxShadow: [
           BoxShadow(
-            color: KinovaColors.brown.withOpacity(0.35),
+            color: KinovaColors.brown.withValues(alpha: 0.35),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),

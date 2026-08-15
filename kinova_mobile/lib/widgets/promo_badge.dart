@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kinova_mobile/theme/kinova_colors.dart';
 
 class AnimatedPromoBadge extends StatefulWidget {
   const AnimatedPromoBadge({
@@ -76,7 +75,7 @@ class _AnimatedPromoBadgeState extends State<AnimatedPromoBadge>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFE53935).withOpacity(0.45),
+                  color: const Color(0xFFE53935).withValues(alpha: 0.45),
                   blurRadius: _glowAnimation.value,
                   offset: const Offset(0, 2),
                 ),
@@ -89,11 +88,11 @@ class _AnimatedPromoBadgeState extends State<AnimatedPromoBadge>
                   width: 5,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9 + 0.1 * _controller.value),
+                    color: Colors.white.withValues(alpha: 0.9 + 0.1 * _controller.value),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         blurRadius: 4,
                         spreadRadius: 1,
                       ),

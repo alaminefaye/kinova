@@ -37,13 +37,13 @@ class KinovaColors {
   /// Ombre portée douce pour cartes
   static List<BoxShadow> get cardShadow => [
         BoxShadow(
-          color: brown.withOpacity(0.07),
+          color: brown.withValues(alpha: 0.07),
           blurRadius: 20,
           spreadRadius: 0,
           offset: const Offset(0, 6),
         ),
         BoxShadow(
-          color: gold.withOpacity(0.05),
+          color: gold.withValues(alpha: 0.05),
           blurRadius: 8,
           spreadRadius: -2,
           offset: const Offset(0, 2),
@@ -53,7 +53,7 @@ class KinovaColors {
   /// Ombre subtile pour éléments interactifs
   static List<BoxShadow> get softShadow => [
         BoxShadow(
-          color: brown.withOpacity(0.05),
+          color: brown.withValues(alpha: 0.05),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),

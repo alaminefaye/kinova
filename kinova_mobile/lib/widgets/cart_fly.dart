@@ -140,12 +140,12 @@ class _FlyingProductState extends State<_FlyingProduct>
             border: Border.all(color: KinovaColors.gold, width: 1.6),
             boxShadow: [
               BoxShadow(
-                color: KinovaColors.brown.withOpacity(0.35),
+                color: KinovaColors.brown.withValues(alpha: 0.35),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
               BoxShadow(
-                color: KinovaColors.goldRich.withOpacity(0.35),
+                color: KinovaColors.goldRich.withValues(alpha: 0.35),
                 blurRadius: 20,
                 spreadRadius: 1,
               ),

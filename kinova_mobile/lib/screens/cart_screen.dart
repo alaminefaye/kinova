@@ -77,7 +77,7 @@ class CartScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: KinovaColors.cardShadow,
                             border: Border.all(
-                              color: KinovaColors.gold.withOpacity(0.16),
+                              color: KinovaColors.gold.withValues(alpha: 0.16),
                               width: 1,
                             ),
                           ),
@@ -120,7 +120,7 @@ class CartScreen extends StatelessWidget {
                                                 vertical: 2,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: KinovaColors.sand.withOpacity(0.25),
+                                                color: KinovaColors.sand.withValues(alpha: 0.25),
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
@@ -139,7 +139,7 @@ class CartScreen extends StatelessWidget {
                                                 vertical: 2,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: KinovaColors.sand.withOpacity(0.25),
+                                                color: KinovaColors.sand.withValues(alpha: 0.25),
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
@@ -199,7 +199,7 @@ class CartScreen extends StatelessWidget {
                                                 BorderRadius.circular(20),
                                             border: Border.all(
                                               color: KinovaColors.gold
-                                                  .withOpacity(0.3),
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                           child: Row(
@@ -280,13 +280,13 @@ class CartScreen extends StatelessWidget {
                         const BorderRadius.vertical(top: Radius.circular(24)),
                     boxShadow: [
                       BoxShadow(
-                        color: KinovaColors.brown.withOpacity(0.1),
+                        color: KinovaColors.brown.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, -6),
                       ),
                     ],
                     border: Border.all(
-                      color: KinovaColors.gold.withOpacity(0.2),
+                      color: KinovaColors.gold.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),

@@ -87,14 +87,14 @@ class _KinovaNavBar extends StatelessWidget {
         color: KinovaColors.surface,
         boxShadow: [
           BoxShadow(
-            color: KinovaColors.brown.withOpacity(0.10),
+            color: KinovaColors.brown.withValues(alpha: 0.10),
             blurRadius: 22,
             offset: const Offset(0, -6),
           ),
         ],
         border: Border(
           top: BorderSide(
-            color: KinovaColors.gold.withOpacity(0.22),
+            color: KinovaColors.gold.withValues(alpha: 0.22),
             width: 0.8,
           ),
         ),
@@ -185,14 +185,14 @@ class _NavItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 border: active
                     ? Border.all(
-                        color: KinovaColors.gold.withOpacity(0.5),
+                        color: KinovaColors.gold.withValues(alpha: 0.5),
                         width: 1,
                       )
                     : null,
                 boxShadow: active
                     ? [
                         BoxShadow(
-                          color: KinovaColors.brown.withOpacity(0.30),
+                          color: KinovaColors.brown.withValues(alpha: 0.30),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -316,13 +316,13 @@ class _CartNavButtonState extends State<_CartNavButton>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: KinovaColors.goldRich.withOpacity(0.45),
+                        color: KinovaColors.goldRich.withValues(alpha: 0.45),
                         blurRadius: 16,
                         spreadRadius: 1,
                         offset: const Offset(0, 5),
                       ),
                       BoxShadow(
-                        color: KinovaColors.brown.withOpacity(0.25),
+                        color: KinovaColors.brown.withValues(alpha: 0.25),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),

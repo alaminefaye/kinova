@@ -32,6 +32,8 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
+    protected string $guard_name = 'web';
+
     protected function casts(): array
     {
         return [

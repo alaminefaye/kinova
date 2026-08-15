@@ -161,11 +161,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         gradient: KinovaColors.darkLuxuryGradient,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: KinovaColors.gold.withOpacity(0.4),
+                          color: KinovaColors.gold.withValues(alpha: 0.4),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: KinovaColors.brown.withOpacity(0.28),
+                            color: KinovaColors.brown.withValues(alpha: 0.28),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -200,7 +200,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       boxShadow: [
                                         BoxShadow(
                                           color: KinovaColors.goldRich
-                                              .withOpacity(0.45),
+                                              .withValues(alpha: 0.45),
                                           blurRadius: 10,
                                           offset: const Offset(0, 3),
                                         ),
@@ -239,7 +239,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           Text(
                             'Touchez l’appareil photo pour changer',
                             style: TextStyle(
-                              color: KinovaColors.sand.withOpacity(0.9),
+                              color: KinovaColors.sand.withValues(alpha: 0.9),
                               fontSize: 11.5,
                             ),
                           ),
@@ -372,7 +372,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           color: const Color(0xFFFDECEA),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: const Color(0xFFE57373).withOpacity(0.5),
+                            color: const Color(0xFFE57373).withValues(alpha: 0.5),
                           ),
                         ),
                         child: Row(
@@ -407,11 +407,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           gradient: KinovaColors.darkLuxuryGradient,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: KinovaColors.gold.withOpacity(0.55),
+                            color: KinovaColors.gold.withValues(alpha: 0.55),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: KinovaColors.brown.withOpacity(0.28),
+                              color: KinovaColors.brown.withValues(alpha: 0.28),
                               blurRadius: 16,
                               offset: const Offset(0, 7),
                             ),
@@ -489,7 +489,7 @@ class _SectionTitle extends StatelessWidget {
             fontFamily: 'PlayfairDisplay',
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: KinovaColors.brown.withOpacity(0.92),
+            color: KinovaColors.brown.withValues(alpha: 0.92),
           ),
         ),
       ],
@@ -509,7 +509,7 @@ class _ProfileCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: KinovaColors.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: KinovaColors.gold.withOpacity(0.18)),
+        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.18)),
         boxShadow: KinovaColors.cardShadow,
       ),
       child: Column(children: children),
@@ -555,7 +555,7 @@ class _LuxProfileField extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.4,
-                color: KinovaColors.mutedBrown.withOpacity(0.95),
+                color: KinovaColors.mutedBrown.withValues(alpha: 0.95),
               ),
             ),
           ),
@@ -574,7 +574,7 @@ class _LuxProfileField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: KinovaColors.mutedBrown.withOpacity(0.55),
+                color: KinovaColors.mutedBrown.withValues(alpha: 0.55),
                 fontSize: 13.5,
                 fontWeight: FontWeight.w400,
               ),
@@ -600,7 +600,7 @@ class _LuxProfileField extends StatelessWidget {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: KinovaColors.gold.withOpacity(0.18),
+                  color: KinovaColors.gold.withValues(alpha: 0.18),
                 ),
               ),
               focusedBorder: OutlineInputBorder(

@@ -215,7 +215,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             color: KinovaColors.surfaceMuted,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: KinovaColors.gold.withOpacity(0.28),
+                              color: KinovaColors.gold.withValues(alpha: 0.28),
                             ),
                           ),
                           child: Row(
@@ -312,7 +312,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                         decoration: BoxDecoration(
                                           color: item.isRead
                                               ? KinovaColors.surface
-                                                  .withOpacity(0.7)
+                                                  .withValues(alpha: 0.7)
                                               : KinovaColors.surface,
                                           borderRadius: BorderRadius.circular(18),
                                           boxShadow: item.isRead
@@ -321,9 +321,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                           border: Border.all(
                                             color: item.isRead
                                                 ? KinovaColors.gold
-                                                    .withOpacity(0.1)
+                                                    .withValues(alpha: 0.1)
                                                 : KinovaColors.gold
-                                                    .withOpacity(0.35),
+                                                    .withValues(alpha: 0.35),
                                             width: item.isRead ? 0.8 : 1.2,
                                           ),
                                         ),
@@ -335,7 +335,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                               padding: const EdgeInsets.all(10),
                                               decoration: BoxDecoration(
                                                 color: item.iconColor
-                                                    .withOpacity(0.12),
+                                                    .withValues(alpha: 0.12),
                                                 shape: BoxShape.circle,
                                               ),
                                               child: Icon(
@@ -445,7 +445,7 @@ class _FilterPill extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? KinovaColors.brown
-                : KinovaColors.gold.withOpacity(0.2),
+                : KinovaColors.gold.withValues(alpha: 0.2),
             width: 1,
           ),
         ),

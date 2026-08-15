@@ -54,10 +54,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.10),
+                      color: Colors.white.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(26),
                       border: Border.all(
-                        color: KinovaColors.gold.withOpacity(0.4),
+                        color: KinovaColors.gold.withValues(alpha: 0.4),
                         width: 1,
                       ),
                     ),
@@ -82,7 +82,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             decoration: InputDecoration(
                               hintText: 'Rechercher une pièce…',
                               hintStyle: TextStyle(
-                                color: KinovaColors.cream.withOpacity(0.45),
+                                color: KinovaColors.cream.withValues(alpha: 0.45),
                                 fontSize: 14,
                               ),
                               filled: false,
@@ -104,7 +104,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.12),
+                                color: Colors.white.withValues(alpha: 0.12),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -146,7 +146,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 1.2,
                                 color:
-                                    KinovaColors.mutedBrown.withOpacity(0.9),
+                                    KinovaColors.mutedBrown.withValues(alpha: 0.9),
                               ),
                             ),
                           ),
@@ -192,10 +192,10 @@ class _RoundIconButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.10),
+          color: Colors.white.withValues(alpha: 0.10),
           shape: BoxShape.circle,
           border: Border.all(
-            color: KinovaColors.gold.withOpacity(0.35),
+            color: KinovaColors.gold.withValues(alpha: 0.35),
             width: 1,
           ),
         ),
@@ -247,7 +247,7 @@ class _SearchSuggestions extends StatelessWidget {
                 fontSize: 10.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2.2,
-                color: KinovaColors.mutedBrown.withOpacity(0.9),
+                color: KinovaColors.mutedBrown.withValues(alpha: 0.9),
               ),
             ),
           ],
@@ -269,7 +269,7 @@ class _SearchSuggestions extends StatelessWidget {
                     color: KinovaColors.surface,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: KinovaColors.gold.withOpacity(0.3),
+                      color: KinovaColors.gold.withValues(alpha: 0.3),
                       width: 1,
                     ),
                     boxShadow: KinovaColors.softShadow,
@@ -318,7 +318,7 @@ class _EmptyResults extends StatelessWidget {
               color: KinovaColors.surface,
               shape: BoxShape.circle,
               border: Border.all(
-                color: KinovaColors.gold.withOpacity(0.35),
+                color: KinovaColors.gold.withValues(alpha: 0.35),
                 width: 1,
               ),
               boxShadow: KinovaColors.softShadow,
@@ -344,7 +344,7 @@ class _EmptyResults extends StatelessWidget {
             'Essayez un autre mot-clé',
             style: TextStyle(
               fontSize: 12.5,
-              color: KinovaColors.mutedBrown.withOpacity(0.9),
+              color: KinovaColors.mutedBrown.withValues(alpha: 0.9),
             ),
           ),
         ],

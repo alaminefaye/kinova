@@ -43,9 +43,17 @@ class AuthController extends Controller
 
         $token = $user->createToken('kinova-mobile')->plainTextToken;
 
+        $roleNames = $user->roles->pluck('name')->toArray();
+        if (empty($roleNames) && $user->role) {
+            $roleNames = [$user->role];
+        }
+
         return response()->json([
             'token' => $token,
-            'user' => $user->fresh(),
+            'user' => array_merge($user->toArray(), [
+                'roles' => $roleNames,
+                'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+            ]),
         ], 201);
     }
 
@@ -68,7 +76,6 @@ class AuthController extends Controller
         }
 
         $user = User::query()
-            ->where('role', 'customer')
             ->where(function ($query) use ($login) {
                 $query->where('email', $login)->orWhere('phone', $login);
             })
@@ -88,9 +95,17 @@ class AuthController extends Controller
 
         $token = $user->createToken('kinova-mobile')->plainTextToken;
 
+        $roleNames = $user->roles->pluck('name')->toArray();
+        if (empty($roleNames) && $user->role) {
+            $roleNames = [$user->role];
+        }
+
         return response()->json([
             'token' => $token,
-            'user' => $user,
+            'user' => array_merge($user->toArray(), [
+                'roles' => $roleNames,
+                'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+            ]),
         ]);
     }
 }

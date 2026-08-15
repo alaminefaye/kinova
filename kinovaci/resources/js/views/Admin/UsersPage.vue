@@ -32,8 +32,16 @@ const saving = ref(false)
 const error = ref('')
 const successMessage = ref('')
 
+const defaultRoles: RoleItem[] = [
+  { id: 1, name: 'super-admin', guard_name: 'web', users_count: 0, permissions: [] },
+  { id: 2, name: 'admin', guard_name: 'web', users_count: 0, permissions: [] },
+  { id: 3, name: 'manager', guard_name: 'web', users_count: 0, permissions: [] },
+  { id: 4, name: 'support', guard_name: 'web', users_count: 0, permissions: [] },
+  { id: 5, name: 'customer', guard_name: 'web', users_count: 0, permissions: [] },
+]
+
 const users = ref<UserItem[]>([])
-const availableRoles = ref<RoleItem[]>([])
+const availableRoles = ref<RoleItem[]>(defaultRoles)
 
 const pagination = reactive({
   currentPage: 1,
@@ -71,12 +79,22 @@ const roleBadgeColors: Record<string, string> = {
   'customer': 'bg-gray-500/15 text-gray-600 border border-gray-500/30 dark:bg-gray-500/10 dark:text-gray-400',
 }
 
+const roleDescriptions: Record<string, string> = {
+  'super-admin': 'Accès total & illimité à tout le système',
+  'admin': 'Gestion boutique, produits, commandes & utilisateurs',
+  'manager': 'Gestion catalogue, fiches produits & commandes',
+  'support': 'Gestion messages clients & notifications',
+  'customer': 'Client boutique ordinaire',
+}
+
 async function loadRoles() {
   try {
     const res = await api<RoleItem[]>('/admin/roles')
-    availableRoles.value = res || []
+    if (res && res.length) {
+      availableRoles.value = res
+    }
   } catch {
-    /* ignore */
+    /* fallback to defaultRoles */
   }
 }
 
@@ -564,23 +582,36 @@ onMounted(() => {
             <!-- Rôles Spatie -->
             <div>
               <label class="block text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 mb-1.5">
-                Rôle(s) Attribué(s)
+                Rôle(s) Attribué(s) *
               </label>
-              <div class="flex flex-wrap gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   v-for="r in availableRoles"
                   :key="r.id"
                   type="button"
                   @click="toggleFormRole(r.name)"
-                  class="px-3 py-1.5 rounded-xl text-xs font-medium border transition flex items-center gap-1.5"
-                  :class="form.roles.includes(r.name) ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 hover:border-amber-500'"
+                  class="p-2.5 rounded-xl text-left border transition flex items-start justify-between gap-2"
+                  :class="form.roles.includes(r.name) ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30 dark:bg-amber-500/20' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600'"
                 >
-                  <span>{{ form.roles.includes(r.name) ? '✓' : '+' }}</span>
-                  <span class="uppercase tracking-wider font-semibold">{{ r.name }}</span>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-block w-2 h-2 rounded-full" :class="form.roles.includes(r.name) ? 'bg-amber-500' : 'bg-gray-400'"></span>
+                      <span class="text-xs font-bold uppercase tracking-wider" :class="form.roles.includes(r.name) ? 'text-amber-700 dark:text-amber-400' : 'text-gray-800 dark:text-gray-200'">{{ r.name }}</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">
+                      {{ roleDescriptions[r.name] || 'Droits standards' }}
+                    </p>
+                  </div>
+                  <span
+                    class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
+                    :class="form.roles.includes(r.name) ? 'bg-amber-500 text-white' : 'border border-gray-300 dark:border-gray-600 text-transparent'"
+                  >
+                    ✓
+                  </span>
                 </button>
               </div>
-              <p class="mt-1 text-xs text-gray-400">
-                Tout utilisateur créé sans rôle spécifique est configuré comme <strong>Client</strong> par défaut.
+              <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                💡 Vous pouvez sélectionner un ou plusieurs rôles. Par défaut, le rôle <strong>Client</strong> est assigné.
               </p>
             </div>
 

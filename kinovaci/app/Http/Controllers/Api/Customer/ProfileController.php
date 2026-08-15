@@ -124,6 +124,11 @@ class ProfileController extends Controller
 
     private function payload($user): array
     {
+        $roleNames = $user->roles->pluck('name')->toArray();
+        if (empty($roleNames) && $user->role) {
+            $roleNames = [$user->role];
+        }
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -135,6 +140,8 @@ class ProfileController extends Controller
             'loyalty_points' => $user->loyalty_points,
             'vip_tier' => $user->vip_tier,
             'role' => $user->role,
+            'roles' => $roleNames,
+            'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
         ];
     }
 

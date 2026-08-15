@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: KinovaColors.background,
                   boxShadow: [
                     BoxShadow(
-                      color: KinovaColors.brown.withOpacity(0.08),
+                      color: KinovaColors.brown.withValues(alpha: 0.08),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -301,12 +301,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   gradient: KinovaColors.darkLuxuryGradient,
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: KinovaColors.gold.withOpacity(0.45),
+                                    color: KinovaColors.gold.withValues(alpha: 0.45),
                                     width: 1,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: KinovaColors.brown.withOpacity(
+                                      color: KinovaColors.brown.withValues(alpha: 
                                         0.30,
                                       ),
                                       blurRadius: 18,
@@ -320,11 +320,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: KinovaColors.gold.withOpacity(
+                                        color: KinovaColors.gold.withValues(alpha: 
                                           0.15,
                                         ),
                                         border: Border.all(
-                                          color: KinovaColors.gold.withOpacity(
+                                          color: KinovaColors.gold.withValues(alpha: 
                                             0.5,
                                           ),
                                         ),
@@ -386,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: KinovaColors.surfaceMuted,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: KinovaColors.gold.withOpacity(0.2),
+                                color: KinovaColors.gold.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -462,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: KinovaColors.brown.withOpacity(0.35),
+            color: KinovaColors.brown.withValues(alpha: 0.35),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -492,8 +492,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             begin: Alignment.bottomLeft,
                             end: Alignment.topRight,
                             colors: [
-                              const Color(0xFF1B110B).withOpacity(0.88),
-                              KinovaColors.brown.withOpacity(0.32),
+                              const Color(0xFF1B110B).withValues(alpha: 0.88),
+                              KinovaColors.brown.withValues(alpha: 0.32),
                               Colors.transparent,
                             ],
                             stops: const [0.0, 0.55, 1.0],
@@ -514,10 +514,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.14),
+                                  color: Colors.white.withValues(alpha: 0.14),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: KinovaColors.gold.withOpacity(0.6),
+                                    color: KinovaColors.gold.withValues(alpha: 0.6),
                                     width: 0.8,
                                   ),
                                 ),
@@ -559,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       BoxShadow(
                                         color: const Color(
                                           0xFFD4AF37,
-                                        ).withOpacity(0.4),
+                                        ).withValues(alpha: 0.4),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -611,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(
                       color: _currentHeroIndex == idx
                           ? KinovaColors.gold
-                          : Colors.white.withOpacity(0.4),
+                          : Colors.white.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -697,10 +697,10 @@ class _DarkHeader extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: KinovaColors.gold.withOpacity(0.4),
+                        color: KinovaColors.gold.withValues(alpha: 0.4),
                         width: 0.8,
                       ),
                     ),
@@ -723,10 +723,10 @@ class _DarkHeader extends StatelessWidget {
                   vertical: 13,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.09),
+                  color: Colors.white.withValues(alpha: 0.09),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: KinovaColors.gold.withOpacity(0.35),
+                    color: KinovaColors.gold.withValues(alpha: 0.35),
                     width: 0.9,
                   ),
                 ),
@@ -747,7 +747,7 @@ class _DarkHeader extends StatelessWidget {
                           'Cherchez votre univers...',
                         ],
                         style: TextStyle(
-                          color: KinovaColors.sand.withOpacity(0.9),
+                          color: KinovaColors.sand.withValues(alpha: 0.9),
                           fontSize: 13,
                         ),
                       ),
@@ -798,12 +798,12 @@ class _UniverseCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: KinovaColors.gold.withOpacity(0.4),
+            color: KinovaColors.gold.withValues(alpha: 0.4),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: KinovaColors.brown.withOpacity(0.22),
+              color: KinovaColors.brown.withValues(alpha: 0.22),
               blurRadius: 14,
               offset: const Offset(0, 7),
             ),
@@ -824,8 +824,8 @@ class _UniverseCard extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      const Color(0xFF1B110B).withOpacity(0.25),
-                      const Color(0xFF1B110B).withOpacity(0.88),
+                      const Color(0xFF1B110B).withValues(alpha: 0.25),
+                      const Color(0xFF1B110B).withValues(alpha: 0.88),
                     ],
                     stops: const [0.35, 0.6, 1.0],
                   ),
@@ -842,15 +842,15 @@ class _UniverseCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B110B).withOpacity(0.82),
+                    color: const Color(0xFF1B110B).withValues(alpha: 0.82),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: KinovaColors.gold.withOpacity(0.75),
+                      color: KinovaColors.gold.withValues(alpha: 0.75),
                       width: 0.9,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.28),
+                        color: Colors.black.withValues(alpha: 0.28),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),

@@ -299,10 +299,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFB71C1C).withOpacity(0.12),
+                                  color: const Color(0xFFB71C1C).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: const Color(0xFFB71C1C).withOpacity(0.25),
+                                    color: const Color(0xFFB71C1C).withValues(alpha: 0.25),
                                   ),
                                 ),
                                 child: Text(
@@ -367,13 +367,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     border: Border.all(
                                       color: isSelected
                                           ? KinovaColors.brown
-                                          : KinovaColors.sand.withOpacity(0.5),
+                                          : KinovaColors.sand.withValues(alpha: 0.5),
                                       width: isSelected ? 1.5 : 1,
                                     ),
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: KinovaColors.brown.withOpacity(0.2),
+                                              color: KinovaColors.brown.withValues(alpha: 0.2),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             ),
@@ -442,13 +442,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     border: Border.all(
                                       color: isSelected
                                           ? KinovaColors.brown
-                                          : KinovaColors.sand.withOpacity(0.5),
+                                          : KinovaColors.sand.withValues(alpha: 0.5),
                                       width: isSelected ? 1.5 : 1,
                                     ),
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: KinovaColors.brown.withOpacity(0.2),
+                                              color: KinovaColors.brown.withValues(alpha: 0.2),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             ),
@@ -470,7 +470,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.15),
+                                              color: Colors.black.withValues(alpha: 0.15),
                                               blurRadius: 2,
                                             ),
                                           ],
@@ -504,7 +504,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             color: KinovaColors.surface,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
-                              color: KinovaColors.gold.withOpacity(0.22),
+                              color: KinovaColors.gold.withValues(alpha: 0.22),
                             ),
                             boxShadow: KinovaColors.softShadow,
                           ),
@@ -538,7 +538,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: KinovaColors.mutedBrown
-                                          .withOpacity(0.95),
+                                          .withValues(alpha: 0.95),
                                     ),
                                   ),
                                   if (_ratingLoading) ...[

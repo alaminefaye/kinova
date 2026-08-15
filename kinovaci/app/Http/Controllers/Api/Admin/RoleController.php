@@ -13,17 +13,21 @@ class RoleController extends Controller
 {
     public function index()
     {
+        $userCounts = \Illuminate\Support\Facades\DB::table('model_has_roles')
+            ->select('role_id', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('role_id')
+            ->pluck('count', 'role_id');
+
         $roles = Role::query()
             ->with('permissions:id,name')
-            ->withCount('users')
             ->orderBy('id')
             ->get()
-            ->map(function (Role $role) {
+            ->map(function (Role $role) use ($userCounts) {
                 return [
                     'id' => $role->id,
                     'name' => $role->name,
                     'guard_name' => $role->guard_name,
-                    'users_count' => $role->users_count,
+                    'users_count' => (int) ($userCounts[$role->id] ?? 0),
                     'permissions' => $role->permissions->pluck('name'),
                     'created_at' => $role->created_at?->toIso8601String(),
                 ];

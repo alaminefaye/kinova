@@ -80,7 +80,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               color: KinovaColors.surface,
               borderRadius: BorderRadius.circular(26),
               border: Border.all(
-                color: KinovaColors.gold.withOpacity(0.35),
+                color: KinovaColors.gold.withValues(alpha: 0.35),
                 width: 1,
               ),
               boxShadow: KinovaColors.softShadow,
@@ -105,7 +105,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     decoration: InputDecoration(
                       hintText: 'Rechercher dans la boutique…',
                       hintStyle: TextStyle(
-                        color: KinovaColors.mutedBrown.withOpacity(0.7),
+                        color: KinovaColors.mutedBrown.withValues(alpha: 0.7),
                         fontSize: 13.5,
                       ),
                       filled: false,
@@ -130,7 +130,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         color: KinovaColors.surfaceMuted,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: KinovaColors.gold.withOpacity(0.3),
+                          color: KinovaColors.gold.withValues(alpha: 0.3),
                           width: 0.8,
                         ),
                       ),
@@ -182,7 +182,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                               color: KinovaColors.surface,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: KinovaColors.gold.withOpacity(0.35),
+                                color: KinovaColors.gold.withValues(alpha: 0.35),
                                 width: 1,
                               ),
                               boxShadow: KinovaColors.softShadow,
@@ -209,7 +209,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               color:
-                                  KinovaColors.mutedBrown.withOpacity(0.9),
+                                  KinovaColors.mutedBrown.withValues(alpha: 0.9),
                             ),
                           ),
                         ],
@@ -285,7 +285,7 @@ class _Chip extends StatelessWidget {
         selectedColor: KinovaColors.brown,
         backgroundColor: KinovaColors.surface,
         elevation: selected ? 2 : 0,
-        shadowColor: KinovaColors.brown.withOpacity(0.2),
+        shadowColor: KinovaColors.brown.withValues(alpha: 0.2),
         labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: selected ? KinovaColors.cream : KinovaColors.brown,
               letterSpacing: 0.8,
@@ -297,7 +297,7 @@ class _Chip extends StatelessWidget {
           side: BorderSide(
             color: selected
                 ? KinovaColors.brown
-                : KinovaColors.gold.withOpacity(0.25),
+                : KinovaColors.gold.withValues(alpha: 0.25),
             width: 1,
           ),
         ),

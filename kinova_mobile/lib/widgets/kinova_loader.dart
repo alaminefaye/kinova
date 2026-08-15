@@ -57,7 +57,7 @@ class _KinovaLoaderState extends State<KinovaLoader>
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFFD4AF37)
-                            .withOpacity(0.12 + t * 0.18),
+                            .withValues(alpha: 0.12 + t * 0.18),
                         blurRadius: 26 + t * 14,
                         spreadRadius: 2 + t * 4,
                       ),
@@ -129,7 +129,7 @@ class _AnimatedDotsLabelState extends State<_AnimatedDotsLabel>
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2.4,
-                color: KinovaColors.mutedBrown.withOpacity(0.95),
+                color: KinovaColors.mutedBrown.withValues(alpha: 0.95),
               ),
             ),
             const SizedBox(width: 3),

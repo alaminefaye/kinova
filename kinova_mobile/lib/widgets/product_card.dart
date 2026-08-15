@@ -37,7 +37,7 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: KinovaColors.cardShadow,
         border: Border.all(
-          color: KinovaColors.gold.withOpacity(0.16),
+          color: KinovaColors.gold.withValues(alpha: 0.16),
           width: 1,
         ),
       ),
@@ -78,8 +78,8 @@ class ProductCard extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.05),
-                              Colors.black.withOpacity(0.25),
+                              Colors.black.withValues(alpha: 0.05),
+                              Colors.black.withValues(alpha: 0.25),
                             ],
                             stops: const [0.5, 0.8, 1.0],
                           ),
@@ -102,7 +102,7 @@ class ProductCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.18),
+                                color: Colors.black.withValues(alpha: 0.18),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -143,7 +143,7 @@ class ProductCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
+                                color: Colors.black.withValues(alpha: 0.15),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -171,10 +171,10 @@ class ProductCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.45),
+                          color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.25),
+                            color: Colors.white.withValues(alpha: 0.25),
                             width: 0.8,
                           ),
                         ),
@@ -214,11 +214,11 @@ class ProductCard extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: KinovaColors.surface.withOpacity(0.9),
+                              color: KinovaColors.surface.withValues(alpha: 0.9),
                               shape: BoxShape.circle,
                               boxShadow: KinovaColors.softShadow,
                               border: Border.all(
-                                color: KinovaColors.gold.withOpacity(0.2),
+                                color: KinovaColors.gold.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -322,7 +322,7 @@ class ProductCard extends StatelessWidget {
                                   ? null
                                   : [
                                       BoxShadow(
-                                        color: KinovaColors.brown.withOpacity(0.25),
+                                        color: KinovaColors.brown.withValues(alpha: 0.25),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),

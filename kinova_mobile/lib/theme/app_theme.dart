@@ -125,20 +125,20 @@ class AppTheme {
         fillColor: KinovaColors.surface,
         hintStyle: TextStyle(
           fontFamily: 'Montserrat',
-          color: KinovaColors.mutedBrown.withOpacity(0.7),
+          color: KinovaColors.mutedBrown.withValues(alpha: 0.7),
           fontSize: 13,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: KinovaColors.gold.withOpacity(0.2),
+            color: KinovaColors.gold.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: KinovaColors.sand.withOpacity(0.3),
+            color: KinovaColors.sand.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -164,7 +164,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: KinovaColors.gold.withOpacity(0.15),
+            color: KinovaColors.gold.withValues(alpha: 0.15),
             width: 1,
           ),
         ),

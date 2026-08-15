@@ -78,7 +78,7 @@ class _OrbitRingPainter extends CustomPainter {
 
     // Anneau de fond discret
     final track = Paint()
-      ..color = KinovaColors.sand.withOpacity(0.4)
+      ..color = KinovaColors.sand.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeW * 0.7;
     canvas.drawCircle(center, radius, track);
@@ -112,7 +112,7 @@ class _OrbitRingPainter extends CustomPainter {
     );
     final tipRadius = strokeW * 1.1;
     final glow = Paint()
-      ..color = KinovaColors.gold.withOpacity(0.9)
+      ..color = KinovaColors.gold.withValues(alpha: 0.9)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, strokeW);
     canvas.drawCircle(tip, tipRadius * 1.4, glow);
     canvas.drawCircle(tip, tipRadius * 0.8, Paint()..color = KinovaColors.cream);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:kinova_mobile/screens/admin_dashboard_screen.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
@@ -135,19 +136,24 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
+    final auth = context.read<AuthController>();
+    final targetScreen = (auth.user?.isAdmin == true)
+        ? const AdminDashboardScreen()
+        : const MainShell();
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const MainShell(),
+        pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: CurvedAnimation(
               parent: animation,
-              curve: Curves.easeInOut,
+              curve: Curves.easeOut,
             ),
             child: child,
           );
         },
-        transitionDuration: const Duration(milliseconds: 700),
+        transitionDuration: const Duration(milliseconds: 650),
       ),
     );
   }
@@ -192,8 +198,8 @@ class _SplashScreenState extends State<SplashScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        const Color(0xFFD4AF37).withOpacity(_glowPulse.value * 0.35),
-                        const Color(0xFFC5A080).withOpacity(_glowPulse.value * 0.12),
+                        const Color(0xFFD4AF37).withValues(alpha: _glowPulse.value * 0.35),
+                        const Color(0xFFC5A080).withValues(alpha: _glowPulse.value * 0.12),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.45, 1.0],
@@ -223,7 +229,7 @@ class _SplashScreenState extends State<SplashScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFD4AF37).withOpacity(0.3),
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
                               blurRadius: 40,
                               spreadRadius: 6,
                             ),
