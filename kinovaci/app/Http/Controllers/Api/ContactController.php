@@ -34,10 +34,12 @@ class ContactController extends Controller
     {
         return response()->json([
             'data' => [
-                'email' => 'hello@kinova.test',
-                'phone' => '+225 07 00 00 00',
-                'whatsapp' => '+22507000000',
-                'hours' => 'Lun–Sam 9h–19h',
+                'email' => config('kinova.support_email'),
+                'phone' => config('kinova.support_phone'),
+                'whatsapp' => config('kinova.support_whatsapp'),
+                'hours' => config('kinova.support_hours'),
+                'privacy_url' => url(config('kinova.privacy_url')),
+                'support_url' => url(config('kinova.support_url')),
                 'faqs' => [
                     [
                         'q' => 'Quels sont les délais de livraison ?',

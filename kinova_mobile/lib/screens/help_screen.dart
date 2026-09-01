@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
+import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/kinova_loader.dart';
 
@@ -20,6 +21,7 @@ class _HelpScreenState extends State<HelpScreen> {
 
   final _name = TextEditingController();
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _subject = TextEditingController();
   final _message = TextEditingController();
   bool _sending = false;
@@ -32,6 +34,7 @@ class _HelpScreenState extends State<HelpScreen> {
       if (user != null) {
         _name.text = user.name;
         _email.text = user.email ?? '';
+        _phone.text = user.phone ?? '';
       }
       _load();
     });
@@ -41,6 +44,7 @@ class _HelpScreenState extends State<HelpScreen> {
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _phone.dispose();
     _subject.dispose();
     _message.dispose();
     super.dispose();
@@ -81,6 +85,7 @@ class _HelpScreenState extends State<HelpScreen> {
       await context.read<ApiClient>().post('/contact', body: {
         'name': _name.text.trim(),
         'email': _email.text.trim(),
+        'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
         'subject': _subject.text.trim(),
         'message': _message.text.trim(),
       });
@@ -147,6 +152,12 @@ class _HelpScreenState extends State<HelpScreen> {
                 ),
                 const SizedBox(height: 8),
                 TextField(
+                  controller: _phone,
+                  decoration: const InputDecoration(hintText: 'Téléphone (optionnel)'),
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 8),
+                TextField(
                   controller: _subject,
                   decoration: const InputDecoration(hintText: 'Sujet'),
                 ),
@@ -169,6 +180,18 @@ class _HelpScreenState extends State<HelpScreen> {
                           ),
                         )
                       : const Text('ENVOYER'),
+                ),
+                const SizedBox(height: 24),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacyPolicyScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+                  label: const Text('Politique de confidentialité'),
                 ),
               ],
             ),

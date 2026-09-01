@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController extends ChangeNotifier {
@@ -38,6 +39,7 @@ class AuthController extends ChangeNotifier {
       } else if (me is Map) {
         _user = AppUser.fromJson(Map<String, dynamic>.from(me));
       }
+      await PushNotificationService.syncToken();
     } catch (_) {
       await _clearToken();
       _user = null;
@@ -152,6 +154,7 @@ class AuthController extends ChangeNotifier {
   Future<void> logout() async {
     try {
       if (_api.token != null) {
+        await PushNotificationService.clearToken();
         await _api.post('/auth/logout');
       }
     } catch (_) {
@@ -173,6 +176,7 @@ class AuthController extends ChangeNotifier {
     await prefs.setString(_tokenKey, token);
     _api.setToken(token);
     _user = AppUser.fromJson(Map<String, dynamic>.from(userRaw));
+    await PushNotificationService.syncToken();
     notifyListeners();
   }
 

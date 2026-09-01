@@ -83,7 +83,17 @@ const router = createRouter({
       path: '/aide',
       name: 'help',
       component: () => import('./pages/HelpPage.vue'),
-      meta: { title: 'Aide', hideChrome: true },
+      meta: { title: 'Aide & contact', hideChrome: true },
+    },
+    {
+      path: '/support',
+      redirect: '/aide',
+    },
+    {
+      path: '/politique-confidentialite',
+      name: 'privacy',
+      component: () => import('./pages/PrivacyPolicyPage.vue'),
+      meta: { title: 'Politique de confidentialité', hideChrome: true },
     },
     {
       path: '/:pathMatch(.*)*',

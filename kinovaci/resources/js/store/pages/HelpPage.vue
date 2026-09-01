@@ -72,8 +72,13 @@ async function submit() {
 
       <section v-if="!loading && help" class="card">
         <h3>Nous joindre</h3>
-        <p v-if="help.phone">Tél. {{ help.phone }}</p>
-        <p v-if="help.email">{{ help.email }}</p>
+        <p v-if="help.phone">
+          Tél.
+          <a :href="`tel:${String(help.phone).replace(/\s/g, '')}`">{{ help.phone }}</a>
+        </p>
+        <p v-if="help.email">
+          <a :href="`mailto:${help.email}`">{{ help.email }}</a>
+        </p>
         <p v-if="help.hours">{{ help.hours }}</p>
       </section>
 
@@ -97,6 +102,10 @@ async function submit() {
           <p v-if="sent" class="ok">Message envoyé. Merci !</p>
           <button class="kv-btn kv-btn-dark" type="submit">Envoyer</button>
         </form>
+      </section>
+
+      <section class="card legal">
+        <router-link to="/politique-confidentialite">Politique de confidentialité</router-link>
       </section>
     </div>
   </div>
@@ -186,6 +195,15 @@ label {
 }
 .ok {
   color: #2f6b4f;
+  font-weight: 700;
+}
+.legal a {
+  color: var(--kv-brown);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.card a {
+  color: var(--kv-brown);
   font-weight: 700;
 }
 </style>

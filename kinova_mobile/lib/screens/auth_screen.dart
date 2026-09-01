@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/admin_dashboard_screen.dart';
+import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
@@ -25,6 +26,7 @@ class _AuthScreenState extends State<AuthScreen>
   bool _registerMode = false;
   bool _loading = false;
   bool _obscure = true;
+  bool _acceptTerms = false;
   String? _error;
 
   late final AnimationController _intro;
@@ -73,6 +75,7 @@ class _AuthScreenState extends State<AuthScreen>
     if (_registerMode == register || _loading) return;
     setState(() {
       _registerMode = register;
+      _acceptTerms = false;
       _error = null;
     });
   }
@@ -80,6 +83,10 @@ class _AuthScreenState extends State<AuthScreen>
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+    if (_registerMode && !_acceptTerms) {
+      setState(() => _error = 'Veuillez accepter la politique de confidentialité.');
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -441,6 +448,74 @@ class _AuthScreenState extends State<AuthScreen>
                                 ),
 
                                 const SizedBox(height: 24),
+
+                                if (_registerMode) ...[
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Checkbox(
+                                        value: _acceptTerms,
+                                        onChanged: _loading
+                                            ? null
+                                            : (v) => setState(
+                                                  () => _acceptTerms = v ?? false,
+                                                ),
+                                        activeColor: KinovaColors.goldRich,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(top: 10),
+                                          child: Wrap(
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            children: [
+                                              const Text(
+                                                'J’accepte la ',
+                                                style: TextStyle(
+                                                  fontFamily: 'Montserrat',
+                                                  color: KinovaColors.sand,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          const PrivacyPolicyScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                                child: const Text(
+                                                  'politique de confidentialité',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Montserrat',
+                                                    color: KinovaColors.goldLight,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 11,
+                                                    decoration:
+                                                        TextDecoration.underline,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Text(
+                                                ' de KINOVA.',
+                                                style: TextStyle(
+                                                  fontFamily: 'Montserrat',
+                                                  color: KinovaColors.sand,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
 
                                 // Bouton principal doré
                                 _GoldButton(

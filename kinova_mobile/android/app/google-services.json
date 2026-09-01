@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "581609076429",
+    "project_id": "kinova-3d26a",
+    "storage_bucket": "kinova-3d26a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581609076429:android:ff8bbaf5f7e896dfd2db84",
+        "android_client_info": {
+          "package_name": "com.kinova.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_WTYy39yIogzDbKT7yTgf56R71fxDM2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

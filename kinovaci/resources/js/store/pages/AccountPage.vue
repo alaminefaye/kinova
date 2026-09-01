@@ -193,6 +193,9 @@ function formatDate(iso?: string) {
       <button type="button" @click="router.push({ name: 'help' })">
         <span>?</span> Service Client & Assistance
       </button>
+      <button type="button" @click="router.push({ name: 'privacy' })">
+        <span>🔒</span> Politique de confidentialité
+      </button>
       <button v-if="loggedIn" type="button" class="danger" @click="deleteAccount">
         <span>⌫</span> Supprimer mon compte
       </button>

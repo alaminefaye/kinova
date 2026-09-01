@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\HeroSlideController;
 use App\Http\Controllers\Api\Customer\AuthController as CustomerAuthController;
+use App\Http\Controllers\Api\Customer\DeviceTokenController;
 use App\Http\Controllers\Api\Customer\FavoriteController;
 use App\Http\Controllers\Api\Customer\LoyaltyController as CustomerLoyaltyController;
 use App\Http\Controllers\Api\Customer\NotificationController as CustomerNotificationController;
@@ -94,6 +95,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/notifications', [CustomerNotificationController::class, 'index']);
         Route::post('/notifications/read-all', [CustomerNotificationController::class, 'markAllRead']);
         Route::post('/notifications/{appNotification}/read', [CustomerNotificationController::class, 'markRead']);
+
+        Route::post('/device-token', [DeviceTokenController::class, 'store']);
+        Route::post('/device-token/remove', [DeviceTokenController::class, 'destroy']);
 
         Route::get('/loyalty', [CustomerLoyaltyController::class, 'show']);
         Route::post('/loyalty/redeem', [CustomerLoyaltyController::class, 'redeem']);

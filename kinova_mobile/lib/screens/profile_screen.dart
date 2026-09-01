@@ -8,6 +8,7 @@ import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/edit_profile_screen.dart';
 import 'package:kinova_mobile/screens/favorites_screen.dart';
 import 'package:kinova_mobile/screens/help_screen.dart';
+import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
@@ -514,6 +515,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const HelpScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(
+                    height: 1,
+                    indent: 48,
+                    color: KinovaColors.surfaceMuted,
+                  ),
+                  _Tile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Politique de confidentialité',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
                       );
                     },
                   ),

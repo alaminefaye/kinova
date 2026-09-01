@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/screens/splash_screen.dart';
+import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
@@ -10,7 +11,7 @@ import 'package:kinova_mobile/theme/app_theme.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:flutter/services.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -22,6 +23,7 @@ void main() {
   );
 
   final api = ApiClient();
+  await PushNotificationService.init(api: api);
 
   runApp(KinovaApp(api: api));
 }

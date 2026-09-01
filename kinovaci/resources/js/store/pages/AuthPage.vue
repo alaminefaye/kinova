@@ -12,6 +12,7 @@ const favorites = useFavorites()
 
 const registerMode = ref(false)
 const obscure = ref(true)
+const acceptTerms = ref(false)
 const error = ref('')
 const form = reactive({
   name: '',
@@ -24,11 +25,16 @@ const form = reactive({
 function switchMode(register: boolean) {
   if (auth.state.loading) return
   registerMode.value = register
+  acceptTerms.value = false
   error.value = ''
 }
 
 async function submit() {
   error.value = ''
+  if (registerMode.value && !acceptTerms.value) {
+    error.value = 'Veuillez accepter la politique de confidentialité.'
+    return
+  }
   try {
     if (registerMode.value) {
       await auth.register({
@@ -152,6 +158,15 @@ function goBack() {
               />
             </svg>
           </button>
+        </label>
+
+        <label v-if="registerMode" class="terms">
+          <input v-model="acceptTerms" type="checkbox" />
+          <span>
+            J’accepte la
+            <router-link to="/politique-confidentialite" target="_blank">politique de confidentialité</router-link>
+            de KINOVA.
+          </span>
         </label>
 
         <div v-if="error" class="error">{{ error }}</div>
@@ -363,6 +378,24 @@ form {
 .gold:disabled {
   opacity: 0.7;
   cursor: wait;
+}
+.terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--kv-sand);
+  cursor: pointer;
+}
+.terms input {
+  margin-top: 0.15rem;
+  accent-color: var(--kv-gold-rich);
+}
+.terms a {
+  color: var(--kv-gold-light);
+  font-weight: 700;
 }
 .sep {
   display: flex;

@@ -9,6 +9,10 @@ use Illuminate\Support\Collection;
 
 class NotificationService
 {
+    public function __construct(
+        private readonly FirebasePushService $push,
+    ) {}
+
     public function notifyUser(
         User $user,
         string $title,
@@ -17,7 +21,7 @@ class NotificationService
         ?string $icon = null,
         ?array $data = null,
     ): AppNotification {
-        return AppNotification::query()->create([
+        $notification = AppNotification::query()->create([
             'user_id' => $user->id,
             'title' => $title,
             'message' => $message,
@@ -26,6 +30,10 @@ class NotificationService
             'is_read' => false,
             'data' => $data,
         ]);
+
+        $this->push->sendToUser($user, $title, $message, $category, $data);
+
+        return $notification;
     }
 
     public function broadcast(
