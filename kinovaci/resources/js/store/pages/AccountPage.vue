@@ -67,6 +67,10 @@ function openTracking() {
   trackingOrder.value = orders.value[0]
 }
 
+function openPrivacy() {
+  window.location.href = '/politique-confidentialite'
+}
+
 async function logout() {
   await auth.logout()
   favorites.clear()
@@ -193,7 +197,7 @@ function formatDate(iso?: string) {
       <button type="button" @click="router.push({ name: 'help' })">
         <span>?</span> Service Client & Assistance
       </button>
-      <button type="button" @click="router.push({ name: 'privacy' })">
+      <button type="button" @click="openPrivacy">
         <span>🔒</span> Politique de confidentialité
       </button>
       <button v-if="loggedIn" type="button" class="danger" @click="deleteAccount">

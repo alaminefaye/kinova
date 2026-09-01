@@ -164,7 +164,7 @@ function goBack() {
           <input v-model="acceptTerms" type="checkbox" />
           <span>
             J’accepte la
-            <router-link to="/politique-confidentialite" target="_blank">politique de confidentialité</router-link>
+            <a href="/politique-confidentialite" target="_blank" rel="noopener noreferrer">politique de confidentialité</a>
             de KINOVA.
           </span>
         </label>

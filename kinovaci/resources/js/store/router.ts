@@ -90,12 +90,6 @@ const router = createRouter({
       redirect: '/aide',
     },
     {
-      path: '/politique-confidentialite',
-      name: 'privacy',
-      component: () => import('./pages/PrivacyPolicyPage.vue'),
-      meta: { title: 'Politique de confidentialité', hideChrome: true },
-    },
-    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },

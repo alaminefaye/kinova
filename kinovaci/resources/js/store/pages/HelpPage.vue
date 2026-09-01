@@ -105,7 +105,7 @@ async function submit() {
       </section>
 
       <section class="card legal">
-        <router-link to="/politique-confidentialite">Politique de confidentialité</router-link>
+        <a href="/politique-confidentialite">Politique de confidentialité</a>
       </section>
     </div>
   </div>
