@@ -221,9 +221,28 @@ onMounted(load)
         <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] space-y-4">
           <div>
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Cercle VIP / Fidélité</h2>
-            <p class="text-sm text-gray-500">{{ loyaltySummary }}</p>
+            <p class="text-sm text-gray-500">
+              {{ form.loyalty_enabled ? loyaltySummary : 'Programme désactivé : aucun point attribué, rien n’est affiché aux clients.' }}
+            </p>
           </div>
-          <div class="grid gap-4 md:grid-cols-2">
+          <label
+            class="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 cursor-pointer"
+            :class="form.loyalty_enabled ? 'border-success-200 bg-success-50/50 dark:border-success-800 dark:bg-success-500/5' : 'border-gray-200 dark:border-gray-800'"
+          >
+            <span>
+              <span class="block text-sm font-medium text-gray-800 dark:text-white">Activer le programme de fidélité</span>
+              <span class="block text-xs text-gray-500">
+                Points gagnés à la livraison, notifications « Points fidélité », carte fidélité, palier et bannière VIP (app + boutique web)
+              </span>
+            </span>
+            <span class="flex items-center gap-2">
+              <span class="text-xs" :class="form.loyalty_enabled ? 'text-success-600' : 'text-gray-400'">
+                {{ form.loyalty_enabled ? 'Actif' : 'Inactif' }}
+              </span>
+              <input v-model="form.loyalty_enabled" type="checkbox" class="h-5 w-5 accent-brand-500" />
+            </span>
+          </label>
+          <div class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-50': !form.loyalty_enabled }">
             <label class="text-sm">
               <span class="text-gray-500 block mb-1">Montant dépensé (FCFA)</span>
               <input v-model.number="form.loyalty_amount_per_step" type="number" min="1" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />

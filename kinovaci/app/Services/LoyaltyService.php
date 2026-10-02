@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class LoyaltyService
 {
+    public const POINTS_NOTIFICATION_TITLE = 'Points fidélité KINOVA';
+
     public static function tierFor(int $points): string
     {
         $s = AppSettings::all();
@@ -58,6 +60,10 @@ class LoyaltyService
             return null;
         }
 
+        if (! AppSettings::loyaltyEnabled()) {
+            return null;
+        }
+
         $points = AppSettings::pointsForAmount((float) $order->total);
         if ($points <= 0) {
             return null;
@@ -78,7 +84,7 @@ class LoyaltyService
 
         app(NotificationService::class)->notifyUser(
             $user,
-            'Points fidélité KINOVA',
+            self::POINTS_NOTIFICATION_TITLE,
             "Vous avez gagné {$points} ".($points > 1 ? 'points' : 'point')." VIP avec votre commande {$order->reference} (".AppSettings::render('{montant} = {points}').').',
             'vip',
             'star',

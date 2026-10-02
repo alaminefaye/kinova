@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AnimatedLogoBadge from '../components/AnimatedLogoBadge.vue'
 import { useAuth } from '../state/auth'
 import { useFavorites } from '../state/favorites'
+import { useSettings } from '../state/settings'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,6 +22,8 @@ const form = reactive({
   login: '',
   password: '',
 })
+
+const settings = useSettings()
 
 function switchMode(register: boolean) {
   if (auth.state.loading) return
@@ -89,7 +92,9 @@ function goBack() {
       <p class="lead">
         {{
           registerMode
-            ? 'Créez votre compte et cumulez vos points VIP.'
+            ? settings.state.data.loyalty.enabled
+              ? 'Créez votre compte et cumulez vos points VIP.'
+              : 'Créez votre compte pour suivre vos commandes et favoris.'
             : 'Retrouvez vos favoris, commandes et avantages.'
         }}
       </p>

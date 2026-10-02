@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AppSettings;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -36,7 +37,9 @@ class AuthController extends Controller
         $notifications->notifyUser(
             $user,
             'Bienvenue chez KINOVA',
-            'Votre compte est prêt. Profitez de vos avantages VIP dès vos premières commandes.',
+            AppSettings::loyaltyEnabled()
+                ? 'Votre compte est prêt. Profitez de vos avantages VIP dès vos premières commandes.'
+                : 'Votre compte est prêt. Bonne découverte de la boutique KINOVA !',
             'vip',
             'sparkles'
         );

@@ -10,6 +10,7 @@ export type StoreSettings = {
     free_threshold: number
   }
   loyalty: {
+    enabled: boolean
     amount_per_step: number
     points_per_step: number
     tiers: { silver: number; gold: number; vip: number }
@@ -46,13 +47,13 @@ const state = reactive<{ data: StoreSettings; loaded: boolean }>({
       free_enabled: true,
       free_threshold: 50000,
     },
-    loyalty: { amount_per_step: 10000, points_per_step: 1, tiers: { silver: 20, gold: 50, vip: 100 } },
+    loyalty: { enabled: false, amount_per_step: 10000, points_per_step: 1, tiers: { silver: 20, gold: 50, vip: 100 } },
     sections: {
       hero: true,
       promo_banner: true,
       categories: true,
       featured: true,
-      vip_banner: true,
+      vip_banner: false,
       perks: true,
       news: true,
     },
@@ -70,9 +71,9 @@ const state = reactive<{ data: StoreSettings; loaded: boolean }>({
       news_title: 'Nouveautés',
     },
     profile: {
-      show_loyalty: true,
-      show_tier_badge: true,
-      show_next_tier: true,
+      show_loyalty: false,
+      show_tier_badge: false,
+      show_next_tier: false,
       loyalty_title: 'FIDÉLITÉ KINOVA',
       loyalty_rule: '10 000 FCFA dépensés = 1 point',
     },

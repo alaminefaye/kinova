@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Services\AppSettings;
 use App\Services\LoyaltyService;
 use Illuminate\Http\Request;
 
@@ -37,6 +38,8 @@ class LoyaltyController extends Controller
         $data = $request->validate([
             'points' => ['required', 'integer', 'min:50'],
         ]);
+
+        abort_unless(AppSettings::loyaltyEnabled(), 422, 'Le programme de fidélité n’est pas disponible.');
 
         $user = $request->user();
 

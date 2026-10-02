@@ -4,19 +4,20 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use App\Services\AppSettings;
+use App\Services\LoyaltyService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $notifications = AppNotification::query()
-            ->where('user_id', $request->user()->id)
+        $notifications = $this->visibleFor($request)
             ->latest()
             ->paginate(30);
 
-        $unread = AppNotification::query()
-            ->where('user_id', $request->user()->id)
+        $unread = $this->visibleFor($request)
             ->where('is_read', false)
             ->count();
 
@@ -24,6 +25,16 @@ class NotificationController extends Controller
             'unread_count' => $unread,
             ...$notifications->toArray(),
         ]);
+    }
+
+    private function visibleFor(Request $request): Builder
+    {
+        return AppNotification::query()
+            ->where('user_id', $request->user()->id)
+            ->when(
+                ! AppSettings::loyaltyEnabled(),
+                fn (Builder $q) => $q->where('title', '!=', LoyaltyService::POINTS_NOTIFICATION_TITLE)
+            );
     }
 
     public function markRead(Request $request, AppNotification $appNotification)

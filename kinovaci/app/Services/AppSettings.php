@@ -25,7 +25,8 @@ class AppSettings
         'free_shipping_enabled' => true,
         'free_shipping_threshold' => 50000,
 
-        // Fidélité
+        // Fidélité (désactivé = aucun point attribué ni affiché au client)
+        'loyalty_enabled' => false,
         'loyalty_amount_per_step' => 10000,
         'loyalty_points_per_step' => 1,
         'tier_silver_points' => 20,
@@ -132,9 +133,17 @@ class AppSettings
         return (float) $s['shipping_fee'];
     }
 
+    public static function loyaltyEnabled(?array $settings = null): bool
+    {
+        return (bool) ($settings ?? self::all())['loyalty_enabled'];
+    }
+
     public static function pointsForAmount(float $amount): int
     {
         $s = self::all();
+        if (! self::loyaltyEnabled($s)) {
+            return 0;
+        }
         $step = max(1, $s['loyalty_amount_per_step']);
 
         return (int) floor($amount / $step) * $s['loyalty_points_per_step'];
@@ -177,6 +186,7 @@ class AppSettings
     public static function publicPayload(): array
     {
         $s = self::all();
+        $loyalty = self::loyaltyEnabled($s);
 
         return [
             'shipping' => [
@@ -187,6 +197,7 @@ class AppSettings
                 'free_threshold' => $s['free_shipping_threshold'],
             ],
             'loyalty' => [
+                'enabled' => $loyalty,
                 'amount_per_step' => $s['loyalty_amount_per_step'],
                 'points_per_step' => $s['loyalty_points_per_step'],
                 'tiers' => [
@@ -200,7 +211,7 @@ class AppSettings
                 'promo_banner' => $s['section_promo_banner'],
                 'categories' => $s['section_categories'],
                 'featured' => $s['section_featured'],
-                'vip_banner' => $s['section_vip_banner'],
+                'vip_banner' => $loyalty && $s['section_vip_banner'],
                 'perks' => $s['section_perks'],
                 'news' => $s['section_news'],
             ],
@@ -218,9 +229,9 @@ class AppSettings
                 'news_title' => self::render($s['news_title'], $s),
             ],
             'profile' => [
-                'show_loyalty' => $s['profile_show_loyalty'],
-                'show_tier_badge' => $s['profile_show_tier_badge'],
-                'show_next_tier' => $s['profile_show_next_tier'],
+                'show_loyalty' => $loyalty && $s['profile_show_loyalty'],
+                'show_tier_badge' => $loyalty && $s['profile_show_tier_badge'],
+                'show_next_tier' => $loyalty && $s['profile_show_next_tier'],
                 'loyalty_title' => self::render($s['profile_loyalty_title'], $s),
                 'loyalty_rule' => self::render($s['profile_loyalty_rule'], $s),
             ],
