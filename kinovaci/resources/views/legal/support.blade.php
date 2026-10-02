@@ -15,7 +15,7 @@
         <h2>Questions fréquentes</h2>
         <p><strong>Délais de livraison ?</strong><br>2 à 5 jours ouvrés selon votre ville.</p>
         <p><strong>Suivre ma commande ?</strong><br>Utilisez votre référence KV-… ou consultez « Mes commandes » dans l’application.</p>
-        <p><strong>Points VIP ?</strong><br>10 000 FCFA dépensés = 1 point. Les paliers débloquent Silver, Gold puis VIP.</p>
+        <p><strong>Points VIP ?</strong><br>{{ \App\Services\AppSettings::render('{montant} dépensés = {points}.') }} Les paliers débloquent Silver, Gold puis VIP.</p>
         <p><strong>Retour d’article ?</strong><br>Oui, sous 14 jours si l’article est non utilisé, dans son emballage.</p>
     </section>
 

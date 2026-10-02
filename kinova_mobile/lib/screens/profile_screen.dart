@@ -8,6 +8,7 @@ import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/edit_profile_screen.dart';
 import 'package:kinova_mobile/screens/favorites_screen.dart';
 import 'package:kinova_mobile/screens/help_screen.dart';
+import 'package:kinova_mobile/screens/invoice_screen.dart';
 import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
@@ -62,9 +63,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openAuth() async {
-    final ok = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const AuthScreen()),
-    );
+    final ok = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const AuthScreen()));
     if (ok == true && mounted) {
       await _loadOrders();
     }
@@ -80,9 +81,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openEditProfile() async {
-    final ok = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-    );
+    final ok = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const EditProfileScreen()));
     if (ok == true && mounted) {
       await context.read<AuthController>().refreshProfile();
     }
@@ -99,9 +100,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     context.read<FavoritesController>().clearLocal();
     context.read<CartController>().setOrders(const []);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Compte supprimé')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Compte supprimé')));
   }
 
   @override
@@ -116,9 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Compte Privilège'),
-      ),
+      appBar: AppBar(title: const Text('Compte Privilège')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 36),
         children: [
@@ -199,8 +198,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               user == null
                                   ? 'Connectez-vous pour vos avantages'
                                   : (user.email?.isNotEmpty == true
-                                      ? user.email!
-                                      : (user.phone ?? 'Compte KINOVA')),
+                                        ? user.email!
+                                        : (user.phone ?? 'Compte KINOVA')),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -213,91 +212,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Divider(
-                      color: Color(0x33C5A080),
-                      height: 1,
+                  if (settings.profileShowLoyalty || !auth.isLoggedIn) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(color: Color(0x33C5A080), height: 1),
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: settings.profileShowLoyalty
-                        ? MainAxisAlignment.spaceBetween
-                        : MainAxisAlignment.end,
-                    children: [
-                      if (settings.profileShowLoyalty) ...[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (settings.profileLoyaltyTitle
-                                  .trim()
-                                  .isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: settings.profileShowLoyalty
+                          ? MainAxisAlignment.spaceBetween
+                          : MainAxisAlignment.end,
+                      children: [
+                        if (settings.profileShowLoyalty) ...[
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (settings.profileLoyaltyTitle
+                                    .trim()
+                                    .isNotEmpty) ...[
+                                  Text(
+                                    settings.profileLoyaltyTitle,
+                                    style: const TextStyle(
+                                      color: KinovaColors.gold,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                ],
                                 Text(
-                                  settings.profileLoyaltyTitle,
+                                  user != null
+                                      ? '${user.loyaltyPoints} Points'
+                                      : '— Points',
                                   style: const TextStyle(
-                                    color: KinovaColors.gold,
-                                    fontSize: 9.5,
+                                    color: KinovaColors.cream,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.2,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                              ],
-                              Text(
-                                user != null
-                                    ? '${user.loyaltyPoints} Points'
-                                    : '— Points',
-                                style: const TextStyle(
-                                  color: KinovaColors.cream,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              if (settings.profileLoyaltyRule
-                                  .trim()
-                                  .isNotEmpty) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  settings.profileLoyaltyRule,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: KinovaColors.sand,
-                                    fontSize: 10.5,
+                                if (settings.profileLoyaltyRule
+                                    .trim()
+                                    .isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    settings.profileLoyaltyRule,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: KinovaColors.sand,
+                                      fontSize: 10.5,
+                                    ),
                                   ),
-                                ),
-                              ],
-                              if (nextTier != null) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  nextTier,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: KinovaColors.goldLight,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
+                                ],
+                                if (nextTier != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    nextTier,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: KinovaColors.goldLight,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        TextButton(
+                          onPressed: auth.isLoggedIn ? _loadOrders : _openAuth,
+                          style: TextButton.styleFrom(
+                            foregroundColor: KinovaColors.cream,
+                            backgroundColor: KinovaColors.gold.withValues(
+                              alpha: 0.2,
+                            ),
+                          ),
+                          child: Text(
+                            auth.isLoggedIn ? 'Actualiser' : 'Se connecter',
                           ),
                         ),
-                        const SizedBox(width: 10),
                       ],
-                      TextButton(
-                        onPressed: auth.isLoggedIn ? _loadOrders : _openAuth,
-                        style: TextButton.styleFrom(
-                          foregroundColor: KinovaColors.cream,
-                          backgroundColor: KinovaColors.gold.withValues(alpha: 0.2),
-                        ),
-                        child: Text(
-                          auth.isLoggedIn ? 'Actualiser' : 'Se connecter',
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -323,10 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: KinovaColors.gold,
-                      width: 1.2,
-                    ),
+                    border: Border.all(color: KinovaColors.gold, width: 1.2),
                     boxShadow: [
                       BoxShadow(
                         color: KinovaColors.gold.withValues(alpha: 0.15),
@@ -421,9 +418,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   'Historique de Commandes',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 Text(
                   _loadingOrders
@@ -663,9 +660,7 @@ class _EmptyCard extends StatelessWidget {
         color: KinovaColors.surface,
         borderRadius: BorderRadius.circular(18),
         boxShadow: KinovaColors.cardShadow,
-        border: Border.all(
-          color: KinovaColors.gold.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
@@ -702,100 +697,127 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: KinovaColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: KinovaColors.cardShadow,
-        border: Border.all(
-          color: KinovaColors.gold.withValues(alpha: 0.16),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: KinovaColors.surfaceMuted,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.receipt_long_rounded,
-              color: KinovaColors.brown,
-              size: 22,
-            ),
+    final invoiceLabel = switch (order.invoiceStatus) {
+      'confirmed' => 'Facture confirmée',
+      'cancelled' => 'Commande annulée',
+      _ => 'Facture provisoire',
+    };
+    return GestureDetector(
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => InvoiceScreen(order: order))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: KinovaColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: KinovaColors.cardShadow,
+          border: Border.all(
+            color: KinovaColors.gold.withValues(alpha: 0.16),
+            width: 1,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      order.id,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: KinovaColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: KinovaColors.brown,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        order.id,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          order.status,
+                          style: const TextStyle(
+                            color: Color(0xFF2E7D32),
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(8),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${dateFormat.format(order.createdAt)} · ${order.items.length} article${order.items.length > 1 ? 's' : ''}'
+                          '${order.trackingNumber != null ? ' · ${order.trackingNumber}' : ''}',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
-                      child: Text(
-                        order.status,
+                      Text(
+                        formatMoney(order.total),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: KinovaColors.brown,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        order.invoiceStatus == 'confirmed'
+                            ? Icons.verified_rounded
+                            : Icons.description_outlined,
+                        size: 14,
+                        color: KinovaColors.goldRich,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$invoiceLabel ›',
                         style: const TextStyle(
-                          color: Color(0xFF2E7D32),
-                          fontSize: 10,
+                          color: KinovaColors.goldRich,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${dateFormat.format(order.createdAt)} · ${order.items.length} article${order.items.length > 1 ? 's' : ''}'
-                        '${order.trackingNumber != null ? ' · ${order.trackingNumber}' : ''}',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Text(
-                      formatMoney(order.total),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: KinovaColors.brown,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
+  const _Tile({required this.icon, required this.title, required this.onTap});
 
   final IconData icon;
   final String title;
@@ -816,9 +838,9 @@ class _Tile extends StatelessWidget {
       title: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-            ),
+          fontSize: 13.5,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       trailing: const Icon(
         Icons.chevron_right_rounded,

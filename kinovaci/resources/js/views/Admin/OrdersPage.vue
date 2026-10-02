@@ -46,9 +46,32 @@ async function updateStatus(status: string) {
   await load()
 }
 
+async function updatePayment(paymentStatus: 'paid' | 'unpaid') {
+  if (!selected.value) return
+  error.value = ''
+  try {
+    const res = await api<{ data: any }>(`/admin/orders/${selected.value.id}`, {
+      method: 'PUT',
+      json: { payment_status: paymentStatus },
+    })
+    selected.value = res.data
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
+}
+
 async function saveTracking() {
   if (!selected.value) return
   await updateStatus(selected.value.status)
+}
+
+const statusLabels: Record<string, string> = {
+  pending: 'En attente',
+  processing: 'Confirmée',
+  shipped: 'Expédiée',
+  delivered: 'Livrée',
+  cancelled: 'Annulée',
 }
 
 const money = (v: number) =>
@@ -85,7 +108,8 @@ onMounted(load)
                 <td class="py-3 font-medium text-gray-800 dark:text-white">{{ o.reference }}</td>
                 <td>{{ o.customer_name }}</td>
                 <td>
-                  <span class="rounded-full bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ o.status }}</span>
+                  <span class="rounded-full bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ statusLabels[o.status] || o.status }}</span>
+                  <span v-if="o.payment_status === 'paid'" class="ml-1 rounded-full bg-success-50 px-2 py-1 text-xs text-success-600">payé</span>
                 </td>
                 <td>{{ money(o.total) }}</td>
                 <td class="text-right">
@@ -102,10 +126,56 @@ onMounted(load)
           <div v-else class="space-y-3 text-sm">
             <p><span class="text-gray-500">Réf.</span> {{ selected.reference }}</p>
             <p><span class="text-gray-500">Client</span> {{ selected.customer_name }}</p>
-            <p><span class="text-gray-500">Tél.</span> {{ selected.customer_phone }}</p>
-            <p><span class="text-gray-500">Adresse</span> {{ selected.address }}, {{ selected.city }}</p>
-            <p><span class="text-gray-500">Paiement</span> {{ selected.payment_method }}</p>
-            <p class="font-semibold">Total {{ money(selected.total) }}</p>
+            <p>
+              <span class="text-gray-500">Tél.</span> {{ selected.customer_phone }}
+              <a :href="`tel:${selected.customer_phone}`" class="ml-2 text-brand-500">Appeler</a>
+            </p>
+            <p>
+              <span class="text-gray-500">{{ selected.is_delivery === false ? 'Retrait' : 'Livraison' }}</span>
+              {{ selected.address }}, {{ selected.city }}
+            </p>
+            <p v-if="selected.delivery_details" class="rounded-lg bg-gray-50 p-2 dark:bg-white/5">
+              <span class="text-gray-500 block text-xs">Précisions du client</span>
+              {{ selected.delivery_details }}
+            </p>
+            <p v-if="selected.maps_url">
+              <a :href="selected.maps_url" target="_blank" rel="noopener" class="text-brand-500">📍 Voir la position GPS du client</a>
+            </p>
+            <p>
+              <span class="text-gray-500">Paiement</span> à la livraison —
+              <span :class="selected.payment_status === 'paid' ? 'text-success-600 font-medium' : 'text-warning-600'">
+                {{ selected.payment_status === 'paid' ? 'payé' : 'non payé' }}
+              </span>
+            </p>
+            <p class="font-semibold">
+              Total {{ money(selected.total) }}
+              <span v-if="selected.is_delivery !== false && Number(selected.shipping) === 0" class="text-xs font-normal text-gray-500">(livraison réglée au livreur)</span>
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <a
+                v-if="selected.invoice_url"
+                :href="selected.invoice_url"
+                target="_blank"
+                rel="noopener"
+                class="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700"
+              >
+                {{ selected.invoice_status === 'confirmed' ? 'Facture confirmée' : 'Facture provisoire' }}
+              </a>
+              <button
+                v-if="selected.payment_status !== 'paid' && selected.status !== 'cancelled'"
+                class="rounded-lg border border-success-300 px-3 py-2 text-sm text-success-700"
+                @click="updatePayment('paid')"
+              >
+                Marquer payé
+              </button>
+              <button
+                v-else-if="selected.payment_status === 'paid'"
+                class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-gray-700"
+                @click="updatePayment('unpaid')"
+              >
+                Annuler le paiement
+              </button>
+            </div>
 
             <label class="block text-gray-500 mt-2">N° suivi</label>
             <input v-model="tracking" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" placeholder="KIN-TRACK-…" />
@@ -126,11 +196,11 @@ onMounted(load)
               :value="selected.status"
               @change="updateStatus(($event.target as HTMLSelectElement).value)"
             >
-              <option value="pending">pending</option>
-              <option value="processing">processing</option>
-              <option value="shipped">shipped</option>
-              <option value="delivered">delivered</option>
-              <option value="cancelled">cancelled</option>
+              <option value="pending">En attente</option>
+              <option value="processing">Confirmée / en préparation</option>
+              <option value="shipped">Expédiée</option>
+              <option value="delivered">Livrée (marque payée)</option>
+              <option value="cancelled">Annulée</option>
             </select>
           </div>
         </div>

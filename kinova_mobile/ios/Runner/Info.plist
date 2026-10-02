@@ -53,6 +53,13 @@
 	<string>KINOVA peut enregistrer des images dans votre photothèque si vous le demandez.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>KINOVA a besoin d’accéder à votre appareil photo pour prendre une photo de profil.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>KINOVA utilise votre position uniquement pour que le livreur trouve votre adresse exacte.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>https</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIBackgroundModes</key>

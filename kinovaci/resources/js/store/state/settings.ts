@@ -2,7 +2,13 @@ import { reactive } from 'vue'
 import { api } from '../api/client'
 
 export type StoreSettings = {
-  shipping: { fee: number; free_enabled: boolean; free_threshold: number }
+  shipping: {
+    mode: 'courier' | 'fixed'
+    note: string
+    fee: number
+    free_enabled: boolean
+    free_threshold: number
+  }
   loyalty: {
     amount_per_step: number
     points_per_step: number
@@ -33,7 +39,13 @@ export type StoreSettings = {
 const state = reactive<{ data: StoreSettings; loaded: boolean }>({
   loaded: false,
   data: {
-    shipping: { fee: 2500, free_enabled: true, free_threshold: 50000 },
+    shipping: {
+      mode: 'courier',
+      note: 'Livraison optionnelle. Les frais sont à régler directement au livreur selon votre zone.',
+      fee: 2500,
+      free_enabled: true,
+      free_threshold: 50000,
+    },
     loyalty: { amount_per_step: 10000, points_per_step: 1, tiers: { silver: 20, gold: 50, vip: 100 } },
     sections: {
       hero: true,
@@ -45,11 +57,11 @@ const state = reactive<{ data: StoreSettings; loaded: boolean }>({
       news: true,
     },
     texts: {
-      promo_banner: 'LIVRAISON OFFERTE DÈS 50 000 FCFA · RETOURS 14 JOURS',
+      promo_banner: 'PAIEMENT À LA LIVRAISON · RETOURS 14 JOURS',
       vip_title: 'Rejoignez le Cercle VIP',
       vip_subtitle: '10 000 FCFA dépensés = 1 point. Avantages exclusifs.',
       perks: [
-        { title: 'Livraison Offerte', subtitle: 'Dès 50 000 FCFA d’achat' },
+        { title: 'Livraison à domicile', subtitle: 'Paiement à la réception' },
         { title: 'Soins Naturels', subtitle: 'Formules pures' },
         { title: 'Garantie KINOVA', subtitle: 'Satisfait ou remboursé' },
       ],
@@ -86,8 +98,8 @@ async function load() {
 }
 
 export function shippingFor(subtotal: number, isDelivery = true): number {
-  if (!isDelivery) return 0
   const s = state.data.shipping
+  if (!isDelivery || s.mode !== 'fixed') return 0
   if (s.free_enabled && subtotal >= s.free_threshold) return 0
   return s.fee
 }

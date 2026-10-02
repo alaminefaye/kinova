@@ -46,9 +46,24 @@ class OrderController extends Controller
             'notes' => ['nullable', 'string'],
             'tracking_number' => ['nullable', 'string', 'max:120'],
             'carrier' => ['nullable', 'string', 'max:80'],
+            'payment_status' => ['sometimes', 'in:unpaid,paid'],
         ]);
 
         $previousStatus = $order->status;
+        $previousInvoiceStatus = $order->invoice_status;
+        $previousTracking = $order->tracking_number;
+
+        // Paiement à la livraison : le colis livré est considéré payé (modifiable ensuite).
+        if (($data['status'] ?? null) === 'delivered' && $previousStatus !== 'delivered') {
+            $data['delivered_at'] = now();
+            if (! array_key_exists('payment_status', $data)) {
+                $data['payment_status'] = 'paid';
+            }
+        }
+        if (array_key_exists('payment_status', $data)) {
+            $data['paid_at'] = $data['payment_status'] === 'paid' ? ($order->paid_at ?? now()) : null;
+        }
+
         $order->update($data);
         $order = $order->fresh()->load('items');
 
@@ -62,7 +77,9 @@ class OrderController extends Controller
 
         if (isset($data['status']) && $data['status'] !== $previousStatus) {
             $notifications->notifyOrderStatus($order);
-        } elseif (! empty($data['tracking_number'])) {
+        } elseif ($order->invoice_status === 'confirmed' && $previousInvoiceStatus !== 'confirmed') {
+            $notifications->notifyOrderStatus($order);
+        } elseif (! empty($data['tracking_number']) && $data['tracking_number'] !== $previousTracking) {
             $notifications->notifyOrderStatus($order);
         }
 
@@ -136,6 +153,7 @@ class OrderController extends Controller
             'customer_name' => $data['customer_name'],
             'customer_phone' => $data['customer_phone'],
             'customer_email' => $data['customer_email'] ?? null,
+            'is_delivery' => $isDelivery,
             'address' => $isDelivery ? $data['address'] : ($data['address'] ?? 'Retrait en boutique KINOVA'),
             'city' => $isDelivery ? ($data['city'] ?? 'Abidjan') : ($data['city'] ?? 'Abidjan'),
             'payment_method' => $data['payment_method'] ?? 'cash_on_delivery',

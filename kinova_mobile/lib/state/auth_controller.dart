@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:kinova_mobile/api/api_client.dart';
+import 'package:kinova_mobile/api/api_mappers.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -187,50 +188,6 @@ class AuthController extends ChangeNotifier {
   }
 }
 
-/// Avoid circular import with api_mappers in auth file for orders list.
 class ApiOrderParser {
-  static Order parse(Map<String, dynamic> json) {
-    final items = <CartItem>[];
-    final rawItems = json['items'];
-    if (rawItems is List) {
-      for (final item in rawItems) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item);
-        items.add(
-          CartItem(
-            product: Product(
-              id: '${map['product_id'] ?? ''}',
-              name: (map['product_name'] ?? '').toString(),
-              description: '',
-              price: double.tryParse('${map['unit_price']}') ?? 0,
-              categoryId: '',
-              imageUrl: '',
-            ),
-            quantity: int.tryParse('${map['quantity']}') ?? 1,
-            selectedSize: map['selected_size']?.toString(),
-            selectedColor: map['selected_color']?.toString(),
-          ),
-        );
-      }
-    }
-
-    String label(String status) => switch (status) {
-          'pending' => 'En attente',
-          'processing' => 'En préparation',
-          'shipped' => 'Expédiée',
-          'delivered' => 'Livrée',
-          'cancelled' => 'Annulée',
-          _ => status,
-        };
-
-    return Order(
-      id: (json['reference'] ?? json['id'] ?? '').toString(),
-      items: items,
-      total: double.tryParse('${json['total']}') ?? 0,
-      createdAt: DateTime.tryParse('${json['created_at']}') ?? DateTime.now(),
-      status: label((json['status'] ?? 'pending').toString()),
-      trackingNumber: json['tracking_number']?.toString(),
-      carrier: json['carrier']?.toString(),
-    );
-  }
+  static Order parse(Map<String, dynamic> json) => ApiMappers.order(json);
 }

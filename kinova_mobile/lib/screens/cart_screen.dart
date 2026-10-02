@@ -54,7 +54,9 @@ class CartScreen extends StatelessWidget {
                       return FadeSlideIn(
                         delay: Duration(milliseconds: 40 * index),
                         child: Dismissible(
-                          key: Key('${item.product.id}-${item.selectedSize}-${item.selectedColor}-$index'),
+                          key: Key(
+                            '${item.product.id}-${item.selectedSize}-${item.selectedColor}-$index',
+                          ),
                           direction: DismissDirection.endToStart,
                           onDismissed: (_) => cart.removeItem(item),
                           background: Container(
@@ -71,201 +73,218 @@ class CartScreen extends StatelessWidget {
                             ),
                           ),
                           child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: KinovaColors.surface,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: KinovaColors.cardShadow,
-                            border: Border.all(
-                              color: KinovaColors.gold.withValues(alpha: 0.16),
-                              width: 1,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: KinovaColors.surface,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: KinovaColors.cardShadow,
+                              border: Border.all(
+                                color: KinovaColors.gold.withValues(
+                                  alpha: 0.16,
+                                ),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: SizedBox(
-                                  width: 82,
-                                  height: 82,
-                                  child: SoftNetworkImage(
-                                    url: item.product.imageUrl,
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: SizedBox(
+                                    width: 82,
+                                    height: 82,
+                                    child: SoftNetworkImage(
+                                      url: item.product.imageUrl,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.product.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                    if (item.selectedSize != null || item.selectedColor != null) ...[
-                                      const SizedBox(height: 4),
-                                      Wrap(
-                                        spacing: 5,
-                                        runSpacing: 4,
-                                        children: [
-                                          if (item.selectedSize != null)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: KinovaColors.sand.withValues(alpha: 0.25),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                'Taille : ${item.selectedSize}',
-                                                style: const TextStyle(
-                                                  fontSize: 10.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: KinovaColors.brown,
-                                                ),
-                                              ),
-                                            ),
-                                          if (item.selectedColor != null)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: KinovaColors.sand.withValues(alpha: 0.25),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                'Couleur : ${item.selectedColor}',
-                                                style: const TextStyle(
-                                                  fontSize: 10.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: KinovaColors.brown,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                    const SizedBox(height: 4),
-                                    if (item.product.hasPromo)
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatMoney(item.product.price),
-                                            style: const TextStyle(
-                                              color: Color(0xFF9E8E82),
-                                              fontSize: 11,
-                                              decoration: TextDecoration.lineThrough,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            formatMoney(item.product.effectivePrice),
-                                            style: const TextStyle(
-                                              color: Color(0xFFB71C1C),
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    else
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
                                       Text(
-                                        formatMoney(item.product.price),
+                                        item.product.name,
                                         style: Theme.of(context)
                                             .textTheme
-                                            .bodyMedium
+                                            .titleMedium
                                             ?.copyWith(
-                                              color: KinovaColors.brown,
                                               fontWeight: FontWeight.w700,
                                             ),
                                       ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: KinovaColors.surfaceMuted,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            border: Border.all(
-                                              color: KinovaColors.gold
-                                                  .withValues(alpha: 0.3),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              _MiniQty(
-                                                icon: Icons.remove_rounded,
-                                                onTap: () => cart.setItemQuantity(
-                                                  item,
-                                                  item.quantity - 1,
-                                                ),
-                                              ),
-                                              Padding(
-                                                padding: const EdgeInsets
-                                                    .symmetric(horizontal: 10),
-                                                child: AnimatedSwitcher(
-                                                  duration: const Duration(
-                                                    milliseconds: 200,
-                                                  ),
-                                                  transitionBuilder:
-                                                      (child, anim) =>
-                                                          ScaleTransition(
-                                                    scale: anim,
-                                                    child: child,
-                                                  ),
-                                                  child: Text(
-                                                    '${item.quantity}',
-                                                    key: ValueKey(
-                                                      item.quantity,
+                                      if (item.selectedSize != null ||
+                                          item.selectedColor != null) ...[
+                                        const SizedBox(height: 4),
+                                        Wrap(
+                                          spacing: 5,
+                                          runSpacing: 4,
+                                          children: [
+                                            if (item.selectedSize != null)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
                                                     ),
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      fontSize: 13.5,
-                                                      color:
-                                                          KinovaColors.brown,
-                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: KinovaColors.sand
+                                                      .withValues(alpha: 0.25),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  'Taille : ${item.selectedSize}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: KinovaColors.brown,
                                                   ),
                                                 ),
                                               ),
-                                              _MiniQty(
-                                                icon: Icons.add_rounded,
-                                                onTap: () => cart.setItemQuantity(
-                                                  item,
-                                                  item.quantity + 1,
+                                            if (item.selectedColor != null)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: KinovaColors.sand
+                                                      .withValues(alpha: 0.25),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  'Couleur : ${item.selectedColor}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: KinovaColors.brown,
+                                                  ),
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(
-                                          formatMoney(item.lineTotal),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 13,
-                                            color: KinovaColors.brown,
-                                          ),
+                                          ],
                                         ),
                                       ],
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      if (item.product.hasPromo)
+                                        Row(
+                                          children: [
+                                            Text(
+                                              formatMoney(item.product.price),
+                                              style: const TextStyle(
+                                                color: Color(0xFF9E8E82),
+                                                fontSize: 11,
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              formatMoney(
+                                                item.product.effectivePrice,
+                                              ),
+                                              style: const TextStyle(
+                                                color: Color(0xFFB71C1C),
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        Text(
+                                          formatMoney(item.product.price),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: KinovaColors.brown,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: KinovaColors.surfaceMuted,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: KinovaColors.gold
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                _MiniQty(
+                                                  icon: Icons.remove_rounded,
+                                                  onTap: () =>
+                                                      cart.setItemQuantity(
+                                                        item,
+                                                        item.quantity - 1,
+                                                      ),
+                                                ),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                      ),
+                                                  child: AnimatedSwitcher(
+                                                    duration: const Duration(
+                                                      milliseconds: 200,
+                                                    ),
+                                                    transitionBuilder:
+                                                        (child, anim) =>
+                                                            ScaleTransition(
+                                                              scale: anim,
+                                                              child: child,
+                                                            ),
+                                                    child: Text(
+                                                      '${item.quantity}',
+                                                      key: ValueKey(
+                                                        item.quantity,
+                                                      ),
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        fontSize: 13.5,
+                                                        color:
+                                                            KinovaColors.brown,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                _MiniQty(
+                                                  icon: Icons.add_rounded,
+                                                  onTap: () =>
+                                                      cart.setItemQuantity(
+                                                        item,
+                                                        item.quantity + 1,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            formatMoney(item.lineTotal),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 13,
+                                              color: KinovaColors.brown,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -276,8 +295,9 @@ class CartScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
                   decoration: BoxDecoration(
                     color: KinovaColors.surface,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: KinovaColors.brown.withValues(alpha: 0.1),
@@ -298,11 +318,15 @@ class CartScreen extends StatelessWidget {
                         _RowPrice(
                           label: 'Livraison',
                           value: cart.shipping,
-                          freeLabel: cart.shipping == 0 ? 'Offerte' : null,
+                          freeLabel: cart.settings.shippingPaidToCourier
+                              ? 'Option, réglée au livreur'
+                              : (cart.shipping == 0 ? 'Offerte' : null),
                         ),
                         const Divider(height: 22, color: KinovaColors.sand),
                         _RowPrice(
-                          label: 'Total TTC',
+                          label: cart.settings.shippingPaidToCourier
+                              ? 'Total articles'
+                              : 'Total TTC',
                           value: cart.total,
                           bold: true,
                         ),
@@ -311,7 +335,9 @@ class CartScreen extends StatelessWidget {
                           onPressed: () async {
                             final auth = context.read<AuthController>();
                             if (!auth.isLoggedIn) {
-                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(
+                                context,
+                              ).hideCurrentSnackBar();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   duration: Duration(seconds: 2),
@@ -323,11 +349,12 @@ class CartScreen extends StatelessWidget {
                                   ),
                                 ),
                               );
-                              final loggedIn = await Navigator.of(context).push<bool>(
-                                MaterialPageRoute(
-                                  builder: (_) => const AuthScreen(),
-                                ),
-                              );
+                              final loggedIn = await Navigator.of(context)
+                                  .push<bool>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const AuthScreen(),
+                                    ),
+                                  );
                               if (loggedIn == true && context.mounted) {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(

@@ -14,7 +14,7 @@ const defaults = ref<Settings>({})
 
 const sections = [
   { key: 'section_hero', label: 'Slider accueil', hint: 'Grandes images en haut' },
-  { key: 'section_promo_banner', label: 'Bandeau doré', hint: 'Ex. « Livraison offerte dès… »' },
+  { key: 'section_promo_banner', label: 'Bandeau doré', hint: 'Ex. « Paiement à la livraison… »' },
   { key: 'section_categories', label: 'Nos Univers', hint: 'Catégories' },
   { key: 'section_featured', label: 'Sélection Premium', hint: 'Produits mis en avant' },
   { key: 'section_vip_banner', label: 'Bannière Cercle VIP', hint: 'Visible seulement si non connecté' },
@@ -47,6 +47,9 @@ function render(text: string) {
 }
 
 const shippingSummary = computed(() => {
+  if (form.shipping_mode !== 'fixed') {
+    return 'Livraison optionnelle, non facturée par la boutique : le client règle directement le livreur.'
+  }
   if (!form.free_shipping_enabled) {
     return `Livraison toujours facturée ${formatMoney(form.shipping_fee)}.`
   }
@@ -128,7 +131,33 @@ onMounted(load)
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Livraison</h2>
             <p class="text-sm text-gray-500">{{ shippingSummary }}</p>
           </div>
-          <div class="grid gap-4 md:grid-cols-3">
+          <div class="grid gap-3 md:grid-cols-2">
+            <label
+              class="flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer"
+              :class="form.shipping_mode !== 'fixed' ? 'border-brand-500 bg-brand-50/40 dark:bg-white/5' : 'border-gray-100 dark:border-gray-800'"
+            >
+              <input v-model="form.shipping_mode" type="radio" value="courier" class="mt-1 accent-brand-500" />
+              <span>
+                <span class="block text-sm font-medium text-gray-800 dark:text-white">Réglée au livreur</span>
+                <span class="block text-xs text-gray-500">La boutique ne fixe pas le prix : le client paie directement le livreur.</span>
+              </span>
+            </label>
+            <label
+              class="flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer"
+              :class="form.shipping_mode === 'fixed' ? 'border-brand-500 bg-brand-50/40 dark:bg-white/5' : 'border-gray-100 dark:border-gray-800'"
+            >
+              <input v-model="form.shipping_mode" type="radio" value="fixed" class="mt-1 accent-brand-500" />
+              <span>
+                <span class="block text-sm font-medium text-gray-800 dark:text-white">Frais fixes</span>
+                <span class="block text-xs text-gray-500">Un montant fixe est ajouté à la commande.</span>
+              </span>
+            </label>
+          </div>
+          <label class="text-sm block">
+            <span class="text-gray-500 block mb-1">Message affiché au client lors de la commande</span>
+            <input v-model="form.shipping_note" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
+          </label>
+          <div v-if="form.shipping_mode === 'fixed'" class="grid gap-4 md:grid-cols-3">
             <label class="text-sm">
               <span class="text-gray-500 block mb-1">Frais de livraison (FCFA)</span>
               <input v-model.number="form.shipping_fee" type="number" min="0" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />

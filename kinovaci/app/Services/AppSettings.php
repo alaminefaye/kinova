@@ -16,6 +16,10 @@ class AppSettings
      */
     public const DEFAULTS = [
         // Livraison
+        // courier : frais non fixés par la boutique, réglés directement au livreur
+        // fixed   : frais fixes ajoutés à la commande
+        'shipping_mode' => 'courier',
+        'shipping_note' => 'Livraison optionnelle. Les frais sont à régler directement au livreur selon votre zone.',
         'shipping_fee' => 2500,
         'free_shipping_enabled' => true,
         'free_shipping_threshold' => 50000,
@@ -37,11 +41,11 @@ class AppSettings
         'section_news' => true,
 
         // Textes accueil
-        'promo_banner_text' => 'LIVRAISON OFFERTE DÈS {seuil}  •  RETOURS 14 JOURS',
+        'promo_banner_text' => 'PAIEMENT À LA LIVRAISON  •  RETOURS 14 JOURS',
         'vip_title' => 'Rejoignez le Cercle VIP',
         'vip_subtitle' => '{montant} dépensés = {points}. Avantages exclusifs.',
-        'perk1_title' => 'Livraison Offerte',
-        'perk1_subtitle' => 'Dès {seuil} d’achat',
+        'perk1_title' => 'Livraison à domicile',
+        'perk1_subtitle' => 'Paiement à la réception',
         'perk2_title' => 'Soins Naturels',
         'perk2_subtitle' => 'Formules pures',
         'perk3_title' => 'Garantie KINOVA',
@@ -110,6 +114,9 @@ class AppSettings
         }
 
         $s = self::all();
+        if ($s['shipping_mode'] !== 'fixed') {
+            return 0.0;
+        }
         if ($s['free_shipping_enabled'] && $subtotal >= $s['free_shipping_threshold']) {
             return 0.0;
         }
@@ -151,6 +158,8 @@ class AppSettings
 
         return [
             'shipping' => [
+                'mode' => $s['shipping_mode'],
+                'note' => self::render($s['shipping_note'], $s),
                 'fee' => $s['shipping_fee'],
                 'free_enabled' => $s['free_shipping_enabled'],
                 'free_threshold' => $s['free_shipping_threshold'],

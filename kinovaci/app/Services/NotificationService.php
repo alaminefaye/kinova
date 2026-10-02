@@ -72,6 +72,86 @@ class NotificationService
         return $created;
     }
 
+    public function notifyOrderCreated(Order $order): void
+    {
+        $user = $order->user_id ? ($order->user ?? User::query()->find($order->user_id)) : null;
+        if (! $user) {
+            return;
+        }
+
+        $order->loadMissing('items');
+        $total = AppSettings::formatMoney((float) $order->total);
+        $delivery = $order->is_delivery
+            ? 'Livraison à domicile (frais à régler au livreur).'
+            : 'Retrait en boutique.';
+        if ($order->is_delivery && (float) $order->shipping > 0) {
+            $delivery = 'Livraison : '.AppSettings::formatMoney((float) $order->shipping).'.';
+        }
+
+        $this->notifyUser(
+            $user,
+            "Commande {$order->reference} enregistrée",
+            "Vous avez commandé : {$this->itemsSummary($order)}. Total : {$total}. {$delivery} "
+                .'Paiement à la livraison. Votre facture provisoire est disponible, nous vous appelons pour confirmer.',
+            'order',
+            'package',
+            [
+                'type' => 'order_created',
+                'order_reference' => $order->reference,
+                'status' => $order->status,
+                'invoice_status' => $order->invoice_status,
+            ]
+        );
+    }
+
+    public function notifyAdminsNewOrder(Order $order): void
+    {
+        $order->loadMissing('items');
+        $total = AppSettings::formatMoney((float) $order->total);
+        $mode = $order->is_delivery ? 'Livraison' : 'Retrait boutique';
+
+        foreach ($this->admins() as $admin) {
+            $this->notifyUser(
+                $admin,
+                'Nouvelle commande reçue',
+                "{$order->customer_name} ({$order->customer_phone}) — {$this->itemsSummary($order)}. "
+                    ."Total : {$total}. {$mode}. Appelez le client pour confirmer.",
+                'order',
+                'package',
+                [
+                    'type' => 'admin_new_order',
+                    'order_reference' => $order->reference,
+                    'order_id' => $order->id,
+                    'customer_phone' => $order->customer_phone,
+                ]
+            );
+        }
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function admins(): Collection
+    {
+        return User::query()
+            ->where('role', 'admin')
+            ->orWhereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'super-admin', 'manager']))
+            ->get()
+            ->unique('id')
+            ->values();
+    }
+
+    private function itemsSummary(Order $order): string
+    {
+        $lines = $order->items->map(fn ($item) => "{$item->product_name} ×{$item->quantity}");
+        $summary = $lines->take(3)->implode(', ');
+        if ($lines->count() > 3) {
+            $summary .= ' +'.($lines->count() - 3).' autre(s)';
+        }
+
+        return $summary;
+    }
+
     public function notifyOrderStatus(Order $order): void
     {
         if (! $order->user_id) {
@@ -85,9 +165,11 @@ class NotificationService
 
         $messages = [
             'pending' => 'Votre commande a été reçue.',
-            'processing' => 'Votre commande est en préparation.',
+            'processing' => 'Votre commande est confirmée et en préparation.',
             'shipped' => 'Votre commande est en route'.($order->tracking_number ? " (suivi: {$order->tracking_number})" : '').'.',
-            'delivered' => 'Votre commande a été livrée. Merci !',
+            'delivered' => $order->payment_status === 'paid'
+                ? 'Votre commande a été livrée et payée. Votre facture est confirmée. Merci !'
+                : 'Votre commande a été livrée. Merci !',
             'cancelled' => 'Votre commande a été annulée.',
         ];
 
@@ -98,9 +180,11 @@ class NotificationService
             'order',
             'package',
             [
+                'type' => 'order_status',
                 'order_reference' => $order->reference,
                 'status' => $order->status,
                 'tracking_number' => $order->tracking_number,
+                'invoice_status' => $order->invoice_status,
             ]
         );
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InvoiceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,6 +23,8 @@ Route::redirect('/confidentialite', '/politique-confidentialite');
 Route::redirect('/privacy', '/politique-confidentialite');
 Route::redirect('/privacy-policy', '/politique-confidentialite');
 Route::redirect('/support', '/aide');
+
+Route::get('/facture/{reference}', [InvoiceController::class, 'show'])->name('invoice.show');
 
 /*
 |--------------------------------------------------------------------------

@@ -105,7 +105,10 @@ class CartController extends ChangeNotifier {
     bool isDelivery = true,
     String? address,
     String? city,
-    required String paymentMethod,
+    double? latitude,
+    double? longitude,
+    String? deliveryDetails,
+    String paymentMethod = 'cod',
   }) async {
     final res = await _api.post(
       '/orders',
@@ -117,6 +120,14 @@ class CartController extends ChangeNotifier {
         'is_delivery': isDelivery,
         'address': isDelivery ? (address ?? '') : 'Retrait en boutique KINOVA',
         'city': isDelivery ? (city ?? 'Abidjan') : 'Abidjan',
+        if (isDelivery && latitude != null && longitude != null) ...{
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+        if (isDelivery &&
+            deliveryDetails != null &&
+            deliveryDetails.isNotEmpty)
+          'delivery_details': deliveryDetails,
         'payment_method': paymentMethod,
         'items': _items
             .map(

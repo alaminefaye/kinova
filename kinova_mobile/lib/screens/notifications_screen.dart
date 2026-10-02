@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
+import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/kinova_loader.dart';
@@ -47,7 +48,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    PushNotificationService.received.addListener(_onPushReceived);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    PushNotificationService.received.removeListener(_onPushReceived);
+    super.dispose();
+  }
+
+  void _onPushReceived() {
+    if (mounted) _load();
   }
 
   Future<void> _load() async {

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_config.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
@@ -167,8 +168,8 @@ class _AdminNavItem extends StatelessWidget {
     final color = active
         ? KinovaColors.gold
         : (isStoreAction
-            ? const Color(0xFFC5A080)
-            : KinovaColors.sand.withValues(alpha: 0.65));
+              ? const Color(0xFFC5A080)
+              : KinovaColors.sand.withValues(alpha: 0.65));
 
     return Expanded(
       child: Material(
@@ -182,20 +183,19 @@ class _AdminNavItem extends StatelessWidget {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: active
                       ? KinovaColors.gold.withValues(alpha: 0.16)
                       : (isStoreAction
-                          ? const Color(0xFF332016)
-                          : Colors.transparent),
+                            ? const Color(0xFF332016)
+                            : Colors.transparent),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  active ? activeIcon : icon,
-                  color: color,
-                  size: 22,
-                ),
+                child: Icon(active ? activeIcon : icon, color: color, size: 22),
               ),
               const SizedBox(height: 3),
               Text(
@@ -337,7 +337,10 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
                 const SizedBox(height: 6),
                 Text(
                   'Client : ${order.customerName} ${order.customerPhone != null ? "(${order.customerPhone})" : ""}',
-                  style: const TextStyle(color: KinovaColors.sand, fontSize: 13),
+                  style: const TextStyle(
+                    color: KinovaColors.sand,
+                    fontSize: 13,
+                  ),
                 ),
                 const Divider(color: Color(0xFF3E2723), height: 28),
                 const Text(
@@ -423,306 +426,303 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
               ),
             )
           : _error != null
-              ? Center(
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: Color(0xFFE57373),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: KinovaColors.cream),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadStats,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KinovaColors.gold,
+                        foregroundColor: KinovaColors.brown,
+                      ),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Header
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.error_outline_rounded,
-                            size: 48, color: Color(0xFFE57373)),
-                        const SizedBox(height: 16),
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: KinovaColors.cream),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadStats,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: KinovaColors.gold,
-                            foregroundColor: KinovaColors.brown,
-                          ),
-                          child: const Text('Réessayer'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    // Header
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: KinovaColors.gold.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: KinovaColors.gold.withValues(alpha: 0.35),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.admin_panel_settings_rounded,
-                                        size: 14,
-                                        color: KinovaColors.gold,
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        user?.isSuperAdmin == true
-                                            ? 'SUPER-ADMIN'
-                                            : 'ADMINISTRATEUR',
-                                        style: const TextStyle(
-                                          color: KinovaColors.gold,
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                    ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: KinovaColors.gold.withValues(
+                                  alpha: 0.15,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: KinovaColors.gold.withValues(
+                                    alpha: 0.35,
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: _loadStats,
-                                  icon: const Icon(
-                                    Icons.refresh_rounded,
-                                    color: KinovaColors.sand,
-                                    size: 22,
-                                  ),
-                                  tooltip: 'Rafraîchir',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tableau de Bord',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    color: KinovaColors.cream,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Aperçu en direct des performances KINOVA',
-                              style: TextStyle(
-                                color: KinovaColors.sand.withValues(alpha: 0.8),
-                                fontSize: 12.5,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Sélecteur de période
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _PeriodChip(
-                                label: 'Aujourd’hui',
-                                selected: _selectedPeriodIndex == 0,
-                                onTap: () =>
-                                    setState(() => _selectedPeriodIndex = 0),
-                              ),
-                              _PeriodChip(
-                                label: '7 Derniers Jours',
-                                selected: _selectedPeriodIndex == 1,
-                                onTap: () =>
-                                    setState(() => _selectedPeriodIndex = 1),
-                              ),
-                              _PeriodChip(
-                                label: 'Ce Mois-ci',
-                                selected: _selectedPeriodIndex == 2,
-                                onTap: () =>
-                                    setState(() => _selectedPeriodIndex = 2),
-                              ),
-                              _PeriodChip(
-                                label: 'Global',
-                                selected: _selectedPeriodIndex == 3,
-                                onTap: () =>
-                                    setState(() => _selectedPeriodIndex = 3),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 14)),
-
-                    // Carte Héros Ventes
-                    if (_data != null)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: _HeroSalesCard(
-                            data: _data!,
-                            periodIndex: _selectedPeriodIndex,
-                          ),
-                        ),
-                      ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                    // Grille des 4 KPIs
-                    if (_data != null)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: GridView.count(
-                            crossAxisCount: 2,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 1.45,
-                            children: [
-                              _KpiCard(
-                                icon: Icons.shopping_bag_outlined,
-                                iconColor: const Color(0xFFFFA726),
-                                title: 'Commandes',
-                                value: '${_data!.ordersCount}',
-                                subValue:
-                                    '${_data!.pendingOrders} en attente',
-                                subColor: _data!.pendingOrders > 0
-                                    ? const Color(0xFFFF7043)
-                                    : KinovaColors.sand,
-                              ),
-                              _KpiCard(
-                                icon: Icons.people_outline_rounded,
-                                iconColor: const Color(0xFF42A5F5),
-                                title: 'Clients Inscrits',
-                                value: '${_data!.totalCustomers}',
-                                subValue:
-                                    '+${_data!.newCustomersToday} aujourd’hui',
-                                subColor: const Color(0xFF66BB6A),
-                              ),
-                              _KpiCard(
-                                icon: Icons.local_shipping_outlined,
-                                iconColor: const Color(0xFFAB47BC),
-                                title: 'En Livraison',
-                                value: '${_data!.processingOrders}',
-                                subValue: '${_data!.deliveredOrders} livrées',
-                                subColor: KinovaColors.sand,
-                              ),
-                              _KpiCard(
-                                icon: Icons.inventory_2_outlined,
-                                iconColor: const Color(0xFF26A69A),
-                                title: 'Articles Actifs',
-                                value: '${_data!.productsCount}',
-                                subValue:
-                                    '${_data!.categoriesCount} univers/cat.',
-                                subColor: KinovaColors.sand,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                    // Graphique 7 jours (Zéro overflow)
-                    if (_data != null && _data!.salesByDay.isNotEmpty)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: _SalesChartCard(
-                            sales: _data!.salesByDay,
-                          ),
-                        ),
-                      ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                    // Alertes de Stock
-                    if (_data != null && _data!.lowStock.isNotEmpty)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: _LowStockSection(
-                            lowStock: _data!.lowStock,
-                          ),
-                        ),
-                      ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                    // Dernières Commandes
-                    if (_data != null && _data!.latestOrders.isNotEmpty)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text(
-                                    'Dernières Commandes',
-                                    style: TextStyle(
-                                      color: KinovaColors.cream,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  const Icon(
+                                    Icons.admin_panel_settings_rounded,
+                                    size: 14,
+                                    color: KinovaColors.gold,
                                   ),
+                                  const SizedBox(width: 5),
                                   Text(
-                                    '${_data!.latestOrders.length} récentes',
+                                    user?.isSuperAdmin == true
+                                        ? 'SUPER-ADMIN'
+                                        : 'ADMINISTRATEUR',
                                     style: const TextStyle(
-                                      color: KinovaColors.sand,
-                                      fontSize: 12,
+                                      color: KinovaColors.gold,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.8,
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _data!.latestOrders.length,
-                                separatorBuilder: (_, _) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, index) {
-                                  final order = _data!.latestOrders[index];
-                                  return _OrderListItem(
-                                    order: order,
-                                    onTap: () =>
-                                        _showOrderActionSheet(order),
-                                  );
-                                },
+                            ),
+                            IconButton(
+                              onPressed: _loadStats,
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                color: KinovaColors.sand,
+                                size: 22,
+                              ),
+                              tooltip: 'Rafraîchir',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Tableau de Bord',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                color: KinovaColors.cream,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Aperçu en direct des performances KINOVA',
+                          style: TextStyle(
+                            color: KinovaColors.sand.withValues(alpha: 0.8),
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Sélecteur de période
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _PeriodChip(
+                            label: 'Aujourd’hui',
+                            selected: _selectedPeriodIndex == 0,
+                            onTap: () =>
+                                setState(() => _selectedPeriodIndex = 0),
+                          ),
+                          _PeriodChip(
+                            label: '7 Derniers Jours',
+                            selected: _selectedPeriodIndex == 1,
+                            onTap: () =>
+                                setState(() => _selectedPeriodIndex = 1),
+                          ),
+                          _PeriodChip(
+                            label: 'Ce Mois-ci',
+                            selected: _selectedPeriodIndex == 2,
+                            onTap: () =>
+                                setState(() => _selectedPeriodIndex = 2),
+                          ),
+                          _PeriodChip(
+                            label: 'Global',
+                            selected: _selectedPeriodIndex == 3,
+                            onTap: () =>
+                                setState(() => _selectedPeriodIndex = 3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
+
+                // Carte Héros Ventes
+                if (_data != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: _HeroSalesCard(
+                        data: _data!,
+                        periodIndex: _selectedPeriodIndex,
+                      ),
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                // Grille des 4 KPIs
+                if (_data != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 1.45,
+                        children: [
+                          _KpiCard(
+                            icon: Icons.shopping_bag_outlined,
+                            iconColor: const Color(0xFFFFA726),
+                            title: 'Commandes',
+                            value: '${_data!.ordersCount}',
+                            subValue: '${_data!.pendingOrders} en attente',
+                            subColor: _data!.pendingOrders > 0
+                                ? const Color(0xFFFF7043)
+                                : KinovaColors.sand,
+                          ),
+                          _KpiCard(
+                            icon: Icons.people_outline_rounded,
+                            iconColor: const Color(0xFF42A5F5),
+                            title: 'Clients Inscrits',
+                            value: '${_data!.totalCustomers}',
+                            subValue:
+                                '+${_data!.newCustomersToday} aujourd’hui',
+                            subColor: const Color(0xFF66BB6A),
+                          ),
+                          _KpiCard(
+                            icon: Icons.local_shipping_outlined,
+                            iconColor: const Color(0xFFAB47BC),
+                            title: 'En Livraison',
+                            value: '${_data!.processingOrders}',
+                            subValue: '${_data!.deliveredOrders} livrées',
+                            subColor: KinovaColors.sand,
+                          ),
+                          _KpiCard(
+                            icon: Icons.inventory_2_outlined,
+                            iconColor: const Color(0xFF26A69A),
+                            title: 'Articles Actifs',
+                            value: '${_data!.productsCount}',
+                            subValue: '${_data!.categoriesCount} univers/cat.',
+                            subColor: KinovaColors.sand,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                // Graphique 7 jours (Zéro overflow)
+                if (_data != null && _data!.salesByDay.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: _SalesChartCard(sales: _data!.salesByDay),
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                // Alertes de Stock
+                if (_data != null && _data!.lowStock.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: _LowStockSection(lowStock: _data!.lowStock),
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                // Dernières Commandes
+                if (_data != null && _data!.latestOrders.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Dernières Commandes',
+                                style: TextStyle(
+                                  color: KinovaColors.cream,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                '${_data!.latestOrders.length} récentes',
+                                style: const TextStyle(
+                                  color: KinovaColors.sand,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _data!.latestOrders.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final order = _data!.latestOrders[index];
+                              return _OrderListItem(
+                                order: order,
+                                onTap: () => _showOrderActionSheet(order),
+                              );
+                            },
+                          ),
+                        ],
                       ),
+                    ),
+                  ),
 
-                    const SliverToBoxAdapter(child: SizedBox(height: 36)),
-                  ],
-                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 36)),
+              ],
+            ),
     );
   }
 }
@@ -823,14 +823,56 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
     }
   }
 
+  Future<void> _updateOrderPayment(
+    dynamic orderId,
+    String paymentStatus,
+  ) async {
+    try {
+      final api = context.read<ApiClient>();
+      await api.put(
+        '/admin/orders/$orderId',
+        body: {'payment_status': paymentStatus},
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Paiement enregistré'),
+            backgroundColor: KinovaColors.brown,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      await _fetchOrders();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur de mise à jour'),
+            backgroundColor: Color(0xFFB71C1C),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _showOrderDetails(Map<String, dynamic> order) {
     final status = (order['status'] ?? 'pending').toString();
     final ref = (order['reference'] ?? '#CMD-${order['id']}').toString();
     final total = double.tryParse('${order['total']}') ?? 0.0;
-    final custName = (order['customer_name'] ?? order['user']?['name'] ?? 'Client').toString();
-    final custPhone = (order['customer_phone'] ?? order['user']?['phone'] ?? '').toString();
+    final custName =
+        (order['customer_name'] ?? order['user']?['name'] ?? 'Client')
+            .toString();
+    final custPhone = (order['customer_phone'] ?? order['user']?['phone'] ?? '')
+        .toString();
     final address = (order['address'] ?? '').toString();
     final city = (order['city'] ?? '').toString();
+    final details = (order['delivery_details'] ?? '').toString();
+    final mapsUrl = (order['maps_url'] ?? '').toString();
+    final invoiceUrl = (order['invoice_url'] ?? '').toString();
+    final paymentStatus = (order['payment_status'] ?? 'unpaid').toString();
+    final isDelivery =
+        order['is_delivery'] != false && order['is_delivery'] != 0;
     final items = order['items'] is List ? (order['items'] as List) : [];
 
     showModalBottomSheet(
@@ -876,15 +918,85 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                   const SizedBox(height: 6),
                   Text(
                     'Client : $custName ${custPhone.isNotEmpty ? "($custPhone)" : ""}',
-                    style: const TextStyle(color: KinovaColors.sand, fontSize: 13),
+                    style: const TextStyle(
+                      color: KinovaColors.sand,
+                      fontSize: 13,
+                    ),
                   ),
                   if (address.isNotEmpty || city.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Livraison : $address, $city',
-                      style: const TextStyle(color: KinovaColors.sand, fontSize: 12),
+                      '${isDelivery ? 'Livraison' : 'Retrait'} : $address, $city',
+                      style: const TextStyle(
+                        color: KinovaColors.sand,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
+                  if (details.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Précisions : $details',
+                      style: const TextStyle(
+                        color: KinovaColors.goldLight,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    paymentStatus == 'paid'
+                        ? 'Paiement reçu — facture confirmée si livrée'
+                        : 'Paiement à la livraison — non encore payé',
+                    style: TextStyle(
+                      color: paymentStatus == 'paid'
+                          ? Colors.greenAccent
+                          : KinovaColors.sand,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (custPhone.isNotEmpty)
+                        _SheetAction(
+                          icon: Icons.call_rounded,
+                          label: 'Appeler',
+                          onTap: () => launchUrl(
+                            Uri.parse('tel:${custPhone.replaceAll(' ', '')}'),
+                          ),
+                        ),
+                      if (mapsUrl.isNotEmpty)
+                        _SheetAction(
+                          icon: Icons.place_rounded,
+                          label: 'Position GPS',
+                          onTap: () => launchUrl(
+                            Uri.parse(mapsUrl),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                      if (invoiceUrl.isNotEmpty)
+                        _SheetAction(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'Facture',
+                          onTap: () => launchUrl(
+                            Uri.parse(invoiceUrl),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                      if (paymentStatus != 'paid' && status != 'cancelled')
+                        _SheetAction(
+                          icon: Icons.payments_rounded,
+                          label: 'Marquer payé',
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _updateOrderPayment(order['id'], 'paid');
+                          },
+                        ),
+                    ],
+                  ),
                   const Divider(color: Color(0xFF3E2723), height: 24),
                   const Text(
                     'Articles commandés :',
@@ -896,13 +1008,19 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                   ),
                   const SizedBox(height: 8),
                   if (items.isEmpty)
-                    const Text('Aucun détail d\'article',
-                        style: TextStyle(color: KinovaColors.sand, fontSize: 12))
+                    const Text(
+                      'Aucun détail d\'article',
+                      style: TextStyle(color: KinovaColors.sand, fontSize: 12),
+                    )
                   else
                     ...items.map((it) {
                       final name = (it['product_name'] ?? 'Produit').toString();
                       final qty = it['quantity'] ?? 1;
-                      final price = double.tryParse('${it['unit_price'] ?? it['line_total']}') ?? 0.0;
+                      final price =
+                          double.tryParse(
+                            '${it['unit_price'] ?? it['line_total']}',
+                          ) ??
+                          0.0;
                       final size = it['selected_size']?.toString();
                       final color = it['selected_color']?.toString();
 
@@ -914,12 +1032,18 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                             Expanded(
                               child: Text(
                                 '$qty x $name ${size != null ? "($size)" : ""} ${color != null ? "[$color]" : ""}',
-                                style: const TextStyle(color: KinovaColors.cream, fontSize: 12.5),
+                                style: const TextStyle(
+                                  color: KinovaColors.cream,
+                                  fontSize: 12.5,
+                                ),
                               ),
                             ),
                             Text(
                               formatMoney(price),
-                              style: const TextStyle(color: KinovaColors.sand, fontSize: 12),
+                              style: const TextStyle(
+                                color: KinovaColors.sand,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -1026,16 +1150,19 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                 Text(
                   'Commandes',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: KinovaColors.cream,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: KinovaColors.cream,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 Row(
                   children: [
                     GestureDetector(
                       onTap: _openCreateOrderModal,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: KinovaColors.gold,
                           borderRadius: BorderRadius.circular(12),
@@ -1043,7 +1170,11 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
-                            Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
+                            Icon(
+                              Icons.add_rounded,
+                              size: 18,
+                              color: KinovaColors.brown,
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Créer',
@@ -1060,7 +1191,10 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                     const SizedBox(width: 6),
                     IconButton(
                       onPressed: _fetchOrders,
-                      icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: KinovaColors.sand,
+                      ),
                     ),
                   ],
                 ),
@@ -1077,27 +1211,45 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
               style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'Rechercher par référence, client...',
-                hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.5), fontSize: 13),
+                hintStyle: TextStyle(
+                  color: KinovaColors.sand.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
                 filled: true,
                 fillColor: const Color(0xFF22160F),
-                prefixIcon: const Icon(Icons.search_rounded, color: KinovaColors.gold, size: 20),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: KinovaColors.gold,
+                  size: 20,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, color: KinovaColors.sand, size: 18),
+                        icon: const Icon(
+                          Icons.clear_rounded,
+                          color: KinovaColors.sand,
+                          size: 18,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           _fetchOrders();
                         },
                       )
                     : null,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: KinovaColors.sand.withValues(alpha: 0.2),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: KinovaColors.sand.withValues(alpha: 0.2),
+                  ),
                 ),
               ),
             ),
@@ -1122,19 +1274,30 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                     _fetchOrders();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: selected ? KinovaColors.gold : const Color(0xFF22160F),
+                      color: selected
+                          ? KinovaColors.gold
+                          : const Color(0xFF22160F),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: selected ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.2),
+                        color: selected
+                            ? KinovaColors.gold
+                            : KinovaColors.sand.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
                       st['label']!,
                       style: TextStyle(
-                        color: selected ? KinovaColors.brown : KinovaColors.cream,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                        color: selected
+                            ? KinovaColors.brown
+                            : KinovaColors.cream,
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w500,
                         fontSize: 11.5,
                       ),
                     ),
@@ -1149,64 +1312,86 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
           // Liste des commandes
           Expanded(
             child: _loading
-                ? const Center(child: KinovaLoader(message: 'Chargement des commandes...', size: 48))
+                ? const Center(
+                    child: KinovaLoader(
+                      message: 'Chargement des commandes...',
+                      size: 48,
+                    ),
+                  )
                 : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_error!, style: const TextStyle(color: KinovaColors.cream)),
-                            const SizedBox(height: 10),
-                            ElevatedButton(
-                              onPressed: _fetchOrders,
-                              style: ElevatedButton.styleFrom(backgroundColor: KinovaColors.gold),
-                              child: const Text('Réessayer', style: TextStyle(color: KinovaColors.brown)),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: KinovaColors.cream),
                         ),
-                      )
-                    : _orders.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Aucune commande trouvée.',
-                              style: TextStyle(color: KinovaColors.sand, fontSize: 13),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
-                            itemCount: _orders.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 10),
-                            itemBuilder: (context, idx) {
-                              final o = Map<String, dynamic>.from(_orders[idx] as Map);
-                              final ref = (o['reference'] ?? '#CMD-${o['id']}').toString();
-                              final custName = (o['customer_name'] ?? o['user']?['name'] ?? 'Client').toString();
-                              final total = double.tryParse('${o['total']}') ?? 0.0;
-                              final status = (o['status'] ?? 'pending').toString();
-                              final itemsCount = o['items_count'] ?? (o['items'] is List ? (o['items'] as List).length : 0);
-
-                              DateTime createdAt;
-                              try {
-                                createdAt = DateTime.parse(o['created_at']?.toString() ?? '');
-                              } catch (_) {
-                                createdAt = DateTime.now();
-                              }
-
-                              final summary = AdminOrderSummary(
-                                id: '${o['id']}',
-                                reference: ref,
-                                customerName: custName,
-                                total: total,
-                                status: status,
-                                createdAt: createdAt,
-                                itemsCount: itemsCount,
-                              );
-
-                              return _OrderListItem(
-                                order: summary,
-                                onTap: () => _showOrderDetails(o),
-                              );
-                            },
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: _fetchOrders,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: KinovaColors.gold,
                           ),
+                          child: const Text(
+                            'Réessayer',
+                            style: TextStyle(color: KinovaColors.brown),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : _orders.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Aucune commande trouvée.',
+                      style: TextStyle(color: KinovaColors.sand, fontSize: 13),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+                    itemCount: _orders.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, idx) {
+                      final o = Map<String, dynamic>.from(_orders[idx] as Map);
+                      final ref = (o['reference'] ?? '#CMD-${o['id']}')
+                          .toString();
+                      final custName =
+                          (o['customer_name'] ?? o['user']?['name'] ?? 'Client')
+                              .toString();
+                      final total = double.tryParse('${o['total']}') ?? 0.0;
+                      final status = (o['status'] ?? 'pending').toString();
+                      final itemsCount =
+                          o['items_count'] ??
+                          (o['items'] is List
+                              ? (o['items'] as List).length
+                              : 0);
+
+                      DateTime createdAt;
+                      try {
+                        createdAt = DateTime.parse(
+                          o['created_at']?.toString() ?? '',
+                        );
+                      } catch (_) {
+                        createdAt = DateTime.now();
+                      }
+
+                      final summary = AdminOrderSummary(
+                        id: '${o['id']}',
+                        reference: ref,
+                        customerName: custName,
+                        total: total,
+                        status: status,
+                        createdAt: createdAt,
+                        itemsCount: itemsCount,
+                      );
+
+                      return _OrderListItem(
+                        order: summary,
+                        onTap: () => _showOrderDetails(o),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -1271,7 +1456,11 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
     }
   }
 
-  Future<void> _adjustStock(dynamic productId, int currentStock, int delta) async {
+  Future<void> _adjustStock(
+    dynamic productId,
+    int currentStock,
+    int delta,
+  ) async {
     final newStock = (currentStock + delta).clamp(0, 99999);
     try {
       final api = context.read<ApiClient>();
@@ -1305,17 +1494,31 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF22160F),
-        title: const Text('Supprimer le produit', style: TextStyle(color: KinovaColors.cream)),
-        content: Text('Êtes-vous sûr de vouloir supprimer "$productName" ?', style: const TextStyle(color: KinovaColors.sand)),
+        title: const Text(
+          'Supprimer le produit',
+          style: TextStyle(color: KinovaColors.cream),
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir supprimer "$productName" ?',
+          style: const TextStyle(color: KinovaColors.sand),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler', style: TextStyle(color: KinovaColors.sand)),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: KinovaColors.sand),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+            ),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -1394,16 +1597,19 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                 Text(
                   'Produits & Stocks',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: KinovaColors.cream,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: KinovaColors.cream,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 Row(
                   children: [
                     GestureDetector(
                       onTap: () => _openProductModal(null),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: KinovaColors.gold,
                           borderRadius: BorderRadius.circular(12),
@@ -1411,7 +1617,11 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
-                            Icon(Icons.add_rounded, size: 18, color: KinovaColors.brown),
+                            Icon(
+                              Icons.add_rounded,
+                              size: 18,
+                              color: KinovaColors.brown,
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Nouveau',
@@ -1428,7 +1638,10 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                     const SizedBox(width: 6),
                     IconButton(
                       onPressed: _fetchProducts,
-                      icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: KinovaColors.sand,
+                      ),
                     ),
                   ],
                 ),
@@ -1445,18 +1658,32 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
               style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'Rechercher un produit...',
-                hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.5), fontSize: 13),
+                hintStyle: TextStyle(
+                  color: KinovaColors.sand.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
                 filled: true,
                 fillColor: const Color(0xFF22160F),
-                prefixIcon: const Icon(Icons.search_rounded, color: KinovaColors.gold, size: 20),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: KinovaColors.gold,
+                  size: 20,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: KinovaColors.sand.withValues(alpha: 0.2),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: KinovaColors.sand.withValues(alpha: 0.2),
+                  ),
                 ),
               ),
             ),
@@ -1495,199 +1722,274 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
           // Liste des produits
           Expanded(
             child: _loading
-                ? const Center(child: KinovaLoader(message: 'Chargement des produits...', size: 48))
+                ? const Center(
+                    child: KinovaLoader(
+                      message: 'Chargement des produits...',
+                      size: 48,
+                    ),
+                  )
                 : _error != null
-                    ? Center(child: Text(_error!, style: const TextStyle(color: KinovaColors.cream)))
-                    : filtered.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Aucun article trouvé.',
-                              style: TextStyle(color: KinovaColors.sand, fontSize: 13),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 10),
-                            itemBuilder: (context, idx) {
-                              final p = Map<String, dynamic>.from(filtered[idx] as Map);
-                              final name = (p['name'] ?? '').toString();
-                              final price = double.tryParse('${p['price']}') ?? 0.0;
-                              final promoPrice = p['promo_price'] != null ? double.tryParse('${p['promo_price']}') : null;
-                              final stock = int.tryParse('${p['stock'] ?? 0}') ?? 0;
-                              final catName = (p['category']?['name'] ?? '').toString();
-                              final rawImg = p['image_url']?.toString();
-                              final imgUrl = (rawImg != null && rawImg.isNotEmpty) ? ApiConfig.resolveMediaUrl(rawImg) : null;
+                ? Center(
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: KinovaColors.cream),
+                    ),
+                  )
+                : filtered.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Aucun article trouvé.',
+                      style: TextStyle(color: KinovaColors.sand, fontSize: 13),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, idx) {
+                      final p = Map<String, dynamic>.from(filtered[idx] as Map);
+                      final name = (p['name'] ?? '').toString();
+                      final price = double.tryParse('${p['price']}') ?? 0.0;
+                      final promoPrice = p['promo_price'] != null
+                          ? double.tryParse('${p['promo_price']}')
+                          : null;
+                      final stock = int.tryParse('${p['stock'] ?? 0}') ?? 0;
+                      final catName = (p['category']?['name'] ?? '').toString();
+                      final rawImg = p['image_url']?.toString();
+                      final imgUrl = (rawImg != null && rawImg.isNotEmpty)
+                          ? ApiConfig.resolveMediaUrl(rawImg)
+                          : null;
 
-                              return GestureDetector(
-                                onTap: () => _openProductModal(p),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF22160F),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: stock == 0
-                                          ? const Color(0xFFD32F2F).withValues(alpha: 0.5)
-                                          : (stock <= 5
-                                              ? const Color(0xFFFFA726).withValues(alpha: 0.4)
-                                              : KinovaColors.sand.withValues(alpha: 0.18)),
+                      return GestureDetector(
+                        onTap: () => _openProductModal(p),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22160F),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: stock == 0
+                                  ? const Color(
+                                      0xFFD32F2F,
+                                    ).withValues(alpha: 0.5)
+                                  : (stock <= 5
+                                        ? const Color(
+                                            0xFFFFA726,
+                                          ).withValues(alpha: 0.4)
+                                        : KinovaColors.sand.withValues(
+                                            alpha: 0.18,
+                                          )),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Image
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      width: 52,
+                                      height: 52,
+                                      color: const Color(0xFF332016),
+                                      child: imgUrl != null
+                                          ? Image.network(
+                                              ApiConfig.resolveMediaUrl(imgUrl),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) => const Icon(
+                                                Icons
+                                                    .image_not_supported_rounded,
+                                                color: KinovaColors.sand,
+                                                size: 22,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.inventory_2_rounded,
+                                              color: KinovaColors.sand,
+                                              size: 22,
+                                            ),
                                     ),
                                   ),
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Image
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(10),
-                                            child: Container(
-                                              width: 52,
-                                              height: 52,
-                                              color: const Color(0xFF332016),
-                                              child: imgUrl != null
-                                                  ? Image.network(
-                                                      ApiConfig.resolveMediaUrl(imgUrl),
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (_, _, _) => const Icon(Icons.image_not_supported_rounded, color: KinovaColors.sand, size: 22),
-                                                    )
-                                                  : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 22),
-                                            ),
+                                  const SizedBox(width: 12),
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: KinovaColors.cream,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14,
                                           ),
-                                          const SizedBox(width: 12),
-                                          // Info
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  name,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              if (catName.isNotEmpty)
+                                                TextSpan(
+                                                  text: '$catName • ',
                                                   style: const TextStyle(
-                                                    color: KinovaColors.cream,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 14,
+                                                    color: KinovaColors.sand,
+                                                    fontSize: 11.5,
                                                   ),
                                                 ),
-                                                const SizedBox(height: 3),
-                                                Text.rich(
-                                                  TextSpan(
-                                                    children: [
-                                                      if (catName.isNotEmpty)
-                                                        TextSpan(
-                                                          text: '$catName • ',
-                                                          style: const TextStyle(color: KinovaColors.sand, fontSize: 11.5),
-                                                        ),
-                                                      TextSpan(
-                                                        text: formatMoney(promoPrice ?? price),
-                                                        style: const TextStyle(
-                                                          color: KinovaColors.gold,
-                                                          fontWeight: FontWeight.w800,
-                                                          fontSize: 12.5,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                              TextSpan(
+                                                text: formatMoney(
+                                                  promoPrice ?? price,
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          // Bouton Supprimer
-                                          GestureDetector(
-                                            onTap: () => _deleteProduct(p['id'], name),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFD32F2F).withValues(alpha: 0.12),
-                                                borderRadius: BorderRadius.circular(8),
+                                                style: const TextStyle(
+                                                  color: KinovaColors.gold,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 12.5,
+                                                ),
                                               ),
-                                              child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF5350), size: 18),
-                                            ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      // Ligne inférieure : Badge Statut Stock & Stepper [-] [+]
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          // Badge Stock
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: stock == 0
-                                                  ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
-                                                  : (stock <= 5
-                                                      ? const Color(0xFFFFA726).withValues(alpha: 0.2)
-                                                      : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              stock == 0 ? 'RUPTURE DE STOCK' : 'Stock : $stock unités',
-                                              style: TextStyle(
-                                                color: stock == 0
-                                                    ? const Color(0xFFEF5350)
-                                                    : (stock <= 5
-                                                        ? const Color(0xFFFFB74D)
-                                                        : const Color(0xFF81C784)),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          ),
-                                          // Stepper de stock [-] [+]
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF18100A),
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.2)),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                GestureDetector(
-                                                  onTap: stock > 0 ? () => _adjustStock(p['id'], stock, -1) : null,
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                                    child: Icon(
-                                                      Icons.remove_rounded,
-                                                      size: 16,
-                                                      color: stock > 0 ? KinovaColors.sand : KinovaColors.sand.withValues(alpha: 0.3),
-                                                    ),
-                                                  ),
-                                                ),
-                                                Container(
-                                                  width: 1,
-                                                  height: 14,
-                                                  color: KinovaColors.sand.withValues(alpha: 0.2),
-                                                ),
-                                                GestureDetector(
-                                                  onTap: () => _adjustStock(p['id'], stock, 1),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                                    child: const Icon(
-                                                      Icons.add_rounded,
-                                                      size: 16,
-                                                      color: KinovaColors.gold,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                  const SizedBox(width: 8),
+                                  // Bouton Supprimer
+                                  GestureDetector(
+                                    onTap: () => _deleteProduct(p['id'], name),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFFD32F2F,
+                                        ).withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Color(0xFFEF5350),
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              // Ligne inférieure : Badge Statut Stock & Stepper [-] [+]
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Badge Stock
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: stock == 0
+                                          ? const Color(
+                                              0xFFD32F2F,
+                                            ).withValues(alpha: 0.2)
+                                          : (stock <= 5
+                                                ? const Color(
+                                                    0xFFFFA726,
+                                                  ).withValues(alpha: 0.2)
+                                                : const Color(
+                                                    0xFF2E7D32,
+                                                  ).withValues(alpha: 0.2)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      stock == 0
+                                          ? 'RUPTURE DE STOCK'
+                                          : 'Stock : $stock unités',
+                                      style: TextStyle(
+                                        color: stock == 0
+                                            ? const Color(0xFFEF5350)
+                                            : (stock <= 5
+                                                  ? const Color(0xFFFFB74D)
+                                                  : const Color(0xFF81C784)),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  // Stepper de stock [-] [+]
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF18100A),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: KinovaColors.sand.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: stock > 0
+                                              ? () => _adjustStock(
+                                                  p['id'],
+                                                  stock,
+                                                  -1,
+                                                )
+                                              : null,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 5,
+                                            ),
+                                            child: Icon(
+                                              Icons.remove_rounded,
+                                              size: 16,
+                                              color: stock > 0
+                                                  ? KinovaColors.sand
+                                                  : KinovaColors.sand
+                                                        .withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 1,
+                                          height: 14,
+                                          color: KinovaColors.sand.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () =>
+                                              _adjustStock(p['id'], stock, 1),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 5,
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_rounded,
+                                              size: 16,
+                                              color: KinovaColors.gold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -1716,7 +2018,9 @@ class _StockFilterChip extends StatelessWidget {
           color: selected ? KinovaColors.gold : const Color(0xFF22160F),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.2),
+            color: selected
+                ? KinovaColors.gold
+                : KinovaColors.sand.withValues(alpha: 0.2),
           ),
         ),
         child: Text(
@@ -1818,7 +2122,10 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: status == 'new'
                             ? const Color(0xFFFFA726).withValues(alpha: 0.2)
@@ -1828,7 +2135,9 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                       child: Text(
                         status == 'new' ? 'NOUVEAU' : 'LU',
                         style: TextStyle(
-                          color: status == 'new' ? const Color(0xFFFFB74D) : const Color(0xFF81C784),
+                          color: status == 'new'
+                              ? const Color(0xFFFFB74D)
+                              : const Color(0xFF81C784),
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
@@ -1839,7 +2148,10 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                 const SizedBox(height: 6),
                 Text(
                   'De : $name • $email ${phone.isNotEmpty ? "($phone)" : ""}',
-                  style: const TextStyle(color: KinovaColors.sand, fontSize: 12),
+                  style: const TextStyle(
+                    color: KinovaColors.sand,
+                    fontSize: 12,
+                  ),
                 ),
                 const Divider(color: Color(0xFF3E2723), height: 24),
                 const Text(
@@ -1857,11 +2169,17 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1B110B),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.15)),
+                    border: Border.all(
+                      color: KinovaColors.sand.withValues(alpha: 0.15),
+                    ),
                   ),
                   child: Text(
                     body,
-                    style: const TextStyle(color: KinovaColors.cream, fontSize: 13, height: 1.4),
+                    style: const TextStyle(
+                      color: KinovaColors.cream,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1887,13 +2205,16 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                 Text(
                   'Messages & Support',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: KinovaColors.cream,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: KinovaColors.cream,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 IconButton(
                   onPressed: _fetchMessages,
-                  icon: const Icon(Icons.refresh_rounded, color: KinovaColors.sand),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    color: KinovaColors.sand,
+                  ),
                 ),
               ],
             ),
@@ -1901,103 +2222,139 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
 
           Expanded(
             child: _loading
-                ? const Center(child: KinovaLoader(message: 'Chargement des messages...', size: 48))
+                ? const Center(
+                    child: KinovaLoader(
+                      message: 'Chargement des messages...',
+                      size: 48,
+                    ),
+                  )
                 : _error != null
-                    ? Center(child: Text(_error!, style: const TextStyle(color: KinovaColors.cream)))
-                    : _messages.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Aucun message reçu pour le moment.',
-                              style: TextStyle(color: KinovaColors.sand, fontSize: 13),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
-                            itemCount: _messages.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 10),
-                            itemBuilder: (context, idx) {
-                              final m = Map<String, dynamic>.from(_messages[idx] as Map);
-                              final name = (m['name'] ?? 'Client').toString();
-                              final subject = (m['subject'] ?? 'Demande').toString();
-                              final body = (m['message'] ?? '').toString();
-                              final status = (m['status'] ?? 'new').toString();
+                ? Center(
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: KinovaColors.cream),
+                    ),
+                  )
+                : _messages.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Aucun message reçu pour le moment.',
+                      style: TextStyle(color: KinovaColors.sand, fontSize: 13),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+                    itemCount: _messages.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, idx) {
+                      final m = Map<String, dynamic>.from(
+                        _messages[idx] as Map,
+                      );
+                      final name = (m['name'] ?? 'Client').toString();
+                      final subject = (m['subject'] ?? 'Demande').toString();
+                      final body = (m['message'] ?? '').toString();
+                      final status = (m['status'] ?? 'new').toString();
 
-                              return GestureDetector(
-                                onTap: () => _showMessageDetails(m),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF22160F),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: status == 'new'
-                                          ? KinovaColors.gold.withValues(alpha: 0.45)
-                                          : KinovaColors.sand.withValues(alpha: 0.18),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 18,
-                                        backgroundColor: KinovaColors.gold.withValues(alpha: 0.2),
-                                        child: Text(
-                                          name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                                          style: const TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w800, fontSize: 14),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                  name,
-                                                  style: const TextStyle(
-                                                    color: KinovaColors.cream,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                                if (status == 'new')
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                                    decoration: BoxDecoration(
-                                                      color: KinovaColors.gold,
-                                                      borderRadius: BorderRadius.circular(4),
-                                                    ),
-                                                    child: const Text(
-                                                      'NOUVEAU',
-                                                      style: TextStyle(color: KinovaColors.brown, fontSize: 8.5, fontWeight: FontWeight.w900),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              subject,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(color: KinovaColors.gold, fontSize: 11.5, fontWeight: FontWeight.w600),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              body,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.8), fontSize: 11),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
+                      return GestureDetector(
+                        onTap: () => _showMessageDetails(m),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22160F),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: status == 'new'
+                                  ? KinovaColors.gold.withValues(alpha: 0.45)
+                                  : KinovaColors.sand.withValues(alpha: 0.18),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: KinovaColors.gold.withValues(
+                                  alpha: 0.2,
+                                ),
+                                child: Text(
+                                  name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                                  style: const TextStyle(
+                                    color: KinovaColors.gold,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            color: KinovaColors.cream,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        if (status == 'new')
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 5,
+                                              vertical: 1.5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: KinovaColors.gold,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              'NOUVEAU',
+                                              style: TextStyle(
+                                                color: KinovaColors.brown,
+                                                fontSize: 8.5,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      subject,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: KinovaColors.gold,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      body,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: KinovaColors.sand.withValues(
+                                          alpha: 0.8,
+                                        ),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -2041,22 +2398,38 @@ class _ProductFormModalState extends State<_ProductFormModal> {
     super.initState();
     final p = widget.product;
     _nameController = TextEditingController(text: p?['name']?.toString() ?? '');
-    _priceController = TextEditingController(text: p?['price']?.toString() ?? '');
-    _promoPriceController = TextEditingController(text: p?['promo_price']?.toString() ?? '');
-    _stockController = TextEditingController(text: p?['stock']?.toString() ?? '10');
-    _descriptionController = TextEditingController(text: p?['description']?.toString() ?? '');
-    _imageUrlController = TextEditingController(text: p?['image_url']?.toString() ?? '');
+    _priceController = TextEditingController(
+      text: p?['price']?.toString() ?? '',
+    );
+    _promoPriceController = TextEditingController(
+      text: p?['promo_price']?.toString() ?? '',
+    );
+    _stockController = TextEditingController(
+      text: p?['stock']?.toString() ?? '10',
+    );
+    _descriptionController = TextEditingController(
+      text: p?['description']?.toString() ?? '',
+    );
+    _imageUrlController = TextEditingController(
+      text: p?['image_url']?.toString() ?? '',
+    );
 
     // Formattage sizes & colors
     final sizesList = p?['sizes'] is List ? (p!['sizes'] as List) : [];
-    final sizesStr = sizesList.map((s) => s is Map ? s['name'] : s.toString()).join(', ');
+    final sizesStr = sizesList
+        .map((s) => s is Map ? s['name'] : s.toString())
+        .join(', ');
     _sizesController = TextEditingController(text: sizesStr);
 
     final colorsList = p?['colors'] is List ? (p!['colors'] as List) : [];
-    final colorsStr = colorsList.map((c) => c is Map ? c['name'] : c.toString()).join(', ');
+    final colorsStr = colorsList
+        .map((c) => c is Map ? c['name'] : c.toString())
+        .join(', ');
     _colorsController = TextEditingController(text: colorsStr);
 
-    _selectedCategoryId = p?['category_id'] != null ? int.tryParse('${p!['category_id']}') : null;
+    _selectedCategoryId = p?['category_id'] != null
+        ? int.tryParse('${p!['category_id']}')
+        : null;
 
     _fetchCategories();
   }
@@ -2098,10 +2471,17 @@ class _ProductFormModalState extends State<_ProductFormModal> {
 
       if (!mounted) return;
       final api = context.read<ApiClient>();
-      final res = await api.postMultipart('/admin/media', field: 'image', file: file);
+      final res = await api.postMultipart(
+        '/admin/media',
+        field: 'image',
+        file: file,
+      );
 
       if (res is Map && res['data'] is Map) {
-        final rawUrl = res['data']['url']?.toString() ?? res['data']['path']?.toString() ?? '';
+        final rawUrl =
+            res['data']['url']?.toString() ??
+            res['data']['path']?.toString() ??
+            '';
         final resolved = ApiConfig.resolveMediaUrl(rawUrl);
         if (mounted) {
           setState(() {
@@ -2173,7 +2553,9 @@ class _ProductFormModalState extends State<_ProductFormModal> {
       };
 
       if (_promoPriceController.text.trim().isNotEmpty) {
-        payload['promo_price'] = double.tryParse(_promoPriceController.text.trim());
+        payload['promo_price'] = double.tryParse(
+          _promoPriceController.text.trim(),
+        );
       } else {
         payload['promo_price'] = null;
       }
@@ -2189,7 +2571,11 @@ class _ProductFormModalState extends State<_ProductFormModal> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEdit ? 'Produit mis à jour avec succès' : 'Produit créé avec succès'),
+            content: Text(
+              isEdit
+                  ? 'Produit mis à jour avec succès'
+                  : 'Produit créé avec succès',
+            ),
             backgroundColor: KinovaColors.brown,
             behavior: SnackBarBehavior.floating,
           ),
@@ -2235,14 +2621,23 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: KinovaColors.sand),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: KinovaColors.sand,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: Color(0xFFEF5350), fontSize: 12)),
+                  Text(
+                    _error!,
+                    style: const TextStyle(
+                      color: Color(0xFFEF5350),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
                 const Divider(color: Color(0xFF3E2723), height: 20),
 
@@ -2250,21 +2645,34 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                 _buildInputLabel('Nom du Produit *'),
                 TextFormField(
                   controller: _nameController,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Nom obligatoire' : null,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                  decoration: _buildInputDecoration('ex: Sérum Élixir Rose d’Or'),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Nom obligatoire'
+                      : null,
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
+                  decoration: _buildInputDecoration(
+                    'ex: Sérum Élixir Rose d’Or',
+                  ),
                 ),
                 const SizedBox(height: 12),
 
                 // Catégorie
                 _buildInputLabel('Catégorie *'),
                 if (_categories.isEmpty)
-                  const Text('Chargement des catégories...', style: TextStyle(color: KinovaColors.sand, fontSize: 12))
+                  const Text(
+                    'Chargement des catégories...',
+                    style: TextStyle(color: KinovaColors.sand, fontSize: 12),
+                  )
                 else
                   DropdownButtonFormField<int>(
                     initialValue: _selectedCategoryId,
                     dropdownColor: const Color(0xFF22160F),
-                    style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                    style: const TextStyle(
+                      color: KinovaColors.cream,
+                      fontSize: 13,
+                    ),
                     decoration: _buildInputDecoration(''),
                     items: _categories.map((c) {
                       return DropdownMenuItem<int>(
@@ -2272,7 +2680,8 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                         child: Text(c['name']?.toString() ?? 'Catégorie'),
                       );
                     }).toList(),
-                    onChanged: (val) => setState(() => _selectedCategoryId = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedCategoryId = val),
                   ),
                 const SizedBox(height: 12),
 
@@ -2287,8 +2696,13 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                           TextFormField(
                             controller: _priceController,
                             keyboardType: TextInputType.number,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Prix obligatoire' : null,
-                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Prix obligatoire'
+                                : null,
+                            style: const TextStyle(
+                              color: KinovaColors.cream,
+                              fontSize: 13,
+                            ),
                             decoration: _buildInputDecoration('ex: 25000'),
                           ),
                         ],
@@ -2303,7 +2717,10 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                           TextFormField(
                             controller: _promoPriceController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                            style: const TextStyle(
+                              color: KinovaColors.cream,
+                              fontSize: 13,
+                            ),
                             decoration: _buildInputDecoration('Optionnel'),
                           ),
                         ],
@@ -2318,8 +2735,13 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                 TextFormField(
                   controller: _stockController,
                   keyboardType: TextInputType.number,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Stock obligatoire' : null,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Stock obligatoire'
+                      : null,
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
                   decoration: _buildInputDecoration('ex: 50'),
                 ),
                 const SizedBox(height: 12),
@@ -2328,16 +2750,26 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                 _buildInputLabel('Tailles / Pointures (séparées par virgules)'),
                 TextFormField(
                   controller: _sizesController,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                  decoration: _buildInputDecoration('ex: S, M, L, XL ou 38, 39, 40'),
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
+                  decoration: _buildInputDecoration(
+                    'ex: S, M, L, XL ou 38, 39, 40',
+                  ),
                 ),
                 const SizedBox(height: 12),
 
                 _buildInputLabel('Couleurs (séparées par virgules)'),
                 TextFormField(
                   controller: _colorsController,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                  decoration: _buildInputDecoration('ex: Noir, Blanc, Or, Doré'),
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
+                  decoration: _buildInputDecoration(
+                    'ex: Noir, Blanc, Or, Doré',
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -2349,7 +2781,9 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF22160F),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: KinovaColors.sand.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2371,18 +2805,32 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                                   width: double.infinity,
                                   height: 140,
                                 )
-                              else if (_imageUrlController.text.trim().isNotEmpty)
+                              else if (_imageUrlController.text
+                                  .trim()
+                                  .isNotEmpty)
                                 Image.network(
-                                  ApiConfig.resolveMediaUrl(_imageUrlController.text.trim()),
+                                  ApiConfig.resolveMediaUrl(
+                                    _imageUrlController.text.trim(),
+                                  ),
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: 140,
                                   errorBuilder: (_, _, _) => Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: const [
-                                      Icon(Icons.broken_image_rounded, color: KinovaColors.sand, size: 36),
+                                      Icon(
+                                        Icons.broken_image_rounded,
+                                        color: KinovaColors.sand,
+                                        size: 36,
+                                      ),
                                       SizedBox(height: 4),
-                                      Text('Image introuvable', style: TextStyle(color: KinovaColors.sand, fontSize: 11)),
+                                      Text(
+                                        'Image introuvable',
+                                        style: TextStyle(
+                                          color: KinovaColors.sand,
+                                          fontSize: 11,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 )
@@ -2390,9 +2838,19 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                                 Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: const [
-                                    Icon(Icons.add_photo_alternate_rounded, color: KinovaColors.sand, size: 40),
+                                    Icon(
+                                      Icons.add_photo_alternate_rounded,
+                                      color: KinovaColors.sand,
+                                      size: 40,
+                                    ),
                                     SizedBox(height: 6),
-                                    Text('Aucune image sélectionnée', style: TextStyle(color: KinovaColors.sand, fontSize: 12)),
+                                    Text(
+                                      'Aucune image sélectionnée',
+                                      style: TextStyle(
+                                        color: KinovaColors.sand,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               if (_uploadingImage)
@@ -2402,14 +2860,28 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: const [
-                                        CircularProgressIndicator(color: KinovaColors.gold, strokeWidth: 2.5),
+                                        CircularProgressIndicator(
+                                          color: KinovaColors.gold,
+                                          strokeWidth: 2.5,
+                                        ),
                                         SizedBox(height: 8),
-                                        Text('Téléversement en cours...', style: TextStyle(color: KinovaColors.cream, fontSize: 12, fontWeight: FontWeight.w600)),
+                                        Text(
+                                          'Téléversement en cours...',
+                                          style: TextStyle(
+                                            color: KinovaColors.cream,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
-                              if ((_pickedImageFile != null || _imageUrlController.text.trim().isNotEmpty) && !_uploadingImage)
+                              if ((_pickedImageFile != null ||
+                                      _imageUrlController.text
+                                          .trim()
+                                          .isNotEmpty) &&
+                                  !_uploadingImage)
                                 Positioned(
                                   top: 8,
                                   right: 8,
@@ -2426,7 +2898,11 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                                         color: Colors.black87,
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -2440,22 +2916,42 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: _uploadingImage ? null : () => _pickAndUploadImage(ImageSource.gallery),
+                              onTap: _uploadingImage
+                                  ? null
+                                  : () => _pickAndUploadImage(
+                                      ImageSource.gallery,
+                                    ),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 9,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: KinovaColors.gold.withValues(alpha: 0.15),
+                                  color: KinovaColors.gold.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.4)),
+                                  border: Border.all(
+                                    color: KinovaColors.gold.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: const [
-                                    Icon(Icons.photo_library_rounded, size: 17, color: KinovaColors.gold),
+                                    Icon(
+                                      Icons.photo_library_rounded,
+                                      size: 17,
+                                      color: KinovaColors.gold,
+                                    ),
                                     SizedBox(width: 6),
                                     Text(
                                       'Galerie',
-                                      style: TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w700, fontSize: 12),
+                                      style: TextStyle(
+                                        color: KinovaColors.gold,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -2465,22 +2961,41 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: GestureDetector(
-                              onTap: _uploadingImage ? null : () => _pickAndUploadImage(ImageSource.camera),
+                              onTap: _uploadingImage
+                                  ? null
+                                  : () =>
+                                        _pickAndUploadImage(ImageSource.camera),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 9),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 9,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: KinovaColors.gold.withValues(alpha: 0.15),
+                                  color: KinovaColors.gold.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.4)),
+                                  border: Border.all(
+                                    color: KinovaColors.gold.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: const [
-                                    Icon(Icons.camera_alt_rounded, size: 17, color: KinovaColors.gold),
+                                    Icon(
+                                      Icons.camera_alt_rounded,
+                                      size: 17,
+                                      color: KinovaColors.gold,
+                                    ),
                                     SizedBox(width: 6),
                                     Text(
                                       'Photo',
-                                      style: TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w700, fontSize: 12),
+                                      style: TextStyle(
+                                        color: KinovaColors.gold,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -2493,17 +3008,33 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                       // Ou coller une URL
                       TextFormField(
                         controller: _imageUrlController,
-                        style: const TextStyle(color: KinovaColors.cream, fontSize: 11.5),
+                        style: const TextStyle(
+                          color: KinovaColors.cream,
+                          fontSize: 11.5,
+                        ),
                         onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
                           hintText: 'Ou saisir une URL directe...',
-                          hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.5), fontSize: 11.5),
-                          prefixIcon: const Icon(Icons.link_rounded, color: KinovaColors.sand, size: 16),
+                          hintStyle: TextStyle(
+                            color: KinovaColors.sand.withValues(alpha: 0.5),
+                            fontSize: 11.5,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.link_rounded,
+                            color: KinovaColors.sand,
+                            size: 16,
+                          ),
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
                           filled: true,
                           fillColor: const Color(0xFF18100A),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ],
@@ -2516,8 +3047,13 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 3,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                  decoration: _buildInputDecoration('Description luxueuse de l\'article...'),
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
+                  decoration: _buildInputDecoration(
+                    'Description luxueuse de l\'article...',
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -2529,17 +3065,27 @@ class _ProductFormModalState extends State<_ProductFormModal> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: KinovaColors.gold,
                       foregroundColor: KinovaColors.brown,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: _saving
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: KinovaColors.brown),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: KinovaColors.brown,
+                            ),
                           )
                         : Text(
-                            isEdit ? 'Mettre à jour le Produit' : 'Créer le Produit',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                            isEdit
+                                ? 'Mettre à jour le Produit'
+                                : 'Créer le Produit',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                   ),
                 ),
@@ -2569,7 +3115,10 @@ class _ProductFormModalState extends State<_ProductFormModal> {
   InputDecoration _buildInputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.4), fontSize: 12.5),
+      hintStyle: TextStyle(
+        color: KinovaColors.sand.withValues(alpha: 0.4),
+        fontSize: 12.5,
+      ),
       filled: true,
       fillColor: const Color(0xFF22160F),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2618,6 +3167,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
     if (!s.freeShippingEnabled) return 'Livraison à l\'adresse indiquée ($fee)';
     return 'Livraison à l\'adresse indiquée ($fee / Offerte dès ${formatMoney(s.freeShippingThreshold)})';
   }
+
   String _paymentMethod = 'cash_on_delivery';
   bool _saving = false;
   String? _error;
@@ -2659,7 +3209,10 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
     return _products.where((p) {
       if (p is! Map) return false;
       final name = (p['name'] ?? '').toString().toLowerCase();
-      final cat = (p['category'] is Map ? p['category']['name'] : p['category'] ?? '').toString().toLowerCase();
+      final cat =
+          (p['category'] is Map ? p['category']['name'] : p['category'] ?? '')
+              .toString()
+              .toLowerCase();
       return name.contains(q) || cat.contains(q);
     }).toList();
   }
@@ -2728,7 +3281,8 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
             _products = res['data'] as List;
             if (_products.isNotEmpty) {
               _selectedProductId = _products.first['id'] as int;
-              _productSearchController.text = _products.first['name']?.toString() ?? '';
+              _productSearchController.text =
+                  _products.first['name']?.toString() ?? '';
               _onProductChanged(_selectedProductId);
             }
           });
@@ -2755,7 +3309,9 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
         'customer_name': _nameController.text.trim(),
         'customer_phone': _phoneController.text.trim(),
         'is_delivery': _isDelivery,
-        'address': _isDelivery ? _addressController.text.trim() : 'Retrait en boutique KINOVA',
+        'address': _isDelivery
+            ? _addressController.text.trim()
+            : 'Retrait en boutique KINOVA',
         'city': _isDelivery ? _cityController.text.trim() : 'Abidjan',
         'payment_method': _paymentMethod,
         'status': 'pending',
@@ -2766,7 +3322,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
             'quantity': _quantity,
             if (_selectedSize != null) 'selected_size': _selectedSize,
             if (_selectedColor != null) 'selected_color': _selectedColor,
-          }
+          },
         ],
       };
 
@@ -2820,14 +3376,23 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: KinovaColors.sand),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: KinovaColors.sand,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: Color(0xFFEF5350), fontSize: 12)),
+                  Text(
+                    _error!,
+                    style: const TextStyle(
+                      color: Color(0xFFEF5350),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
                 const Divider(color: Color(0xFF3E2723), height: 20),
 
@@ -2835,8 +3400,13 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                 _buildLabel('Nom du Client *'),
                 TextFormField(
                   controller: _nameController,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Nom obligatoire' : null,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Nom obligatoire'
+                      : null,
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
                   decoration: _buildDecor('ex: Aminata Touré'),
                 ),
                 const SizedBox(height: 12),
@@ -2846,15 +3416,23 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Téléphone obligatoire' : null,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Téléphone obligatoire'
+                      : null,
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
                   decoration: _buildDecor('ex: +225 07 00 00 00'),
                 ),
                 const SizedBox(height: 14),
 
                 // Option Se faire livrer (Toggle)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF22160F),
                     borderRadius: BorderRadius.circular(12),
@@ -2867,8 +3445,12 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                   child: Row(
                     children: [
                       Icon(
-                        _isDelivery ? Icons.local_shipping_rounded : Icons.storefront_rounded,
-                        color: _isDelivery ? KinovaColors.gold : KinovaColors.sand,
+                        _isDelivery
+                            ? Icons.local_shipping_rounded
+                            : Icons.storefront_rounded,
+                        color: _isDelivery
+                            ? KinovaColors.gold
+                            : KinovaColors.sand,
                         size: 22,
                       ),
                       const SizedBox(width: 12),
@@ -2887,10 +3469,16 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                             const SizedBox(height: 2),
                             Text(
                               _isDelivery
-                                  ? _deliveryHint(context.read<CatalogController>().settings)
+                                  ? _deliveryHint(
+                                      context
+                                          .read<CatalogController>()
+                                          .settings,
+                                    )
                                   : 'Retrait en boutique KINOVA (Gratuit - 0 FCFA)',
                               style: TextStyle(
-                                color: _isDelivery ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.8),
+                                color: _isDelivery
+                                    ? KinovaColors.gold
+                                    : KinovaColors.sand.withValues(alpha: 0.8),
                                 fontSize: 11,
                               ),
                             ),
@@ -2900,7 +3488,9 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                       Switch.adaptive(
                         value: _isDelivery,
                         activeThumbColor: KinovaColors.gold,
-                        activeTrackColor: KinovaColors.gold.withValues(alpha: 0.4),
+                        activeTrackColor: KinovaColors.gold.withValues(
+                          alpha: 0.4,
+                        ),
                         onChanged: (val) => setState(() => _isDelivery = val),
                       ),
                     ],
@@ -2920,9 +3510,17 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                             _buildLabel('Adresse de Livraison *'),
                             TextFormField(
                               controller: _addressController,
-                              validator: (v) => _isDelivery && (v == null || v.trim().isEmpty) ? 'Adresse obligatoire' : null,
-                              style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
-                              decoration: _buildDecor('ex: Cocody Riviera Golf'),
+                              validator: (v) =>
+                                  _isDelivery && (v == null || v.trim().isEmpty)
+                                  ? 'Adresse obligatoire'
+                                  : null,
+                              style: const TextStyle(
+                                color: KinovaColors.cream,
+                                fontSize: 13,
+                              ),
+                              decoration: _buildDecor(
+                                'ex: Cocody Riviera Golf',
+                              ),
                             ),
                           ],
                         ),
@@ -2935,7 +3533,10 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                             _buildLabel('Ville'),
                             TextFormField(
                               controller: _cityController,
-                              style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                              style: const TextStyle(
+                                color: KinovaColors.cream,
+                                fontSize: 13,
+                              ),
                               decoration: _buildDecor('Abidjan'),
                             ),
                           ],
@@ -2950,11 +3551,17 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                 // Produit à commander (Barre de recherche avec suggestions en temps réel)
                 _buildLabel('Article à commander *'),
                 if (_products.isEmpty)
-                  const Text('Chargement des articles...', style: TextStyle(color: KinovaColors.sand, fontSize: 12))
+                  const Text(
+                    'Chargement des articles...',
+                    style: TextStyle(color: KinovaColors.sand, fontSize: 12),
+                  )
                 else ...[
                   TextFormField(
                     controller: _productSearchController,
-                    style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                    style: const TextStyle(
+                      color: KinovaColors.cream,
+                      fontSize: 13,
+                    ),
                     onTap: () => setState(() => _isSearchingProduct = true),
                     onChanged: (val) {
                       setState(() {
@@ -2963,12 +3570,24 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                       });
                     },
                     decoration: InputDecoration(
-                      hintText: 'Rechercher un article (ex: Sérum, Robe, Parfum)...',
-                      hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.45), fontSize: 12),
-                      prefixIcon: const Icon(Icons.search_rounded, color: KinovaColors.gold, size: 20),
+                      hintText:
+                          'Rechercher un article (ex: Sérum, Robe, Parfum)...',
+                      hintStyle: TextStyle(
+                        color: KinovaColors.sand.withValues(alpha: 0.45),
+                        fontSize: 12,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: KinovaColors.gold,
+                        size: 20,
+                      ),
                       suffixIcon: _productSearchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.close_rounded, color: KinovaColors.sand, size: 18),
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: KinovaColors.sand,
+                                size: 18,
+                              ),
                               onPressed: () {
                                 _productSearchController.clear();
                                 setState(() {
@@ -2980,18 +3599,30 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                           : null,
                       filled: true,
                       fillColor: const Color(0xFF22160F),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: KinovaColors.sand.withValues(alpha: 0.2)),
+                        borderSide: BorderSide(
+                          color: KinovaColors.sand.withValues(alpha: 0.2),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: _isSearchingProduct ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.2)),
+                        borderSide: BorderSide(
+                          color: _isSearchingProduct
+                              ? KinovaColors.gold
+                              : KinovaColors.sand.withValues(alpha: 0.2),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: KinovaColors.gold, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: KinovaColors.gold,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -3004,7 +3635,9 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF1A1009),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.35)),
+                        border: Border.all(
+                          color: KinovaColors.gold.withValues(alpha: 0.35),
+                        ),
                       ),
                       child: _filteredProducts.isEmpty
                           ? const Padding(
@@ -3012,26 +3645,50 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                               child: Center(
                                 child: Text(
                                   'Aucun produit correspondant trouvé',
-                                  style: TextStyle(color: KinovaColors.sand, fontSize: 12),
+                                  style: TextStyle(
+                                    color: KinovaColors.sand,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             )
                           : ListView.separated(
                               shrinkWrap: true,
                               itemCount: _filteredProducts.length,
-                              separatorBuilder: (context, index) => Divider(color: KinovaColors.sand.withValues(alpha: 0.1), height: 1),
+                              separatorBuilder: (context, index) => Divider(
+                                color: KinovaColors.sand.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
                               itemBuilder: (context, idx) {
-                                final p = _filteredProducts[idx] as Map<String, dynamic>;
-                                final isSelected = p['id'] == _selectedProductId;
+                                final p =
+                                    _filteredProducts[idx]
+                                        as Map<String, dynamic>;
+                                final isSelected =
+                                    p['id'] == _selectedProductId;
                                 final name = p['name']?.toString() ?? '';
-                                final price = double.tryParse('${p['promo_price'] ?? p['price']}') ?? 0.0;
-                                final stock = int.tryParse('${p['stock']}') ?? 0;
-                                final img = p['image']?.toString() ?? (p['images'] is List && (p['images'] as List).isNotEmpty ? p['images'][0].toString() : null);
-                                final cat = p['category'] is Map ? p['category']['name']?.toString() : p['category']?.toString();
+                                final price =
+                                    double.tryParse(
+                                      '${p['promo_price'] ?? p['price']}',
+                                    ) ??
+                                    0.0;
+                                final stock =
+                                    int.tryParse('${p['stock']}') ?? 0;
+                                final img =
+                                    p['image']?.toString() ??
+                                    (p['images'] is List &&
+                                            (p['images'] as List).isNotEmpty
+                                        ? p['images'][0].toString()
+                                        : null);
+                                final cat = p['category'] is Map
+                                    ? p['category']['name']?.toString()
+                                    : p['category']?.toString();
 
                                 return ListTile(
                                   dense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
                                   leading: ClipRRect(
                                     borderRadius: BorderRadius.circular(6),
                                     child: Container(
@@ -3042,9 +3699,18 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                                           ? Image.network(
                                               ApiConfig.resolveMediaUrl(img),
                                               fit: BoxFit.cover,
-                                              errorBuilder: (c, e, s) => const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 18),
+                                              errorBuilder: (c, e, s) =>
+                                                  const Icon(
+                                                    Icons.inventory_2_rounded,
+                                                    color: KinovaColors.sand,
+                                                    size: 18,
+                                                  ),
                                             )
-                                          : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 18),
+                                          : const Icon(
+                                              Icons.inventory_2_rounded,
+                                              color: KinovaColors.sand,
+                                              size: 18,
+                                            ),
                                     ),
                                   ),
                                   title: Text(
@@ -3052,25 +3718,51 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: isSelected ? KinovaColors.gold : KinovaColors.cream,
-                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                      color: isSelected
+                                          ? KinovaColors.gold
+                                          : KinovaColors.cream,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w800
+                                          : FontWeight.w600,
                                       fontSize: 12.5,
                                     ),
                                   ),
                                   subtitle: Text(
                                     '${cat != null && cat.isNotEmpty ? "$cat • " : ""}${formatMoney(price)}',
-                                    style: const TextStyle(color: KinovaColors.sand, fontSize: 11),
+                                    style: const TextStyle(
+                                      color: KinovaColors.sand,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                   trailing: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: (stock > 5 ? const Color(0xFF2E7D32) : (stock > 0 ? const Color(0xFFFFA726) : const Color(0xFFD32F2F))).withValues(alpha: 0.2),
+                                      color:
+                                          (stock > 5
+                                                  ? const Color(0xFF2E7D32)
+                                                  : (stock > 0
+                                                        ? const Color(
+                                                            0xFFFFA726,
+                                                          )
+                                                        : const Color(
+                                                            0xFFD32F2F,
+                                                          )))
+                                              .withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      stock == 0 ? 'Rupture' : '$stock en stock',
+                                      stock == 0
+                                          ? 'Rupture'
+                                          : '$stock en stock',
                                       style: TextStyle(
-                                        color: stock > 5 ? const Color(0xFF81C784) : (stock > 0 ? const Color(0xFFFFB74D) : const Color(0xFFEF5350)),
+                                        color: stock > 5
+                                            ? const Color(0xFF81C784)
+                                            : (stock > 0
+                                                  ? const Color(0xFFFFB74D)
+                                                  : const Color(0xFFEF5350)),
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -3091,7 +3783,9 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF22160F),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: KinovaColors.gold.withValues(alpha: 0.35)),
+                        border: Border.all(
+                          color: KinovaColors.gold.withValues(alpha: 0.35),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -3102,17 +3796,30 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                               height: 44,
                               color: const Color(0xFF332016),
                               child: () {
-                                final img = _selectedProduct!['image']?.toString() ??
-                                    (_selectedProduct!['images'] is List && (_selectedProduct!['images'] as List).isNotEmpty
-                                        ? _selectedProduct!['images'][0].toString()
+                                final img =
+                                    _selectedProduct!['image']?.toString() ??
+                                    (_selectedProduct!['images'] is List &&
+                                            (_selectedProduct!['images']
+                                                    as List)
+                                                .isNotEmpty
+                                        ? _selectedProduct!['images'][0]
+                                              .toString()
                                         : null);
                                 return img != null
                                     ? Image.network(
                                         ApiConfig.resolveMediaUrl(img),
                                         fit: BoxFit.cover,
-                                        errorBuilder: (c, e, s) => const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 20),
+                                        errorBuilder: (c, e, s) => const Icon(
+                                          Icons.inventory_2_rounded,
+                                          color: KinovaColors.sand,
+                                          size: 20,
+                                        ),
                                       )
-                                    : const Icon(Icons.inventory_2_rounded, color: KinovaColors.sand, size: 20);
+                                    : const Icon(
+                                        Icons.inventory_2_rounded,
+                                        color: KinovaColors.sand,
+                                        size: 20,
+                                      );
                               }(),
                             ),
                           ),
@@ -3125,12 +3832,25 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                                   _selectedProduct!['name']?.toString() ?? '',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: KinovaColors.cream, fontWeight: FontWeight.w700, fontSize: 13),
+                                  style: const TextStyle(
+                                    color: KinovaColors.cream,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  formatMoney(double.tryParse('${_selectedProduct!['promo_price'] ?? _selectedProduct!['price']}') ?? 0.0),
-                                  style: const TextStyle(color: KinovaColors.gold, fontWeight: FontWeight.w800, fontSize: 12),
+                                  formatMoney(
+                                    double.tryParse(
+                                          '${_selectedProduct!['promo_price'] ?? _selectedProduct!['price']}',
+                                        ) ??
+                                        0.0,
+                                  ),
+                                  style: const TextStyle(
+                                    color: KinovaColors.gold,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -3145,14 +3865,23 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
-                                color: KinovaColors.gold.withValues(alpha: 0.15),
+                                color: KinovaColors.gold.withValues(
+                                  alpha: 0.15,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
                                 'Changer',
-                                style: TextStyle(color: KinovaColors.gold, fontSize: 11, fontWeight: FontWeight.w700),
+                                style: TextStyle(
+                                  color: KinovaColors.gold,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),
@@ -3163,13 +3892,20 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: _availableStock == 0
                                 ? const Color(0xFFD32F2F).withValues(alpha: 0.2)
                                 : (_availableStock <= 5
-                                    ? const Color(0xFFFFA726).withValues(alpha: 0.2)
-                                    : const Color(0xFF2E7D32).withValues(alpha: 0.2)),
+                                      ? const Color(
+                                          0xFFFFA726,
+                                        ).withValues(alpha: 0.2)
+                                      : const Color(
+                                          0xFF2E7D32,
+                                        ).withValues(alpha: 0.2)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -3180,8 +3916,8 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                               color: _availableStock == 0
                                   ? const Color(0xFFEF5350)
                                   : (_availableStock <= 5
-                                      ? const Color(0xFFFFB74D)
-                                      : const Color(0xFF81C784)),
+                                        ? const Color(0xFFFFB74D)
+                                        : const Color(0xFF81C784)),
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),
@@ -3207,15 +3943,23 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                         selectedColor: KinovaColors.gold,
                         backgroundColor: const Color(0xFF1E140E),
                         labelStyle: TextStyle(
-                          color: isSelected ? KinovaColors.brown : KinovaColors.cream,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          color: isSelected
+                              ? KinovaColors.brown
+                              : KinovaColors.cream,
+                          fontWeight: isSelected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           fontSize: 12,
                         ),
                         side: BorderSide(
-                          color: isSelected ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.25),
+                          color: isSelected
+                              ? KinovaColors.gold
+                              : KinovaColors.sand.withValues(alpha: 0.25),
                         ),
                         onSelected: (selected) {
-                          setState(() => _selectedSize = selected ? size : null);
+                          setState(
+                            () => _selectedSize = selected ? size : null,
+                          );
                         },
                       );
                     }).toList(),
@@ -3237,15 +3981,23 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                         selectedColor: KinovaColors.gold,
                         backgroundColor: const Color(0xFF1E140E),
                         labelStyle: TextStyle(
-                          color: isSelected ? KinovaColors.brown : KinovaColors.cream,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          color: isSelected
+                              ? KinovaColors.brown
+                              : KinovaColors.cream,
+                          fontWeight: isSelected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           fontSize: 12,
                         ),
                         side: BorderSide(
-                          color: isSelected ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.25),
+                          color: isSelected
+                              ? KinovaColors.gold
+                              : KinovaColors.sand.withValues(alpha: 0.25),
                         ),
                         onSelected: (selected) {
-                          setState(() => _selectedColor = selected ? color : null);
+                          setState(
+                            () => _selectedColor = selected ? color : null,
+                          );
                         },
                       );
                     }).toList(),
@@ -3261,16 +4013,30 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.remove_circle_outline_rounded, color: KinovaColors.sand),
-                          onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                          icon: const Icon(
+                            Icons.remove_circle_outline_rounded,
+                            color: KinovaColors.sand,
+                          ),
+                          onPressed: _quantity > 1
+                              ? () => setState(() => _quantity--)
+                              : null,
                         ),
                         Text(
                           '$_quantity',
-                          style: const TextStyle(color: KinovaColors.cream, fontWeight: FontWeight.w800, fontSize: 16),
+                          style: const TextStyle(
+                            color: KinovaColors.cream,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.add_circle_outline_rounded, color: KinovaColors.gold),
-                          onPressed: (_availableStock == 0 || _quantity < _availableStock)
+                          icon: const Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: KinovaColors.gold,
+                          ),
+                          onPressed:
+                              (_availableStock == 0 ||
+                                  _quantity < _availableStock)
                               ? () => setState(() => _quantity++)
                               : null,
                         ),
@@ -3285,15 +4051,29 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                 DropdownButtonFormField<String>(
                   initialValue: _paymentMethod,
                   dropdownColor: const Color(0xFF22160F),
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
                   decoration: _buildDecor(''),
                   items: const [
-                    DropdownMenuItem(value: 'cash_on_delivery', child: Text('Espèces à la livraison')),
+                    DropdownMenuItem(
+                      value: 'cash_on_delivery',
+                      child: Text('Espèces à la livraison'),
+                    ),
                     DropdownMenuItem(value: 'wave', child: Text('Wave')),
-                    DropdownMenuItem(value: 'orange_money', child: Text('Orange Money')),
-                    DropdownMenuItem(value: 'card', child: Text('Carte Bancaire')),
+                    DropdownMenuItem(
+                      value: 'orange_money',
+                      child: Text('Orange Money'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'card',
+                      child: Text('Carte Bancaire'),
+                    ),
                   ],
-                  onChanged: (val) => setState(() => _paymentMethod = val ?? 'cash_on_delivery'),
+                  onChanged: (val) => setState(
+                    () => _paymentMethod = val ?? 'cash_on_delivery',
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -3302,7 +4082,10 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                 TextFormField(
                   controller: _notesController,
                   maxLines: 2,
-                  style: const TextStyle(color: KinovaColors.cream, fontSize: 13),
+                  style: const TextStyle(
+                    color: KinovaColors.cream,
+                    fontSize: 13,
+                  ),
                   decoration: _buildDecor('ex: Appel avant livraison'),
                 ),
                 const SizedBox(height: 20),
@@ -3315,17 +4098,25 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: KinovaColors.gold,
                       foregroundColor: KinovaColors.brown,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: _saving
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: KinovaColors.brown),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: KinovaColors.brown,
+                            ),
                           )
                         : const Text(
                             'Créer la Commande',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                   ),
                 ),
@@ -3354,7 +4145,10 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
   InputDecoration _buildDecor(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: KinovaColors.sand.withValues(alpha: 0.4), fontSize: 12.5),
+      hintStyle: TextStyle(
+        color: KinovaColors.sand.withValues(alpha: 0.4),
+        fontSize: 12.5,
+      ),
       filled: true,
       fillColor: const Color(0xFF22160F),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -3414,10 +4208,7 @@ class _PeriodChip extends StatelessWidget {
 }
 
 class _HeroSalesCard extends StatelessWidget {
-  const _HeroSalesCard({
-    required this.data,
-    required this.periodIndex,
-  });
+  const _HeroSalesCard({required this.data, required this.periodIndex});
 
   final AdminDashboardData data;
   final int periodIndex;
@@ -3498,8 +4289,11 @@ class _HeroSalesCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.show_chart_rounded,
-                        size: 12, color: Color(0xFF81C784)),
+                    const Icon(
+                      Icons.show_chart_rounded,
+                      size: 12,
+                      color: Color(0xFF81C784),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '$orders cmd.',
@@ -3609,9 +4403,7 @@ class _KpiCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF22160F),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: KinovaColors.sand.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3673,9 +4465,7 @@ class _SalesChartCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF22160F),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: KinovaColors.sand.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3691,11 +4481,7 @@ class _SalesChartCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              Icon(
-                Icons.bar_chart_rounded,
-                color: KinovaColors.gold,
-                size: 18,
-              ),
+              Icon(Icons.bar_chart_rounded, color: KinovaColors.gold, size: 18),
             ],
           ),
           const SizedBox(height: 16),
@@ -3756,8 +4542,9 @@ class _SalesChartCard extends StatelessWidget {
                                 ? KinovaColors.gold
                                 : KinovaColors.sand,
                             fontSize: 10,
-                            fontWeight:
-                                isToday ? FontWeight.w800 : FontWeight.w500,
+                            fontWeight: isToday
+                                ? FontWeight.w800
+                                : FontWeight.w500,
                           ),
                         ),
                       ],
@@ -3887,10 +4674,7 @@ class _LowStockSection extends StatelessWidget {
 }
 
 class _OrderListItem extends StatelessWidget {
-  const _OrderListItem({
-    required this.order,
-    required this.onTap,
-  });
+  const _OrderListItem({required this.order, required this.onTap});
 
   final AdminOrderSummary order;
   final VoidCallback onTap;
@@ -3906,7 +4690,20 @@ class _OrderListItem extends StatelessWidget {
     };
 
     final d = order.createdAt.toLocal();
-    const months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    const months = [
+      'janv.',
+      'févr.',
+      'mars',
+      'avr.',
+      'mai',
+      'juin',
+      'juil.',
+      'août',
+      'sept.',
+      'oct.',
+      'nov.',
+      'déc.',
+    ];
     final day = d.day.toString().padLeft(2, '0');
     final month = (d.month >= 1 && d.month <= 12) ? months[d.month - 1] : '';
     final hour = d.hour.toString().padLeft(2, '0');
@@ -3920,9 +4717,7 @@ class _OrderListItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF22160F),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: KinovaColors.sand.withValues(alpha: 0.18),
-          ),
+          border: Border.all(color: KinovaColors.sand.withValues(alpha: 0.18)),
         ),
         child: Row(
           children: [
@@ -4011,6 +4806,34 @@ class _OrderListItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SheetAction extends StatelessWidget {
+  const _SheetAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: KinovaColors.gold),
+      label: Text(
+        label,
+        style: const TextStyle(color: KinovaColors.cream, fontSize: 12),
+      ),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: KinovaColors.gold.withValues(alpha: 0.5)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }

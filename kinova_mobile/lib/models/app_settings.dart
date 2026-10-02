@@ -1,6 +1,9 @@
 /// Paramètres boutique pilotés depuis le dashboard (`GET /api/settings`).
 class AppSettings {
   const AppSettings({
+    this.shippingMode = 'courier',
+    this.shippingNote =
+        'Livraison optionnelle. Les frais sont à régler directement au livreur selon votre zone.',
     this.shippingFee = 2500,
     this.freeShippingEnabled = true,
     this.freeShippingThreshold = 50000,
@@ -14,11 +17,11 @@ class AppSettings {
     this.showPerks = true,
     this.showNews = true,
     this.promoBannerText =
-        'LIVRAISON OFFERTE DÈS 50 000 FCFA  •  RETOURS 14 JOURS',
+        'PAIEMENT À LA LIVRAISON  •  RETOURS 14 JOURS',
     this.vipTitle = 'Rejoignez le Cercle VIP',
     this.vipSubtitle = '10 000 FCFA dépensés = 1 point. Avantages exclusifs.',
     this.perks = const [
-      PerkText('Livraison Offerte', 'Dès 50 000 FCFA d’achat'),
+      PerkText('Livraison à domicile', 'Paiement à la réception'),
       PerkText('Soins Naturels', 'Formules pures'),
       PerkText('Garantie KINOVA', 'Satisfait ou remboursé'),
     ],
@@ -61,8 +64,13 @@ class AppSettings {
     return null;
   }
 
+  /// courier : frais réglés au livreur (non facturés) ; fixed : frais fixes.
+  final String shippingMode;
+  final String shippingNote;
   final double shippingFee;
   final bool freeShippingEnabled;
+
+  bool get shippingPaidToCourier => shippingMode != 'fixed';
   final double freeShippingThreshold;
   final double loyaltyAmountPerStep;
   final int loyaltyPointsPerStep;
@@ -84,7 +92,7 @@ class AppSettings {
   final String newsTitle;
 
   double shippingFor(double subtotal, {bool isDelivery = true}) {
-    if (!isDelivery) return 0;
+    if (!isDelivery || shippingPaidToCourier) return 0;
     if (freeShippingEnabled && subtotal >= freeShippingThreshold) return 0;
     return shippingFee;
   }
@@ -112,6 +120,8 @@ class AppSettings {
         : d.perks;
 
     return AppSettings(
+      shippingMode: _str(shipping['mode'], d.shippingMode),
+      shippingNote: _str(shipping['note'], d.shippingNote),
       shippingFee: _num(shipping['fee'], d.shippingFee),
       freeShippingEnabled: _bool(
         shipping['free_enabled'],

@@ -138,9 +138,13 @@ function formatDate(iso?: string) {
         </div>
       </div>
 
-      <div class="divider" />
+      <div v-if="profileSettings.show_loyalty || !loggedIn" class="divider" />
 
-      <div class="loyalty" :style="profileSettings.show_loyalty ? undefined : { justifyContent: 'flex-end' }">
+      <div
+        v-if="profileSettings.show_loyalty || !loggedIn"
+        class="loyalty"
+        :style="profileSettings.show_loyalty ? undefined : { justifyContent: 'flex-end' }"
+      >
         <div v-if="profileSettings.show_loyalty">
           <p v-if="profileSettings.loyalty_title" class="label">{{ profileSettings.loyalty_title }}</p>
           <p class="points">{{ pointsLabel }}</p>

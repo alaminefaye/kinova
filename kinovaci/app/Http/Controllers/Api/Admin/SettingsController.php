@@ -30,6 +30,7 @@ class SettingsController extends Controller
             }
         }
         $rules['loyalty_amount_per_step'] = ['sometimes', 'integer', 'min:1', 'max:1000000000'];
+        $rules['shipping_mode'] = ['sometimes', 'in:courier,fixed'];
 
         $data = $request->validate($rules);
 

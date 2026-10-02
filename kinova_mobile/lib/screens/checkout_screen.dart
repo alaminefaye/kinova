@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/order_success_screen.dart';
@@ -22,10 +24,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _phone = TextEditingController();
   final _address = TextEditingController();
   final _city = TextEditingController();
-  bool _isDelivery = true;
-  String _payment = 'card';
+  final _details = TextEditingController();
+  bool _isDelivery = false;
   bool _submitting = false;
   String? _error;
+
+  Position? _position;
+  bool _locating = false;
+  String? _locationError;
+  bool _locationNeedsSettings = false;
 
   @override
   void initState() {
@@ -56,7 +63,79 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _phone.dispose();
     _address.dispose();
     _city.dispose();
+    _details.dispose();
     super.dispose();
+  }
+
+  Future<void> _locate() async {
+    setState(() {
+      _locating = true;
+      _locationError = null;
+      _locationNeedsSettings = false;
+    });
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        setState(() {
+          _locationError = 'Activez la localisation (GPS) de votre téléphone.';
+          _locationNeedsSettings = true;
+        });
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied) {
+        setState(
+          () => _locationError =
+              'Autorisez l’accès à la position pour la partager.',
+        );
+        return;
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _locationError =
+              'Accès à la position refusé. Autorisez-le dans les réglages.';
+          _locationNeedsSettings = true;
+        });
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _position = position);
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _locationError =
+            'Position introuvable. Réessayez à l’extérieur ou près d’une fenêtre.',
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  Future<void> _openSettings() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      await Geolocator.openLocationSettings();
+    } else {
+      await Geolocator.openAppSettings();
+    }
+  }
+
+  Future<void> _openMap() async {
+    final p = _position;
+    if (p == null) return;
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}',
+    );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _submit() async {
@@ -68,14 +147,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final auth = context.read<AuthController>();
       final order = await context.read<CartController>().placeOrder(
-            customerName: _name.text.trim(),
-            customerPhone: _phone.text.trim(),
-            customerEmail: auth.user?.email,
-            isDelivery: _isDelivery,
-            address: _isDelivery ? _address.text.trim() : 'Retrait en boutique KINOVA',
-            city: _isDelivery ? _city.text.trim() : 'Abidjan',
-            paymentMethod: _payment,
-          );
+        customerName: _name.text.trim(),
+        customerPhone: _phone.text.trim(),
+        customerEmail: auth.user?.email,
+        isDelivery: _isDelivery,
+        address: _isDelivery
+            ? _address.text.trim()
+            : 'Retrait en boutique KINOVA',
+        city: _isDelivery
+            ? (_city.text.trim().isEmpty ? 'Abidjan' : _city.text.trim())
+            : 'Abidjan',
+        latitude: _isDelivery ? _position?.latitude : null,
+        longitude: _isDelivery ? _position?.longitude : null,
+        deliveryDetails: _isDelivery ? _details.text.trim() : null,
+      );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -98,8 +183,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartController>();
+    final settings = cart.settings;
     final shippingFee = cart.shippingFor(isDelivery: _isDelivery);
     final finalTotal = cart.subtotal + shippingFee;
+    final courier = _isDelivery && settings.shippingPaidToCourier;
+
+    final String shippingLabel;
+    if (!_isDelivery) {
+      shippingLabel = 'Retrait en boutique (gratuit)';
+    } else if (courier) {
+      shippingLabel = 'À régler au livreur';
+    } else if (shippingFee == 0) {
+      shippingLabel = settings.freeShippingEnabled
+          ? 'Offerte (dès ${formatMoney(settings.freeShippingThreshold)})'
+          : 'Offerte';
+    } else {
+      shippingLabel = formatMoney(shippingFee);
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Paiement')),
@@ -118,10 +218,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             FadeSlideIn(
               delay: const Duration(milliseconds: 80),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
                     controller: _name,
-                    decoration: const InputDecoration(hintText: 'Nom complet *'),
+                    decoration: const InputDecoration(
+                      hintText: 'Nom complet *',
+                    ),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Requis' : null,
                   ),
@@ -134,76 +237,62 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         (v == null || v.trim().length < 8) ? 'Invalide' : null,
                   ),
                   const SizedBox(height: 14),
-
-                  // Option Se faire livrer (Toggle)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: KinovaColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isDelivery
-                            ? KinovaColors.gold.withValues(alpha: 0.5)
-                            : KinovaColors.sand.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _isDelivery ? Icons.local_shipping_rounded : Icons.storefront_rounded,
-                          color: _isDelivery ? KinovaColors.gold : KinovaColors.sand,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Se faire livrer à domicile',
-                                style: TextStyle(
-                                  color: KinovaColors.cream,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _isDelivery
-                                    ? 'Livraison sécurisée partout à Abidjan'
-                                    : 'Retrait direct en boutique KINOVA (0 FCFA)',
-                                style: TextStyle(
-                                  color: _isDelivery ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.8),
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch.adaptive(
-                          value: _isDelivery,
-                          activeThumbColor: KinovaColors.gold,
-                          activeTrackColor: KinovaColors.gold.withValues(alpha: 0.4),
-                          onChanged: (val) => setState(() => _isDelivery = val),
-                        ),
-                      ],
-                    ),
+                  _DeliveryToggle(
+                    value: _isDelivery,
+                    subtitle: _isDelivery
+                        ? (settings.shippingPaidToCourier
+                              ? 'Frais à régler directement au livreur'
+                              : 'Livraison à l’adresse indiquée')
+                        : 'Option : sinon retrait en boutique KINOVA (gratuit)',
+                    onChanged: (val) => setState(() => _isDelivery = val),
                   ),
-
-                  // Champs adresse uniquement si livraison cochée
                   if (_isDelivery) ...[
+                    const SizedBox(height: 12),
+                    _LocationCard(
+                      position: _position,
+                      locating: _locating,
+                      error: _locationError,
+                      needsSettings: _locationNeedsSettings,
+                      onLocate: _locate,
+                      onOpenSettings: _openSettings,
+                      onOpenMap: _openMap,
+                    ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _address,
-                      decoration: const InputDecoration(hintText: 'Adresse de livraison complète *'),
-                      validator: (v) => _isDelivery && (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                      decoration: InputDecoration(
+                        hintText: _position == null
+                            ? 'Quartier / adresse de livraison *'
+                            : 'Quartier / adresse (facultatif)',
+                      ),
+                      validator: (v) =>
+                          _isDelivery &&
+                              _position == null &&
+                              (v == null || v.trim().isEmpty)
+                          ? 'Indiquez une adresse ou partagez votre position'
+                          : null,
                     ),
                     const SizedBox(height: 10),
                     TextFormField(
                       controller: _city,
-                      decoration: const InputDecoration(hintText: 'Ville *'),
-                      validator: (v) => _isDelivery && (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                      decoration: const InputDecoration(
+                        hintText: 'Ville (Abidjan par défaut)',
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _details,
+                      minLines: 3,
+                      maxLines: 5,
+                      maxLength: 1000,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText:
+                            'Précisions pour le livreur : repères, immeuble, étage, couleur du portail…',
+                      ),
+                    ),
+                    if (settings.shippingNote.trim().isNotEmpty)
+                      _InfoNote(text: settings.shippingNote),
                   ],
                 ],
               ),
@@ -219,23 +308,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 12),
             FadeSlideIn(
               delay: const Duration(milliseconds: 180),
-              child: Column(
-                children: [
-                  _PayTile(
-                    title: 'Carte bancaire',
-                    subtitle: 'Visa, Mastercard',
-                    value: 'card',
-                    group: _payment,
-                    onChanged: (v) => setState(() => _payment = v),
-                  ),
-                  _PayTile(
-                    title: 'Paiement à la livraison / au retrait',
-                    subtitle: 'Espèces ou mobile money',
-                    value: 'cod',
-                    group: _payment,
-                    onChanged: (v) => setState(() => _payment = v),
-                  ),
-                ],
+              child: _PayTile(
+                title: _isDelivery
+                    ? 'Paiement à la livraison'
+                    : 'Paiement au retrait',
+                subtitle: 'Espèces ou mobile money, à la réception du colis',
               ),
             ),
             const SizedBox(height: 28),
@@ -250,18 +327,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Column(
                   children: [
                     _line('Articles', formatMoney(cart.subtotal)),
-                    _line(
-                      'Livraison',
-                      shippingFee == 0
-                          ? (!_isDelivery
-                              ? 'Retrait en boutique (Gratuit)'
-                              : cart.settings.freeShippingEnabled
-                                  ? 'Offerte (dès ${formatMoney(cart.settings.freeShippingThreshold)})'
-                                  : 'Offerte')
-                          : formatMoney(shippingFee),
-                    ),
+                    _line('Livraison', shippingLabel),
                     const Divider(color: KinovaColors.sand),
-                    _line('Total', formatMoney(finalTotal), bold: true),
+                    _line(
+                      courier ? 'Total (hors livraison)' : 'Total à payer',
+                      formatMoney(finalTotal),
+                      bold: true,
+                    ),
                   ],
                 ),
               ),
@@ -301,8 +373,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(label, style: style),
-          const Spacer(),
+          Expanded(child: Text(label, style: style)),
+          const SizedBox(width: 12),
           Text(value, style: style),
         ],
       ),
@@ -310,60 +382,276 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 }
 
-class _PayTile extends StatelessWidget {
-  const _PayTile({
-    required this.title,
-    required this.subtitle,
+class _DeliveryToggle extends StatelessWidget {
+  const _DeliveryToggle({
     required this.value,
-    required this.group,
+    required this.subtitle,
     required this.onChanged,
   });
 
-  final String title;
+  final bool value;
   final String subtitle;
-  final String value;
-  final String group;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final selected = group == value;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: () => onChanged(value),
-        borderRadius: BorderRadius.circular(6),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: KinovaColors.surface,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: selected ? KinovaColors.brown : KinovaColors.sand,
-              width: selected ? 1.4 : 0.8,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: KinovaColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: value
+              ? KinovaColors.gold.withValues(alpha: 0.6)
+              : KinovaColors.sand.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            value ? Icons.local_shipping_rounded : Icons.storefront_rounded,
+            color: value ? KinovaColors.goldRich : KinovaColors.mutedBrown,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Se faire livrer à domicile',
+                  style: TextStyle(
+                    color: KinovaColors.brown,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: KinovaColors.mutedBrown,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
+          Switch.adaptive(
+            value: value,
+            activeThumbColor: KinovaColors.gold,
+            activeTrackColor: KinovaColors.gold.withValues(alpha: 0.4),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LocationCard extends StatelessWidget {
+  const _LocationCard({
+    required this.position,
+    required this.locating,
+    required this.error,
+    required this.needsSettings,
+    required this.onLocate,
+    required this.onOpenSettings,
+    required this.onOpenMap,
+  });
+
+  final Position? position;
+  final bool locating;
+  final String? error;
+  final bool needsSettings;
+  final VoidCallback onLocate;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onOpenMap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPosition = position != null;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: KinovaColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasPosition
+              ? Colors.green.withValues(alpha: 0.5)
+              : KinovaColors.sand.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
               Icon(
-                selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: KinovaColors.brown,
-                size: 20,
+                hasPosition
+                    ? Icons.check_circle_rounded
+                    : Icons.my_location_rounded,
+                color: hasPosition ? Colors.green : KinovaColors.goldRich,
+                size: 22,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      hasPosition
+                          ? 'Position exacte enregistrée'
+                          : 'Ma position exacte',
+                      style: const TextStyle(
+                        color: KinovaColors.brown,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasPosition
+                          ? 'Précision ±${position!.accuracy.round()} m — le livreur vous trouvera directement.'
+                          : 'Partagez votre position GPS pour que le livreur trouve votre adresse.',
+                      style: const TextStyle(
+                        color: KinovaColors.mutedBrown,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-        ),
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              error!,
+              style: const TextStyle(color: Colors.red, fontSize: 11.5),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                onPressed: locating ? null : onLocate,
+                icon: locating
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        hasPosition
+                            ? Icons.refresh_rounded
+                            : Icons.gps_fixed_rounded,
+                        size: 16,
+                      ),
+                label: Text(
+                  locating
+                      ? 'Localisation…'
+                      : (hasPosition ? 'Actualiser' : 'Utiliser ma position'),
+                ),
+              ),
+              if (hasPosition)
+                TextButton.icon(
+                  onPressed: onOpenMap,
+                  icon: const Icon(Icons.map_outlined, size: 16),
+                  label: const Text('Voir sur la carte'),
+                ),
+              if (needsSettings)
+                TextButton(
+                  onPressed: onOpenSettings,
+                  child: const Text('Ouvrir les réglages'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoNote extends StatelessWidget {
+  const _InfoNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: KinovaColors.gold.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: KinovaColors.goldRich,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: KinovaColors.brown,
+                fontSize: 11.5,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PayTile extends StatelessWidget {
+  const _PayTile({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: KinovaColors.surface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: KinovaColors.brown, width: 1.4),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.payments_outlined,
+            color: KinovaColors.brown,
+            size: 22,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.check_circle_rounded,
+            color: KinovaColors.brown,
+            size: 20,
+          ),
+        ],
       ),
     );
   }

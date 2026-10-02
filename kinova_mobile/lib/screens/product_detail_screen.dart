@@ -4,6 +4,7 @@ import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
+import 'package:kinova_mobile/screens/cart_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
@@ -153,12 +154,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  void _openCart() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CartScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = context.watch<CatalogController>().byId(widget.product.id) ??
         _baseProduct;
     final favorites = context.watch<FavoritesController>();
     final liked = favorites.isFavorite(product.id);
+    final cartCount = context.select<CartController, int>((c) => c.itemCount);
     final gallery = product.gallery;
     final tagToUse = widget.heroTag ?? 'product-${product.id}';
     final availableSizes = product.availableSizes;
@@ -187,6 +196,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       color: KinovaColors.brown,
                     ),
                   ),
+                  IconButton(
+                    tooltip: 'Voir le panier',
+                    onPressed: _openCart,
+                    icon: Badge(
+                      isLabelVisible: cartCount > 0,
+                      label: Text(cartCount > 99 ? '99+' : '$cartCount'),
+                      backgroundColor: KinovaColors.goldRich,
+                      textColor: KinovaColors.brown,
+                      child: const Icon(
+                        Icons.shopping_bag_outlined,
+                        color: KinovaColors.brown,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Hero(
@@ -673,9 +697,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            duration: const Duration(milliseconds: 1400),
+                            duration: const Duration(milliseconds: 2500),
                             backgroundColor: KinovaColors.brown,
                             behavior: SnackBarBehavior.floating,
+                            action: SnackBarAction(
+                              label: 'VOIR',
+                              textColor: KinovaColors.goldLight,
+                              onPressed: _openCart,
+                            ),
                             content: Text(
                               '${product.name} ajouté au panier',
                               style: const TextStyle(color: KinovaColors.cream),

@@ -168,6 +168,23 @@ class Order {
     required this.status,
     this.trackingNumber,
     this.carrier,
+    this.statusCode = 'pending',
+    this.subtotal = 0,
+    this.shipping = 0,
+    this.isDelivery = true,
+    this.customerName,
+    this.customerPhone,
+    this.address,
+    this.city,
+    this.deliveryDetails,
+    this.latitude,
+    this.longitude,
+    this.mapsUrl,
+    this.paymentStatus = 'unpaid',
+    this.paidAt,
+    this.invoiceNumber,
+    this.invoiceStatus = 'provisional',
+    this.invoiceUrl,
   });
 
   final String id;
@@ -177,6 +194,29 @@ class Order {
   final String status;
   final String? trackingNumber;
   final String? carrier;
+
+  /// pending|processing|shipped|delivered|cancelled
+  final String statusCode;
+  final double subtotal;
+  final double shipping;
+  final bool isDelivery;
+  final String? customerName;
+  final String? customerPhone;
+  final String? address;
+  final String? city;
+  final String? deliveryDetails;
+  final double? latitude;
+  final double? longitude;
+  final String? mapsUrl;
+
+  /// unpaid|paid
+  final String paymentStatus;
+  final DateTime? paidAt;
+  final String? invoiceNumber;
+
+  /// provisional|confirmed|cancelled
+  final String invoiceStatus;
+  final String? invoiceUrl;
 }
 
 class AppUser {

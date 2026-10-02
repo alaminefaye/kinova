@@ -122,14 +122,39 @@ class ApiMappers {
       }
     }
 
+    final statusCode = (json['status'] ?? 'pending').toString();
+    String? str(String key) {
+      final v = json[key]?.toString();
+      return (v == null || v.isEmpty) ? null : v;
+    }
+
     return Order(
       id: (json['reference'] ?? json['id'] ?? '').toString(),
       items: items,
       total: _toDouble(json['total']),
       createdAt: DateTime.tryParse('${json['created_at']}') ?? DateTime.now(),
-      status: _statusLabel((json['status'] ?? 'pending').toString()),
-      trackingNumber: json['tracking_number']?.toString(),
-      carrier: json['carrier']?.toString(),
+      status: _statusLabel(statusCode),
+      trackingNumber: str('tracking_number'),
+      carrier: str('carrier'),
+      statusCode: statusCode,
+      subtotal: _toDouble(json['subtotal']),
+      shipping: _toDouble(json['shipping']),
+      isDelivery: json['is_delivery'] == null
+          ? true
+          : (json['is_delivery'] == true || '${json['is_delivery']}' == '1'),
+      customerName: str('customer_name'),
+      customerPhone: str('customer_phone'),
+      address: str('address'),
+      city: str('city'),
+      deliveryDetails: str('delivery_details'),
+      latitude: double.tryParse('${json['latitude']}'),
+      longitude: double.tryParse('${json['longitude']}'),
+      mapsUrl: str('maps_url'),
+      paymentStatus: str('payment_status') ?? 'unpaid',
+      paidAt: DateTime.tryParse('${json['paid_at']}'),
+      invoiceNumber: str('invoice_number'),
+      invoiceStatus: str('invoice_status') ?? 'provisional',
+      invoiceUrl: str('invoice_url'),
     );
   }
 

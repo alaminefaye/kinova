@@ -52,7 +52,8 @@ export function useCart() {
   const subtotal = computed(() =>
     state.items.reduce((s, i) => s + getProductEffectivePrice(i.product) * i.quantity, 0),
   )
-  useSettings()
+  const settings = useSettings()
+  const shippingToCourier = computed(() => settings.state.data.shipping.mode !== 'fixed')
   const shipping = computed(() => {
     if (!state.items.length) return 0
     return shippingFor(subtotal.value)
@@ -114,15 +115,19 @@ export function useCart() {
     customer_name: string
     customer_phone: string
     customer_email?: string
+    is_delivery: boolean
     address: string
     city: string
-    payment_method: 'card' | 'cod'
+    latitude?: number | null
+    longitude?: number | null
+    delivery_details?: string
     notes?: string
   }) {
     const res = await api<{ data: any }>('/orders', {
       method: 'POST',
       json: {
         ...payload,
+        payment_method: 'cod',
         items: state.items.map((i) => ({
           product_id: Number(i.product.id),
           quantity: i.quantity,
@@ -140,6 +145,7 @@ export function useCart() {
     itemCount,
     subtotal,
     shipping,
+    shippingToCourier,
     total,
     add,
     remove,

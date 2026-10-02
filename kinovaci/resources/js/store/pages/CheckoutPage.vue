@@ -5,6 +5,7 @@ import { getToken } from '../api/client'
 import { formatMoney } from '../lib/format'
 import { useAuth } from '../state/auth'
 import { useCart } from '../state/cart'
+import { useSettings } from '../state/settings'
 
 const router = useRouter()
 const auth = useAuth()
@@ -12,15 +13,44 @@ const cart = useCart()
 const error = ref('')
 const loading = ref(false)
 
+const settings = useSettings()
 const form = reactive({
   customer_name: '',
   customer_phone: '',
   customer_email: '',
+  is_delivery: false,
   address: '',
   city: '',
-  payment_method: 'cod' as 'cod' | 'card',
+  delivery_details: '',
   notes: '',
 })
+const position = ref<{ latitude: number; longitude: number; accuracy: number } | null>(null)
+const locating = ref(false)
+const locationError = ref('')
+
+function locate() {
+  locationError.value = ''
+  if (!('geolocation' in navigator)) {
+    locationError.value = 'La géolocalisation n’est pas disponible sur cet appareil.'
+    return
+  }
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    (p) => {
+      position.value = {
+        latitude: p.coords.latitude,
+        longitude: p.coords.longitude,
+        accuracy: Math.round(p.coords.accuracy),
+      }
+      locating.value = false
+    },
+    () => {
+      locationError.value = 'Position refusée ou introuvable. Autorisez la localisation et réessayez.'
+      locating.value = false
+    },
+    { enableHighAccuracy: true, timeout: 20000 },
+  )
+}
 
 onMounted(async () => {
   if (!getToken()) {
@@ -52,6 +82,10 @@ async function submit() {
     router.push({ name: 'cart' })
     return
   }
+  if (form.is_delivery && !position.value && !form.address.trim()) {
+    error.value = 'Indiquez une adresse ou partagez votre position.'
+    return
+  }
   error.value = ''
   loading.value = true
   try {
@@ -59,9 +93,12 @@ async function submit() {
       customer_name: form.customer_name,
       customer_phone: form.customer_phone,
       customer_email: form.customer_email || undefined,
-      address: form.address,
-      city: form.city,
-      payment_method: form.payment_method,
+      is_delivery: form.is_delivery,
+      address: form.is_delivery ? form.address : 'Retrait en boutique KINOVA',
+      city: form.is_delivery ? form.city || 'Abidjan' : 'Abidjan',
+      latitude: form.is_delivery ? position.value?.latitude ?? null : null,
+      longitude: form.is_delivery ? position.value?.longitude ?? null : null,
+      delivery_details: form.is_delivery ? form.delivery_details || undefined : undefined,
       notes: form.notes || undefined,
     })
     router.replace({
@@ -87,15 +124,48 @@ async function submit() {
       <label>Nom complet<input v-model="form.customer_name" class="kv-input" required /></label>
       <label>Téléphone<input v-model="form.customer_phone" class="kv-input" required /></label>
       <label>Email (optionnel)<input v-model="form.customer_email" type="email" class="kv-input" /></label>
-      <label>Adresse<input v-model="form.address" class="kv-input" required /></label>
-      <label>Ville<input v-model="form.city" class="kv-input" required /></label>
-      <label>
-        Paiement
-        <select v-model="form.payment_method" class="kv-input">
-          <option value="cod">Paiement à la livraison</option>
-          <option value="card">Carte</option>
-        </select>
+      <label class="toggle">
+        <input v-model="form.is_delivery" type="checkbox" />
+        <span>
+          <strong>Se faire livrer à domicile</strong>
+          <small>{{ form.is_delivery ? 'Frais à régler directement au livreur' : 'Option : sinon retrait en boutique KINOVA (gratuit)' }}</small>
+        </span>
       </label>
+
+      <template v-if="form.is_delivery">
+        <div class="geo">
+          <div>
+            <strong>{{ position ? 'Position exacte enregistrée' : 'Ma position exacte' }}</strong>
+            <small v-if="position">Précision ±{{ position.accuracy }} m</small>
+            <small v-else>Partagez votre position pour que le livreur vous trouve.</small>
+            <small v-if="locationError" class="error">{{ locationError }}</small>
+          </div>
+          <button type="button" class="kv-btn" :disabled="locating" @click="locate">
+            {{ locating ? 'Localisation…' : position ? 'Actualiser' : 'Utiliser ma position' }}
+          </button>
+        </div>
+        <label>
+          Quartier / adresse {{ position ? '(facultatif)' : '*' }}
+          <input v-model="form.address" class="kv-input" />
+        </label>
+        <label>Ville<input v-model="form.city" class="kv-input" placeholder="Abidjan" /></label>
+        <label>
+          Précisions pour le livreur
+          <textarea
+            v-model="form.delivery_details"
+            class="kv-input"
+            rows="3"
+            maxlength="1000"
+            placeholder="Repères, immeuble, étage, couleur du portail…"
+          />
+        </label>
+        <p v-if="settings.state.data.shipping.note" class="note">{{ settings.state.data.shipping.note }}</p>
+      </template>
+
+      <div class="pay">
+        <strong>Paiement à la livraison / au retrait</strong>
+        <small>Espèces ou mobile money, à la réception du colis</small>
+      </div>
       <label>Notes<textarea v-model="form.notes" class="kv-input" rows="3" /></label>
 
       <div v-if="cart.state.items.length" class="order-items-recap">
@@ -119,7 +189,8 @@ async function submit() {
       </div>
 
       <div class="sum">
-        Total à payer : <strong>{{ formatMoney(cart.total.value) }}</strong>
+        {{ form.is_delivery && cart.shippingToCourier.value ? 'Total (hors livraison)' : 'Total à payer' }} :
+        <strong>{{ formatMoney(cart.subtotal.value + (form.is_delivery ? cart.shipping.value : 0)) }}</strong>
       </div>
 
       <p v-if="error" class="error">{{ error }}</p>
@@ -193,6 +264,63 @@ label {
 .error {
   color: #8b3a2f;
   font-size: 0.85rem;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  background: var(--kv-surface);
+  border-radius: 14px;
+  border: 1px solid rgba(197, 160, 128, 0.3);
+  cursor: pointer;
+}
+.toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--kv-gold);
+}
+.toggle span,
+.geo > div,
+.pay {
+  display: grid;
+  gap: 2px;
+}
+.toggle strong,
+.geo strong,
+.pay strong {
+  color: var(--kv-brown);
+  font-size: 0.85rem;
+}
+.toggle small,
+.geo small,
+.pay small {
+  font-weight: 500;
+  color: var(--kv-muted);
+}
+.geo,
+.pay {
+  padding: 0.8rem 1rem;
+  background: var(--kv-surface);
+  border-radius: 14px;
+  border: 1px solid rgba(197, 160, 128, 0.3);
+}
+.geo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+.pay {
+  border-color: var(--kv-brown);
+}
+.note {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--kv-brown);
+  font-size: 0.78rem;
 }
 .full {
   width: 100%;

@@ -48,6 +48,8 @@ class KinovaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FavoritesController(api)),
       ],
       child: MaterialApp(
+        navigatorKey: PushNotificationService.navigatorKey,
+        scaffoldMessengerKey: PushNotificationService.messengerKey,
         title: 'KINOVA',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,

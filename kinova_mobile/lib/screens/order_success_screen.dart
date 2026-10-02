@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/screens/invoice_screen.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
@@ -74,14 +75,29 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
               FadeSlideIn(
                 delay: const Duration(milliseconds: 100),
                 child: Text(
-                  'Merci pour votre confiance.\nN° ${order.id} — ${formatMoney(order.total)}',
+                  'Merci pour votre confiance.\nN° ${order.id} — ${formatMoney(order.total)}\n\n'
+                  'Nous vous appelons pour confirmer. Paiement à la réception'
+                  '${order.isDelivery && order.shipping <= 0 ? ', frais de livraison à régler au livreur' : ''}.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: KinovaColors.mutedBrown,
-                      ),
+                    color: KinovaColors.mutedBrown,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
               const Spacer(),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 160),
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => InvoiceScreen(order: order),
+                    ),
+                  ),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: const Text('VOIR MA FACTURE PROVISOIRE'),
+                ),
+              ),
+              const SizedBox(height: 12),
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: ElevatedButton(

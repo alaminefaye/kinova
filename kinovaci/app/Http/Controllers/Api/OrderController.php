@@ -16,15 +16,19 @@ class OrderController extends Controller
     public function store(Request $request, NotificationService $notifications)
     {
         $isDelivery = $request->boolean('is_delivery', true);
+        $hasPosition = $request->filled('latitude') && $request->filled('longitude');
 
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:120'],
             'customer_phone' => ['required', 'string', 'max:40'],
             'customer_email' => ['nullable', 'email'],
             'is_delivery' => ['nullable', 'boolean'],
-            'address' => [$isDelivery ? 'required' : 'nullable', 'string', 'max:255'],
+            'address' => [($isDelivery && ! $hasPosition) ? 'required' : 'nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:120'],
-            'payment_method' => ['required', 'string', 'max:50'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'delivery_details' => ['nullable', 'string', 'max:1000'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,id'],
@@ -84,9 +88,17 @@ class OrderController extends Controller
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
                 'customer_email' => $data['customer_email'] ?? null,
-                'address' => $isDelivery ? $data['address'] : ($data['address'] ?? 'Retrait en boutique KINOVA'),
-                'city' => $isDelivery ? ($data['city'] ?? 'Abidjan') : ($data['city'] ?? 'Abidjan'),
-                'payment_method' => $data['payment_method'],
+                'is_delivery' => $isDelivery,
+                'address' => $isDelivery
+                    ? (($data['address'] ?? null) ?: 'Position GPS partagée')
+                    : 'Retrait en boutique KINOVA',
+                'city' => ($data['city'] ?? null) ?: 'Abidjan',
+                'latitude' => $isDelivery ? ($data['latitude'] ?? null) : null,
+                'longitude' => $isDelivery ? ($data['longitude'] ?? null) : null,
+                'delivery_details' => $isDelivery ? ($data['delivery_details'] ?? null) : null,
+                // Seul mode de paiement proposé : à la livraison / au retrait
+                'payment_method' => 'cod',
+                'payment_status' => 'unpaid',
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'shipping' => $shipping,
@@ -111,9 +123,8 @@ class OrderController extends Controller
             return $order->load('items');
         });
 
-        if ($order->user_id) {
-            $notifications->notifyOrderStatus($order);
-        }
+        $notifications->notifyOrderCreated($order);
+        $notifications->notifyAdminsNewOrder($order);
 
         return response()->json(['data' => $order], 201);
     }

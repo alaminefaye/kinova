@@ -57,7 +57,15 @@ const cart = useCart()
         <div><span>Articles</span><strong>{{ formatMoney(cart.subtotal.value) }}</strong></div>
         <div>
           <span>Livraison</span>
-          <strong>{{ cart.shipping.value === 0 ? 'Offerte' : formatMoney(cart.shipping.value) }}</strong>
+          <strong>
+            {{
+              cart.shippingToCourier.value
+                ? 'Option, réglée au livreur'
+                : cart.shipping.value === 0
+                  ? 'Offerte'
+                  : formatMoney(cart.shipping.value)
+            }}
+          </strong>
         </div>
         <div class="total"><span>Total</span><strong>{{ formatMoney(cart.total.value) }}</strong></div>
       </section>

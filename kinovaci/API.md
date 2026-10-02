@@ -47,6 +47,7 @@ Pages admin :
 - `/dashboard/admin/loyalty` points VIP clients
 - `/dashboard/admin/users`
 - `/dashboard/admin/settings` livraison, règle fidélité, sections et textes de l’accueil
+- `/facture/{reference}?t=…` facture imprimable (provisoire → confirmée une fois livrée et payée) ; lien fourni dans `invoice_url`
 
 ### Compte client démo (API)
 
@@ -66,7 +67,7 @@ Pages admin :
 | GET | `/api/products/{id}` | Détail produit |
 | GET | `/api/hero-slides` | Slides actifs du carrousel accueil |
 | GET | `/api/settings` | Livraison, fidélité, sections visibles et textes de l’accueil |
-| POST | `/api/orders` | Créer commande (optionnel Bearer client) |
+| POST | `/api/orders` | Créer commande (optionnel Bearer client). Paiement à la livraison uniquement. Champs livraison : `is_delivery`, `address` (facultatif si position), `latitude`, `longitude`, `delivery_details`. Notifie le client + les admins (push + liste) |
 | GET | `/api/orders/{reference}` | Suivi commande (tracking inclus) |
 | GET | `/api/help` | FAQ + contacts |
 | POST | `/api/contact` | Envoyer message aide |
@@ -107,7 +108,7 @@ Pages admin :
 | CRUD | `/api/admin/categories` | Catégories |
 | CRUD | `/api/admin/products` | Produits |
 | CRUD | `/api/admin/hero-slides` | Slider accueil (app mobile) |
-| GET/PUT | `/api/admin/orders` | Commandes / statut / tracking |
+| GET/PUT | `/api/admin/orders` | Commandes / statut / tracking / `payment_status` (`unpaid`/`paid`). Passer en `delivered` marque la commande payée → facture confirmée |
 | POST | `/api/admin/media` | Upload image (`multipart` field `image`) |
 | GET/PUT | `/api/admin/settings` | Paramètres boutique (placeholders `{seuil}`, `{frais}`, `{montant}`, `{points}`) |
 | GET/POST/DELETE | `/api/admin/notifications` | Notifications |
