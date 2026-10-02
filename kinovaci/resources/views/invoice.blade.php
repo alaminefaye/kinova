@@ -22,6 +22,8 @@
         .wrap { max-width: 760px; margin: 24px auto; background: #fff; border-radius: 18px; padding: 32px; box-shadow: 0 10px 30px rgba(62, 39, 35, .12); }
         header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 2px solid #d4af37; padding-bottom: 18px; }
         .brand { font-family: Georgia, 'Playfair Display', serif; font-size: 28px; letter-spacing: 6px; font-weight: 700; }
+        .brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+        .logo { width: 64px; height: 64px; border-radius: 14px; object-fit: cover; }
         .muted { color: #8a7563; font-size: 13px; }
         .badge { display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 1px; }
         .badge.provisional { background: #fff4d6; color: #8a6200; border: 1px solid #e6c200; }
@@ -48,7 +50,10 @@
 <div class="wrap">
     <header>
         <div>
-            <div class="brand">KINOVA</div>
+            <div class="brand-row">
+                <img src="{{ asset('images/logo.png') }}" alt="KINOVA" class="logo">
+                <div class="brand">KINOVA</div>
+            </div>
             <div class="muted">Boutique KINOVA — Abidjan</div>
             @if ($support['phone'])<div class="muted">{{ $support['phone'] }}</div>@endif
             @if ($support['email'])<div class="muted">{{ $support['email'] }}</div>@endif

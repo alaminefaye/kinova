@@ -55,13 +55,25 @@ class InvoiceScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
                         'KINOVA',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'PlayfairDisplay',
-                          fontSize: 22,
-                          letterSpacing: 4,
+                          fontSize: 20,
+                          letterSpacing: 3,
                           fontWeight: FontWeight.w700,
                           color: KinovaColors.brown,
                         ),

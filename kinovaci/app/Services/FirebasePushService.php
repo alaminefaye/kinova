@@ -6,6 +6,7 @@ use App\Models\DeviceToken;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Exception\MessagingException;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification as FcmNotification;
@@ -20,6 +21,8 @@ class FirebasePushService
     /** Logo affiché dans la notification : URL publique, joignable par les téléphones. */
     private const LOGO_URL = 'https://kinovaci.com/images/logo.png';
 
+    public ?string $lastError = null;
+
     public function sendToUser(
         User $user,
         string $title,
@@ -28,6 +31,9 @@ class FirebasePushService
         ?array $data = null,
     ): int {
         if (! $this->isEnabled()) {
+            $this->lastError = 'Push désactivé ou fichier de clé Firebase introuvable : '.$this->credentialsPath();
+            Log::warning('Push non envoyé', ['user_id' => $user->id, 'raison' => $this->lastError]);
+
             return 0;
         }
 
@@ -64,12 +70,19 @@ class FirebasePushService
             return false;
         }
 
+        $path = $this->credentialsPath();
+
+        return $path !== null && is_file($path);
+    }
+
+    public function credentialsPath(): ?string
+    {
         $credentials = config('firebase.projects.app.credentials');
         if (! is_string($credentials) || $credentials === '') {
-            return false;
+            return null;
         }
 
-        return is_file($this->resolveCredentialsPath($credentials));
+        return $this->resolveCredentialsPath($credentials);
     }
 
     private function messaging(): ?Messaging
@@ -77,6 +90,7 @@ class FirebasePushService
         try {
             return app(Messaging::class);
         } catch (\Throwable $e) {
+            $this->lastError = 'Firebase indisponible : '.$e->getMessage();
             Log::warning('Firebase Messaging indisponible', [
                 'error' => $e->getMessage(),
             ]);
@@ -118,32 +132,31 @@ class FirebasePushService
             $messaging->send($cloudMessage);
 
             return true;
+        } catch (NotFound $e) {
+            // Application désinstallée ou jeton expiré : seul cas où le jeton est supprimé.
+            DeviceToken::query()->where('token', $token)->delete();
+            $this->lastError = 'Jeton expiré (app désinstallée ?) : supprimé.';
+
+            return false;
         } catch (MessagingException $e) {
-            if ($this->isInvalidToken($e)) {
+            $this->lastError = $e->getMessage();
+            if (str_contains($e->getMessage(), 'not a valid FCM registration token')) {
                 DeviceToken::query()->where('token', $token)->delete();
-            } else {
-                Log::warning('Échec envoi FCM', [
-                    'token' => substr($token, 0, 16).'…',
-                    'error' => $e->getMessage(),
-                ]);
+
+                return false;
             }
+            Log::warning('Échec envoi FCM', [
+                'token' => substr($token, 0, 16).'…',
+                'error' => $e->getMessage(),
+            ]);
 
             return false;
         } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
             Log::warning('Erreur envoi FCM', ['error' => $e->getMessage()]);
 
             return false;
         }
-    }
-
-    private function isInvalidToken(MessagingException $e): bool
-    {
-        $message = strtolower($e->getMessage());
-
-        return str_contains($message, 'not found')
-            || str_contains($message, 'unregistered')
-            || str_contains($message, 'invalid')
-            || str_contains($message, 'registration token');
     }
 
     /**
