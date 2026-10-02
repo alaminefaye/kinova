@@ -109,6 +109,7 @@ Pages admin :
 | CRUD | `/api/admin/hero-slides` | Slider accueil (app mobile) |
 | GET/PUT | `/api/admin/orders` | Commandes / statut / tracking |
 | POST | `/api/admin/media` | Upload image (`multipart` field `image`) |
+| GET/PUT | `/api/admin/settings` | Paramètres boutique (placeholders `{seuil}`, `{frais}`, `{montant}`, `{points}`) |
 | GET/POST/DELETE | `/api/admin/notifications` | Notifications |
 | GET/PUT | `/api/admin/contact-messages` | Messages contact |
 | GET | `/api/admin/loyalty/customers` | Clients + points |
