@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/screens/notifications_screen.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
@@ -17,6 +18,7 @@ class PushNotificationService {
   PushNotificationService._();
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static const _soundChannel = MethodChannel('kinova/notification_sound');
   static ApiClient? _api;
   static bool _initialized = false;
   static bool _pendingOpen = false;
@@ -71,8 +73,10 @@ class PushNotificationService {
   static void _onForegroundMessage(RemoteMessage message) {
     received.value++;
 
-    // iOS affiche déjà la bannière système au premier plan.
+    // iOS affiche déjà la bannière système (avec le son) au premier plan.
     if (Platform.isIOS) return;
+
+    _soundChannel.invokeMethod<void>('play').catchError((_) {});
 
     final title = message.notification?.title ?? 'KINOVA';
     final body = message.notification?.body ?? '';
@@ -85,27 +89,43 @@ class PushNotificationService {
         duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         backgroundColor: KinovaColors.brown,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        content: Row(
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: KinovaColors.goldLight,
-                fontWeight: FontWeight.w700,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 42,
+                height: 42,
+                fit: BoxFit.cover,
               ),
             ),
-            if (body.isNotEmpty)
-              Text(
-                body,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: KinovaColors.cream,
-                  fontSize: 12.5,
-                ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: KinovaColors.goldLight,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (body.isNotEmpty)
+                    Text(
+                      body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: KinovaColors.cream,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
         action: SnackBarAction(

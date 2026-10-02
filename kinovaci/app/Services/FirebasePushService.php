@@ -12,6 +12,14 @@ use Kreait\Firebase\Messaging\Notification as FcmNotification;
 
 class FirebasePushService
 {
+    /** Doivent correspondre aux ressources de l'app (res/raw, Runner/*.caf) et au canal Android. */
+    private const ANDROID_CHANNEL = 'kinova_alerts';
+
+    private const SOUND = 'kinova_notification';
+
+    /** Logo affiché dans la notification : URL publique, joignable par les téléphones. */
+    private const LOGO_URL = 'https://kinovaci.com/images/logo.png';
+
     public function sendToUser(
         User $user,
         string $title,
@@ -87,15 +95,25 @@ class FirebasePushService
         try {
             $cloudMessage = CloudMessage::new()
                 ->withToken($token)
-                ->withNotification(FcmNotification::create($title, $message))
+                ->withNotification(FcmNotification::create($title, $message, self::LOGO_URL))
                 ->withData($data)
-                ->withHighestPossiblePriority()
                 ->withAndroidConfig([
                     'notification' => [
-                        'channel_id' => 'kinova_default',
-                        'sound' => 'default',
+                        'channel_id' => self::ANDROID_CHANNEL,
+                        'sound' => self::SOUND,
+                        'icon' => 'ic_notification',
+                        'color' => '#C5A080',
                     ],
-                ]);
+                ])
+                ->withApnsConfig([
+                    'payload' => [
+                        'aps' => [
+                            'sound' => self::SOUND.'.caf',
+                        ],
+                    ],
+                ])
+                // Après les configs Android/APNs, sinon elles écrasent la priorité.
+                ->withHighestPossiblePriority();
 
             $messaging->send($cloudMessage);
 
