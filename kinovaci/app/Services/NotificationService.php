@@ -158,8 +158,8 @@ class NotificationService
     private function admins(): Collection
     {
         return User::query()
-            ->where('role', 'admin')
-            ->orWhereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'super-admin', 'manager']))
+            ->where('is_blocked', false)
+            ->whereHas('roles', fn ($q) => $q->where('name', 'super-admin'))
             ->get()
             ->unique('id')
             ->values();
@@ -215,7 +215,7 @@ class NotificationService
                     ? 'Votre commande est en route. Le livreur vous appellera. Paiement à la réception, frais de livraison à régler au livreur.'
                     : 'Votre commande est prête : vous pouvez venir la retirer en boutique. Paiement au retrait.',
                 'delivered' => $order->payment_status === 'paid'
-                    ? "Commande livrée et payée ({$total}). Votre facture est confirmée. Merci pour votre confiance !"
+                    ? "Commande livrée et payée ({$total}). Votre facture est désormais définitive. Merci pour votre confiance !"
                     : 'Votre commande a été livrée. Merci pour votre confiance !',
                 'cancelled' => 'Votre commande a été annulée par la boutique. Pour toute question, contactez notre service client.',
                 default => 'Le statut de votre commande a été mis à jour.',
@@ -227,7 +227,7 @@ class NotificationService
             $title = $order->payment_status === 'paid' ? "Paiement reçu — {$ref}" : "Paiement — {$ref}";
             $parts[] = $order->payment_status === 'paid'
                 ? "Nous avons bien reçu votre paiement de {$total}."
-                    .($order->invoice_status === 'confirmed' ? ' Votre facture est confirmée.' : '')
+                    .($order->invoice_status === 'confirmed' ? ' Votre facture est désormais définitive.' : '')
                 : 'Le paiement de votre commande est indiqué comme non reçu. Contactez-nous en cas d’erreur.';
             if ($trackingChanged) {
                 $parts[] = trim($tracking);
@@ -270,7 +270,7 @@ class NotificationService
             'processing' => 'Votre commande est confirmée et en préparation.',
             'shipped' => 'Votre commande est en route'.($order->tracking_number ? " (suivi: {$order->tracking_number})" : '').'.',
             'delivered' => $order->payment_status === 'paid'
-                ? 'Votre commande a été livrée et payée. Votre facture est confirmée. Merci !'
+                ? 'Votre commande a été livrée et payée. Votre facture est désormais définitive. Merci !'
                 : 'Votre commande a été livrée. Merci !',
             'cancelled' => 'Votre commande a été annulée.',
         ];

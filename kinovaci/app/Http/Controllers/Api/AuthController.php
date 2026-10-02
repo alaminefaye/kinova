@@ -31,7 +31,12 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('kinova')->plainTextToken;
+        // Connexion dashboard : aucun jeton n'est délivré aux comptes non super-admin.
+        if (! $user->isSuperAdmin()) {
+            return response()->json(['message' => 'Accès réservé aux super-administrateurs.'], 403);
+        }
+
+        $token = $user->createToken('kinova-dashboard')->plainTextToken;
 
         $roleNames = $user->roles->pluck('name')->toArray();
         if (empty($roleNames) && $user->role) {

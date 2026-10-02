@@ -22,9 +22,9 @@ class InvoiceScreen extends StatelessWidget {
     final date = DateFormat('dd/MM/yyyy HH:mm');
     final (label, color, note) = switch (order.invoiceStatus) {
       'confirmed' => (
-        'FACTURE CONFIRMÉE — PAYÉE',
+        'FACTURE — PAYÉE',
         Colors.green,
-        'Colis livré et paiement reçu. Cette facture est définitive.',
+        'Paiement reçu. Cette facture est définitive.',
       ),
       'cancelled' => (
         'COMMANDE ANNULÉE',
@@ -34,7 +34,7 @@ class InvoiceScreen extends StatelessWidget {
       _ => (
         'FACTURE PROVISOIRE',
         const Color(0xFFB7791F),
-        'Elle deviendra définitive une fois le colis livré et payé.'
+        'Elle deviendra définitive dès réception du paiement.'
             '${order.isDelivery && order.shipping <= 0 ? ' Les frais de livraison se règlent directement au livreur.' : ''}',
       ),
     };

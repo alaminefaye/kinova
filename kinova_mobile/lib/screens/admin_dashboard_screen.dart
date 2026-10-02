@@ -946,7 +946,7 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                   const SizedBox(height: 4),
                   Text(
                     paymentStatus == 'paid'
-                        ? 'Paiement reçu — facture confirmée si livrée'
+                        ? 'Paiement reçu — facture définitive'
                         : 'Paiement à la livraison — non encore payé',
                     style: TextStyle(
                       color: paymentStatus == 'paid'

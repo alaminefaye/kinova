@@ -159,7 +159,7 @@ onMounted(load)
                 rel="noopener"
                 class="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700"
               >
-                {{ selected.invoice_status === 'confirmed' ? 'Facture confirmée' : 'Facture provisoire' }}
+                {{ selected.invoice_status === 'confirmed' ? 'Facture payée' : 'Facture provisoire' }}
               </a>
               <button
                 v-if="selected.payment_status !== 'paid' && selected.status !== 'cancelled'"

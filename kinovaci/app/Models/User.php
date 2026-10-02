@@ -44,6 +44,12 @@ class User extends Authenticatable
         ];
     }
 
+    /** Seul rôle autorisé à accéder au dashboard et à l'API /admin. */
+    public function isSuperAdmin(): bool
+    {
+        return ! $this->is_blocked && $this->hasRole('super-admin');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin' 

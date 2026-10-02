@@ -170,7 +170,7 @@ class OrderCard extends StatelessWidget {
     final date = DateFormat('dd/MM/yyyy');
     final (badgeBg, badgeFg) = orderStatusColors(order.statusCode);
     final invoiceLabel = switch (order.invoiceStatus) {
-      'confirmed' => 'Facture confirmée',
+      'confirmed' => 'Facture payée',
       'cancelled' => 'Facture annulée',
       _ => 'Facture provisoire',
     };

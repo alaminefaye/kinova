@@ -251,14 +251,9 @@ class AppUser {
   final List<String> roles;
   final List<String> permissions;
 
-  bool get isAdmin =>
-      role == 'admin' ||
-      roles.contains('admin') ||
-      roles.contains('super-admin') ||
-      roles.contains('manager');
+  bool get isSuperAdmin => roles.contains('super-admin');
 
-  bool get isSuperAdmin =>
-      roles.contains('super-admin') || (role == 'admin' && roles.isEmpty);
+  bool get isAdmin => isSuperAdmin;
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     final email = json['email']?.toString();

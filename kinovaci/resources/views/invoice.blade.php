@@ -4,7 +4,7 @@
     $money = fn ($v) => AppSettings::formatMoney((float) $v);
     $status = $order->invoice_status;
     $statusLabel = [
-        'confirmed' => 'FACTURE CONFIRMÉE — PAYÉE',
+        'confirmed' => 'FACTURE — PAYÉE',
         'provisional' => 'FACTURE PROVISOIRE',
         'cancelled' => 'COMMANDE ANNULÉE',
     ][$status] ?? 'FACTURE';
@@ -129,11 +129,11 @@
 
     <div class="note">
         @if ($status === 'confirmed')
-            Colis livré et paiement reçu. Cette facture est définitive. Merci pour votre confiance.
+            Paiement reçu. Cette facture est définitive. Merci pour votre confiance.
         @elseif ($status === 'cancelled')
             Cette commande a été annulée. Aucun montant n’est dû.
         @else
-            Facture provisoire : elle deviendra définitive une fois le colis livré et payé.
+            Facture provisoire : elle deviendra définitive dès réception du paiement.
             @if ($order->is_delivery && (float) $order->shipping <= 0)
                 Les frais de livraison ne sont pas inclus et se règlent directement au livreur.
             @endif

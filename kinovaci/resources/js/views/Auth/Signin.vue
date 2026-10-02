@@ -20,8 +20,9 @@
                   v-model="email"
                   type="email"
                   required
+                  autocomplete="username"
                   class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                  placeholder="admin@kinova.test"
+                  placeholder="votre@email.com"
                 />
               </div>
               <div>
@@ -30,8 +31,9 @@
                   v-model="password"
                   type="password"
                   required
+                  autocomplete="current-password"
                   class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                  placeholder="password"
+                  placeholder="••••••••••••"
                 />
               </div>
 
@@ -70,10 +72,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import FullScreenLayout from '@/components/layout/FullScreenLayout.vue'
 import { api, setToken } from '@/api/client'
+import { isSuperAdmin, session, type AdminUser } from '@/api/session'
 
 const router = useRouter()
-const email = ref('admin@kinova.test')
-const password = ref('password')
+const email = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -81,14 +84,16 @@ async function submit() {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<{ token: string; user: { role: string } }>('/auth/login', {
+    const res = await api<{ token: string; user: AdminUser }>('/auth/login', {
       method: 'POST',
       json: { email: email.value, password: password.value },
     })
-    if (res.user.role !== 'admin') {
-      throw new Error('Compte non admin')
+    if (!isSuperAdmin(res.user)) {
+      throw new Error('Accès réservé aux super-administrateurs.')
     }
     setToken(res.token)
+    session.user = res.user
+    password.value = ''
     router.push('/')
   } catch (e: any) {
     error.value = e.message || 'Connexion impossible'

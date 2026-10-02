@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getToken } from '@/api/client'
+import { ensureSession } from '@/api/session'
 
 const router = createRouter({
   history: createWebHistory('/dashboard/admin/'),
@@ -88,21 +89,15 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to) => {
   document.title = `${to.meta.title || 'Dashboard'} | KINOVA`
-  const token = getToken()
 
-  if (to.meta.requiresAuth && !token) {
-    next({ name: 'Signin' })
-    return
-  }
+  // Le jeton seul ne suffit pas : le serveur doit confirmer un compte super-admin.
+  const user = getToken() ? await ensureSession() : null
 
-  if (to.meta.guest && token) {
-    next({ name: 'Dashboard' })
-    return
-  }
-
-  next()
+  if (to.meta.requiresAuth && !user) return { name: 'Signin' }
+  if (to.meta.guest && user) return { name: 'Dashboard' }
+  return true
 })
 
 export default router

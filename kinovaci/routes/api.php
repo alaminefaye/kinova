@@ -58,15 +58,16 @@ Route::post('/contact', [ContactController::class, 'store']);
 | Auth admin (dashboard)
 |--------------------------------------------------------------------------
 */
-Route::post('/auth/login', [AuthController::class, 'login']);
+// Limite les essais de mots de passe (par IP) : 5 tentatives / minute.
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------
 | Auth client (future app mobile)
 |--------------------------------------------------------------------------
 */
-Route::post('/customer/auth/register', [CustomerAuthController::class, 'register']);
-Route::post('/customer/auth/login', [CustomerAuthController::class, 'login']);
+Route::post('/customer/auth/register', [CustomerAuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('/customer/auth/login', [CustomerAuthController::class, 'login'])->middleware('throttle:10,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);

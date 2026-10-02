@@ -29,8 +29,12 @@ export async function api<T = any>(path: string, options: ApiOptions = {}): Prom
     body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
   })
 
-  if (response.status === 401) {
+  // Session expirée, révoquée ou compte qui n'est plus super-admin : retour à la connexion.
+  if ((response.status === 401 || response.status === 403) && token && !path.startsWith('/auth/login')) {
     setToken(null)
+    if (!location.pathname.endsWith('/signin')) {
+      location.href = '/dashboard/admin/signin'
+    }
   }
 
   const data = await response.json().catch(() => ({}))

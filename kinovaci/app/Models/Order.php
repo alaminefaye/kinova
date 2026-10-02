@@ -79,8 +79,8 @@ class Order extends Model
     }
 
     /**
-     * provisional : commande passée, pas encore livrée et payée
-     * confirmed   : colis livré et payé
+     * provisional : commande passée, paiement pas encore reçu
+     * confirmed   : paiement reçu (facture définitive)
      * cancelled   : commande annulée
      */
     public function getInvoiceStatusAttribute(): string
@@ -89,9 +89,7 @@ class Order extends Model
             return 'cancelled';
         }
 
-        return ($this->status === 'delivered' && $this->payment_status === 'paid')
-            ? 'confirmed'
-            : 'provisional';
+        return $this->payment_status === 'paid' ? 'confirmed' : 'provisional';
     }
 
     public function invoiceToken(): string

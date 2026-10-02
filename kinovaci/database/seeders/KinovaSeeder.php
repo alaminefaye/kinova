@@ -14,34 +14,27 @@ use App\Models\User;
 use App\Services\LoyaltyService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class KinovaSeeder extends Seeder
 {
     public function run(): void
     {
-        User::query()->updateOrCreate(
-            ['email' => 'admin@kinova.test'],
-            [
-                'name' => 'Admin KINOVA',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'phone' => '+22500000000',
-            ]
-        );
+        $this->seedAccount('admin@kinova.test', [
+            'name' => 'Admin KINOVA',
+            'role' => 'admin',
+            'phone' => '+22500000000',
+        ]);
 
-        $customer = User::query()->updateOrCreate(
-            ['email' => 'client@kinova.test'],
-            [
-                'name' => 'Awa Koné',
-                'password' => Hash::make('password'),
-                'role' => 'customer',
-                'phone' => '+22507000000',
-                'address' => 'Cocody, Riviera',
-                'city' => 'Abidjan',
-                'loyalty_points' => 65,
-                'vip_tier' => LoyaltyService::tierFor(65),
-            ]
-        );
+        $customer = $this->seedAccount('client@kinova.test', [
+            'name' => 'Awa Koné',
+            'role' => 'customer',
+            'phone' => '+22507000000',
+            'address' => 'Cocody, Riviera',
+            'city' => 'Abidjan',
+            'loyalty_points' => 65,
+            'vip_tier' => LoyaltyService::tierFor(65),
+        ]);
 
         $categories = [
             [
@@ -896,5 +889,25 @@ class KinovaSeeder extends Seeder
                 'status' => 'new',
             ]);
         }
+    }
+
+    /**
+     * Crée le compte s'il n'existe pas. Le mot de passe n'est défini qu'à la création
+     * (jamais réécrit), et n'est jamais « password » en production.
+     */
+    private function seedAccount(string $email, array $attributes): User
+    {
+        $user = User::query()->firstOrNew(['email' => $email]);
+        $user->fill($attributes);
+
+        if (! $user->exists) {
+            $password = app()->isProduction() ? Str::random(24) : 'password';
+            $user->password = Hash::make($password);
+            $this->command?->warn("Compte {$email} créé — mot de passe : {$password}");
+        }
+
+        $user->save();
+
+        return $user;
     }
 }

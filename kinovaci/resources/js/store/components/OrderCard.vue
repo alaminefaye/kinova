@@ -8,7 +8,7 @@ const emit = defineEmits<{ cancel: [order: OrderSummary] }>()
 
 const itemsCount = computed(() => props.order.items?.length ?? 0)
 const invoiceLabel = computed(() => {
-  if (props.order.invoice_status === 'confirmed') return 'Facture confirmée'
+  if (props.order.invoice_status === 'confirmed') return 'Facture payée'
   if (props.order.invoice_status === 'cancelled') return 'Facture annulée'
   return 'Facture provisoire'
 })
