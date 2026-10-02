@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class AppSettings
 {
@@ -60,7 +61,14 @@ class AppSettings
         'profile_show_next_tier' => true,
         'profile_loyalty_title' => 'FIDÉLITÉ KINOVA',
         'profile_loyalty_rule' => '{montant} dépensés = {points}',
+
+        // Facture (web + PDF de l'app)
+        'invoice_footer' => 'KINOVA — Abidjan · kinovaci.com',
+        'invoice_stamp_path' => '',
+        'invoice_stamp_label' => 'Cachet & signature',
     ];
+
+    public const INVOICE_STAMP_DIR = 'invoice';
 
     public const INTEGER_KEYS = [
         'shipping_fee',
@@ -149,6 +157,20 @@ class AppSettings
         ]);
     }
 
+    public static function invoicePayload(?array $settings = null): array
+    {
+        $s = $settings ?? self::all();
+        $path = $s['invoice_stamp_path'];
+
+        return [
+            'footer' => trim($s['invoice_footer']),
+            'stamp_url' => $path !== '' && Storage::disk('public')->exists($path)
+                ? Storage::disk('public')->url($path)
+                : null,
+            'stamp_label' => trim($s['invoice_stamp_label']),
+        ];
+    }
+
     /**
      * Payload consommé par l'app mobile et la boutique web.
      */
@@ -202,6 +224,7 @@ class AppSettings
                 'loyalty_title' => self::render($s['profile_loyalty_title'], $s),
                 'loyalty_rule' => self::render($s['profile_loyalty_rule'], $s),
             ],
+            'invoice' => self::invoicePayload($s),
         ];
     }
 

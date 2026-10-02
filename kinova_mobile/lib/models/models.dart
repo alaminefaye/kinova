@@ -35,21 +35,14 @@ class HeroSlide {
 }
 
 class ProductSize {
-  const ProductSize({
-    required this.name,
-    this.stock = 0,
-  });
+  const ProductSize({required this.name, this.stock = 0});
 
   final String name;
   final int stock;
 }
 
 class ProductColor {
-  const ProductColor({
-    required this.name,
-    this.hex,
-    this.stock = 0,
-  });
+  const ProductColor({required this.name, this.hex, this.stock = 0});
 
   final String name;
   final String? hex;
@@ -95,7 +88,8 @@ class Product {
   List<ProductSize> get effectiveSizes => sizes ?? const [];
   List<ProductColor> get effectiveColors => colors ?? const [];
 
-  bool get hasPromo => promoPrice != null && promoPrice! > 0 && promoPrice! < price;
+  bool get hasPromo =>
+      promoPrice != null && promoPrice! > 0 && promoPrice! < price;
 
   double get effectivePrice => hasPromo ? promoPrice! : price;
 
@@ -218,8 +212,10 @@ class Order {
   final String invoiceStatus;
   final String? invoiceUrl;
 
-  /// Même règle que Order::CUSTOMER_CANCELLABLE côté Laravel (avant expédition).
-  bool get canCancel => statusCode == 'pending' || statusCode == 'processing';
+  /// Même règle que Order::getCanCancelAttribute côté Laravel.
+  bool get canCancel =>
+      paymentStatus != 'paid' &&
+      (statusCode == 'pending' || statusCode == 'processing');
 }
 
 class AppUser {
@@ -296,7 +292,10 @@ class AppUser {
       city: json['city']?.toString(),
       loyaltyPoints: int.tryParse('${json['loyalty_points'] ?? 0}') ?? 0,
       vipTier: (json['vip_tier'] ?? 'standard').toString(),
-      role: (json['role'] ?? (parsedRoles.isNotEmpty ? parsedRoles.first : 'customer')).toString(),
+      role:
+          (json['role'] ??
+                  (parsedRoles.isNotEmpty ? parsedRoles.first : 'customer'))
+              .toString(),
       roles: parsedRoles,
       permissions: parsedPerms,
     );
@@ -374,6 +373,7 @@ class AdminOrderSummary {
     required this.status,
     required this.createdAt,
     this.itemsCount = 0,
+    this.paymentStatus = 'unpaid',
   });
 
   final String id;
@@ -384,6 +384,9 @@ class AdminOrderSummary {
   final String status;
   final DateTime createdAt;
   final int itemsCount;
+  final String paymentStatus;
+
+  bool get isPaid => paymentStatus == 'paid';
 
   factory AdminOrderSummary.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
@@ -393,11 +396,12 @@ class AdminOrderSummary {
     }
 
     final rawUser = json['user'] is Map ? json['user'] as Map : null;
-    final custName = json['customer_name']?.toString() ??
+    final custName =
+        json['customer_name']?.toString() ??
         rawUser?['name']?.toString() ??
         'Client';
-    final custPhone = json['customer_phone']?.toString() ??
-        rawUser?['phone']?.toString();
+    final custPhone =
+        json['customer_phone']?.toString() ?? rawUser?['phone']?.toString();
 
     DateTime parsedDate;
     try {
@@ -417,6 +421,7 @@ class AdminOrderSummary {
       status: (json['status'] ?? 'pending').toString(),
       createdAt: parsedDate,
       itemsCount: count,
+      paymentStatus: (json['payment_status'] ?? 'unpaid').toString(),
     );
   }
 }
@@ -462,15 +467,24 @@ class AdminDashboardData {
 
   factory AdminDashboardData.fromJson(Map<String, dynamic> json) {
     final salesList = (json['sales_by_day'] as List<dynamic>? ?? [])
-        .map((e) => AdminDailySale.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) => AdminDailySale.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
         .toList();
 
     final lowStockList = (json['low_stock'] as List<dynamic>? ?? [])
-        .map((e) => AdminLowStockProduct.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) => AdminLowStockProduct.fromJson(
+            Map<String, dynamic>.from(e as Map),
+          ),
+        )
         .toList();
 
     final ordersList = (json['latest_orders'] as List<dynamic>? ?? [])
-        .map((e) => AdminOrderSummary.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) =>
+              AdminOrderSummary.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
         .toList();
 
     return AdminDashboardData(
@@ -491,7 +505,8 @@ class AdminDashboardData {
       deliveredOrders: int.tryParse('${json['delivered_orders'] ?? 0}') ?? 0,
       cancelledOrders: int.tryParse('${json['cancelled_orders'] ?? 0}') ?? 0,
       totalCustomers: int.tryParse('${json['total_customers'] ?? 0}') ?? 0,
-      newCustomersToday: int.tryParse('${json['new_customers_today'] ?? 0}') ?? 0,
+      newCustomersToday:
+          int.tryParse('${json['new_customers_today'] ?? 0}') ?? 0,
       productsCount: int.tryParse('${json['products_count'] ?? 0}') ?? 0,
       categoriesCount: int.tryParse('${json['categories_count'] ?? 0}') ?? 0,
       salesByDay: salesList,

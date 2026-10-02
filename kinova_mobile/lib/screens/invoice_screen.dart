@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/screens/invoice_pdf_screen.dart';
 import 'package:kinova_mobile/screens/orders_screen.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
 
 class InvoiceScreen extends StatelessWidget {
-  const InvoiceScreen({super.key, required this.order});
+  const InvoiceScreen({
+    super.key,
+    required this.order,
+    this.allowCancel = true,
+  });
 
   final Order order;
 
-  Future<void> _openPdf() async {
-    final url = order.invoiceUrl;
-    if (url == null) return;
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  /// Faux côté admin : l'annulation client passe par une autre route.
+  final bool allowCancel;
+
+  void _openPdf(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => InvoicePdfScreen(order: order)));
   }
 
   @override
@@ -219,15 +226,13 @@ class InvoiceScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (order.invoiceUrl != null) ...[
-            const SizedBox(height: 18),
-            OutlinedButton.icon(
-              onPressed: _openPdf,
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('OUVRIR / ENREGISTRER EN PDF'),
-            ),
-          ],
-          if (order.canCancel) ...[
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: () => _openPdf(context),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: const Text('VOIR / ENREGISTRER EN PDF'),
+          ),
+          if (allowCancel && order.canCancel) ...[
             const SizedBox(height: 10),
             TextButton.icon(
               onPressed: () async {

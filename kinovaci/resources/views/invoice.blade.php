@@ -40,6 +40,9 @@
         .totals div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
         .totals .grand { border-top: 2px solid #2c1e14; margin-top: 6px; padding-top: 8px; font-weight: 800; font-size: 17px; }
         .note { margin-top: 22px; padding: 14px; border-radius: 12px; background: #faf6f1; font-size: 13px; color: #5c4a3d; }
+        .stamp { margin: 18px 0 0 auto; width: 100%; max-width: 320px; text-align: center; }
+        .stamp img { max-width: 180px; max-height: 140px; object-fit: contain; }
+        .invoice-footer { margin-top: 26px; padding-top: 12px; border-top: 1px solid #eadfd3; text-align: center; font-size: 12px; line-height: 1.6; color: #8a7563; }
         .actions { text-align: center; margin: 18px 0 30px; }
         .actions button { background: #2c1e14; color: #f7e7ce; border: 0; padding: 12px 22px; border-radius: 999px; font-weight: 700; letter-spacing: 1px; cursor: pointer; }
         @media (max-width: 600px) { .wrap { margin: 0; border-radius: 0; padding: 20px; } .grid { grid-template-columns: 1fr; } }
@@ -127,6 +130,13 @@
         <div class="grand"><span>Total</span><span>{{ $money($order->total) }}</span></div>
     </div>
 
+    @if ($invoice['stamp_url'] && $status !== 'cancelled')
+        <div class="stamp">
+            <img src="{{ $invoice['stamp_url'] }}" alt="Cachet KINOVA">
+            @if ($invoice['stamp_label'])<div class="muted">{{ $invoice['stamp_label'] }}</div>@endif
+        </div>
+    @endif
+
     <div class="note">
         @if ($status === 'confirmed')
             Paiement reçu. Cette facture est définitive. Merci pour votre confiance.
@@ -139,6 +149,10 @@
             @endif
         @endif
     </div>
+
+    @if ($invoice['footer'])
+        <footer class="invoice-footer">{!! nl2br(e($invoice['footer'])) !!}</footer>
+    @endif
 </div>
 <div class="actions">
     <button type="button" onclick="window.print()">IMPRIMER / ENREGISTRER EN PDF</button>

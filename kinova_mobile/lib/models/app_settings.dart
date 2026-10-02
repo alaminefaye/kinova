@@ -16,8 +16,7 @@ class AppSettings {
     this.showVipBanner = true,
     this.showPerks = true,
     this.showNews = true,
-    this.promoBannerText =
-        'PAIEMENT À LA LIVRAISON  •  RETOURS 14 JOURS',
+    this.promoBannerText = 'PAIEMENT À LA LIVRAISON  •  RETOURS 14 JOURS',
     this.vipTitle = 'Rejoignez le Cercle VIP',
     this.vipSubtitle = '10 000 FCFA dépensés = 1 point. Avantages exclusifs.',
     this.perks = const [
@@ -36,6 +35,9 @@ class AppSettings {
     this.profileShowNextTier = true,
     this.profileLoyaltyTitle = 'FIDÉLITÉ KINOVA',
     this.profileLoyaltyRule = '10 000 FCFA dépensés = 1 point',
+    this.invoiceFooter = 'KINOVA — Abidjan · kinovaci.com',
+    this.invoiceStampUrl,
+    this.invoiceStampLabel = 'Cachet & signature',
   });
 
   final int tierSilverPoints;
@@ -47,6 +49,11 @@ class AppSettings {
   final bool profileShowNextTier;
   final String profileLoyaltyTitle;
   final String profileLoyaltyRule;
+
+  /// Facture : pied de page (multi-lignes), cachet affiché sous le total.
+  final String invoiceFooter;
+  final String? invoiceStampUrl;
+  final String invoiceStampLabel;
 
   /// « Plus que X points pour OR », ou null si le palier max est atteint.
   String? nextTierHint(int points) {
@@ -105,6 +112,8 @@ class AppSettings {
     final texts = _map(json['texts']);
     final profile = _map(json['profile']);
     final tiers = _map(loyalty['tiers']);
+    final invoice = _map(json['invoice']);
+    final stampUrl = invoice['stamp_url']?.toString();
 
     final perksRaw = texts['perks'];
     final perks = perksRaw is List
@@ -173,6 +182,9 @@ class AppSettings {
         d.profileLoyaltyTitle,
       ),
       profileLoyaltyRule: _str(profile['loyalty_rule'], d.profileLoyaltyRule),
+      invoiceFooter: _str(invoice['footer'], d.invoiceFooter),
+      invoiceStampUrl: (stampUrl == null || stampUrl.isEmpty) ? null : stampUrl,
+      invoiceStampLabel: _str(invoice['stamp_label'], d.invoiceStampLabel),
     );
   }
 

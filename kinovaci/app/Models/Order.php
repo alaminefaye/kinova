@@ -70,7 +70,8 @@ class Order extends Model
 
     public function getCanCancelAttribute(): bool
     {
-        return in_array($this->status, self::CUSTOMER_CANCELLABLE, true);
+        return $this->payment_status !== 'paid'
+            && in_array($this->status, self::CUSTOMER_CANCELLABLE, true);
     }
 
     public function getInvoiceNumberAttribute(): string

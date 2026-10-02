@@ -124,6 +124,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/settings', [AdminSettingsController::class, 'show']);
         Route::put('/settings', [AdminSettingsController::class, 'update']);
+        Route::post('/settings/invoice-stamp', [AdminSettingsController::class, 'uploadInvoiceStamp']);
+        Route::delete('/settings/invoice-stamp', [AdminSettingsController::class, 'deleteInvoiceStamp']);
 
         Route::get('/notifications', [AdminNotificationController::class, 'index']);
         Route::post('/notifications', [AdminNotificationController::class, 'store']);

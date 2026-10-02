@@ -11,6 +11,9 @@ const error = ref('')
 const success = ref('')
 const form = reactive<Settings>({})
 const defaults = ref<Settings>({})
+const stampUrl = ref<string | null>(null)
+const stampBusy = ref(false)
+const stampInput = ref<HTMLInputElement | null>(null)
 
 const sections = [
   { key: 'section_hero', label: 'Slider accueil', hint: 'Grandes images en haut' },
@@ -70,6 +73,7 @@ async function load() {
     const res = await api<any>('/admin/settings')
     Object.assign(form, res.data || {})
     defaults.value = res.defaults || {}
+    stampUrl.value = res.preview?.invoice?.stamp_url ?? null
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -90,6 +94,46 @@ async function save() {
     error.value = e.message
   } finally {
     saving.value = false
+  }
+}
+
+function flash(message: string) {
+  success.value = message
+  setTimeout(() => (success.value = ''), 3000)
+}
+
+async function uploadStamp(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  stampBusy.value = true
+  error.value = ''
+  try {
+    const body = new FormData()
+    body.append('image', file)
+    const res = await api<any>('/admin/settings/invoice-stamp', { method: 'POST', body })
+    stampUrl.value = res.preview?.invoice?.stamp_url ?? null
+    flash(res.message || 'Cachet enregistré.')
+  } catch (e: any) {
+    error.value = e.message
+  } finally {
+    stampBusy.value = false
+  }
+}
+
+async function removeStamp() {
+  if (!confirm('Supprimer le cachet des factures ?')) return
+  stampBusy.value = true
+  error.value = ''
+  try {
+    const res = await api<any>('/admin/settings/invoice-stamp', { method: 'DELETE' })
+    stampUrl.value = null
+    flash(res.message || 'Cachet supprimé.')
+  } catch (e: any) {
+    error.value = e.message
+  } finally {
+    stampBusy.value = false
   }
 }
 
@@ -204,6 +248,76 @@ onMounted(load)
                 <span class="text-gray-500 block mb-1">VIP</span>
                 <input v-model.number="form.tier_vip_points" type="number" min="0" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Facture -->
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] space-y-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Facture</h2>
+            <p class="text-sm text-gray-500">
+              Cachet affiché sous le total et informations en pied de page (facture web et PDF de l’app mobile).
+            </p>
+          </div>
+
+          <div class="grid gap-5 md:grid-cols-[220px_1fr]">
+            <div class="space-y-2">
+              <span class="text-sm text-gray-500 block">Cachet / signature</span>
+              <div
+                class="flex h-40 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-white/5"
+              >
+                <img v-if="stampUrl" :src="stampUrl" alt="Cachet" class="max-h-full max-w-full object-contain" />
+                <span v-else class="text-center text-xs text-gray-400">Aucun cachet<br />PNG transparent conseillé</span>
+              </div>
+              <input ref="stampInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="uploadStamp" />
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="flex-1 rounded-lg border border-brand-500 px-3 py-2 text-sm font-medium text-brand-500 hover:bg-brand-50 disabled:opacity-50 dark:hover:bg-white/5"
+                  :disabled="stampBusy"
+                  @click="stampInput?.click()"
+                >
+                  {{ stampBusy ? 'Envoi…' : stampUrl ? 'Remplacer' : 'Téléverser' }}
+                </button>
+                <button
+                  v-if="stampUrl"
+                  type="button"
+                  class="rounded-lg border border-error-300 px-3 py-2 text-sm text-error-600 hover:bg-error-50 disabled:opacity-50"
+                  :disabled="stampBusy"
+                  @click="removeStamp"
+                >
+                  Supprimer
+                </button>
+              </div>
+              <p class="text-xs text-gray-400">PNG, JPG ou WEBP — 4 Mo max. Enregistré immédiatement.</p>
+            </div>
+
+            <div class="space-y-4">
+              <label class="text-sm block">
+                <span class="text-gray-500 block mb-1">Légende sous le cachet</span>
+                <input
+                  v-model="form.invoice_stamp_label"
+                  placeholder="Cachet & signature"
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+              </label>
+              <div class="text-sm">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-gray-500">Pied de page</span>
+                  <button type="button" class="text-xs text-gray-400 hover:text-brand-500" @click="resetText('invoice_footer')">Par défaut</button>
+                </div>
+                <textarea
+                  v-model="form.invoice_footer"
+                  rows="4"
+                  maxlength="1000"
+                  placeholder="Ex. KINOVA SARL — RCCM CI-ABJ-… — NCC … — Tél. 07 00 00 00 00 — Cocody, Abidjan"
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+                <p class="mt-1 text-xs text-gray-400">
+                  Raison sociale, RCCM, NCC, adresse, téléphone, email, mentions… Les retours à la ligne sont conservés.
+                </p>
+              </div>
             </div>
           </div>
         </section>

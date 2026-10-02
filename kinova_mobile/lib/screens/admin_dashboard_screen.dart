@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_config.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/models/app_settings.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/screens/admin_order_sheet.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
@@ -271,145 +271,8 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
     }
   }
 
-  Future<void> _updateOrderStatus(String orderId, String newStatus) async {
-    try {
-      final api = context.read<ApiClient>();
-      await api.put('/admin/orders/$orderId', body: {'status': newStatus});
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Statut commande mis à jour : $newStatus'),
-            backgroundColor: KinovaColors.brown,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      await _loadStats();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la mise à jour'),
-            backgroundColor: Color(0xFFB71C1C),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   void _showOrderActionSheet(AdminOrderSummary order) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF22160F),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      order.reference,
-                      style: const TextStyle(
-                        color: KinovaColors.cream,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                    Text(
-                      formatMoney(order.total),
-                      style: const TextStyle(
-                        color: KinovaColors.gold,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Client : ${order.customerName} ${order.customerPhone != null ? "(${order.customerPhone})" : ""}',
-                  style: const TextStyle(
-                    color: KinovaColors.sand,
-                    fontSize: 13,
-                  ),
-                ),
-                const Divider(color: Color(0xFF3E2723), height: 28),
-                const Text(
-                  'Changer le statut de la commande :',
-                  style: TextStyle(
-                    color: KinovaColors.cream,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _StatusBtn(
-                      label: 'En attente',
-                      current: order.status == 'pending',
-                      color: const Color(0xFFE65100),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _updateOrderStatus(order.id, 'pending');
-                      },
-                    ),
-                    _StatusBtn(
-                      label: 'En préparation',
-                      current: order.status == 'processing',
-                      color: const Color(0xFF1565C0),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _updateOrderStatus(order.id, 'processing');
-                      },
-                    ),
-                    _StatusBtn(
-                      label: 'Expédié / En livraison',
-                      current: order.status == 'shipped',
-                      color: const Color(0xFF6A1B9A),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _updateOrderStatus(order.id, 'shipped');
-                      },
-                    ),
-                    _StatusBtn(
-                      label: 'Livré avec succès',
-                      current: order.status == 'delivered',
-                      color: const Color(0xFF2E7D32),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _updateOrderStatus(order.id, 'delivered');
-                      },
-                    ),
-                    _StatusBtn(
-                      label: 'Annulé',
-                      current: order.status == 'cancelled',
-                      color: const Color(0xFFC62828),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _updateOrderStatus(order.id, 'cancelled');
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    showAdminOrderSheet(context, orderId: order.id, onChanged: _loadStats);
   }
 
   @override
@@ -796,326 +659,11 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
     }
   }
 
-  Future<void> _updateOrderStatus(dynamic orderId, String newStatus) async {
-    try {
-      final api = context.read<ApiClient>();
-      await api.put('/admin/orders/$orderId', body: {'status': newStatus});
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Commande mise à jour : $newStatus'),
-            backgroundColor: KinovaColors.brown,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      await _fetchOrders();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur de mise à jour'),
-            backgroundColor: Color(0xFFB71C1C),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _updateOrderPayment(
-    dynamic orderId,
-    String paymentStatus,
-  ) async {
-    try {
-      final api = context.read<ApiClient>();
-      await api.put(
-        '/admin/orders/$orderId',
-        body: {'payment_status': paymentStatus},
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Paiement enregistré'),
-            backgroundColor: KinovaColors.brown,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      await _fetchOrders();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur de mise à jour'),
-            backgroundColor: Color(0xFFB71C1C),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   void _showOrderDetails(Map<String, dynamic> order) {
-    final status = (order['status'] ?? 'pending').toString();
-    final ref = (order['reference'] ?? '#CMD-${order['id']}').toString();
-    final total = double.tryParse('${order['total']}') ?? 0.0;
-    final custName =
-        (order['customer_name'] ?? order['user']?['name'] ?? 'Client')
-            .toString();
-    final custPhone = (order['customer_phone'] ?? order['user']?['phone'] ?? '')
-        .toString();
-    final address = (order['address'] ?? '').toString();
-    final city = (order['city'] ?? '').toString();
-    final details = (order['delivery_details'] ?? '').toString();
-    final mapsUrl = (order['maps_url'] ?? '').toString();
-    final invoiceUrl = (order['invoice_url'] ?? '').toString();
-    final paymentStatus = (order['payment_status'] ?? 'unpaid').toString();
-    final isDelivery =
-        order['is_delivery'] != false && order['is_delivery'] != 0;
-    final items = order['items'] is List ? (order['items'] as List) : [];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF22160F),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          maxChildSize: 0.95,
-          minChildSize: 0.4,
-          expand: false,
-          builder: (_, scrollCtrl) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: ListView(
-                controller: scrollCtrl,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        ref,
-                        style: const TextStyle(
-                          color: KinovaColors.cream,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                      Text(
-                        formatMoney(total),
-                        style: const TextStyle(
-                          color: KinovaColors.gold,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Client : $custName ${custPhone.isNotEmpty ? "($custPhone)" : ""}',
-                    style: const TextStyle(
-                      color: KinovaColors.sand,
-                      fontSize: 13,
-                    ),
-                  ),
-                  if (address.isNotEmpty || city.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      '${isDelivery ? 'Livraison' : 'Retrait'} : $address, $city',
-                      style: const TextStyle(
-                        color: KinovaColors.sand,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                  if (details.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Précisions : $details',
-                      style: const TextStyle(
-                        color: KinovaColors.goldLight,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(
-                    paymentStatus == 'paid'
-                        ? 'Paiement reçu — facture définitive'
-                        : 'Paiement à la livraison — non encore payé',
-                    style: TextStyle(
-                      color: paymentStatus == 'paid'
-                          ? Colors.greenAccent
-                          : KinovaColors.sand,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      if (custPhone.isNotEmpty)
-                        _SheetAction(
-                          icon: Icons.call_rounded,
-                          label: 'Appeler',
-                          onTap: () => launchUrl(
-                            Uri.parse('tel:${custPhone.replaceAll(' ', '')}'),
-                          ),
-                        ),
-                      if (mapsUrl.isNotEmpty)
-                        _SheetAction(
-                          icon: Icons.place_rounded,
-                          label: 'Position GPS',
-                          onTap: () => launchUrl(
-                            Uri.parse(mapsUrl),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                        ),
-                      if (invoiceUrl.isNotEmpty)
-                        _SheetAction(
-                          icon: Icons.receipt_long_rounded,
-                          label: 'Facture',
-                          onTap: () => launchUrl(
-                            Uri.parse(invoiceUrl),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                        ),
-                      if (paymentStatus != 'paid' && status != 'cancelled')
-                        _SheetAction(
-                          icon: Icons.payments_rounded,
-                          label: 'Marquer payé',
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            _updateOrderPayment(order['id'], 'paid');
-                          },
-                        ),
-                    ],
-                  ),
-                  const Divider(color: Color(0xFF3E2723), height: 24),
-                  const Text(
-                    'Articles commandés :',
-                    style: TextStyle(
-                      color: KinovaColors.cream,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (items.isEmpty)
-                    const Text(
-                      'Aucun détail d\'article',
-                      style: TextStyle(color: KinovaColors.sand, fontSize: 12),
-                    )
-                  else
-                    ...items.map((it) {
-                      final name = (it['product_name'] ?? 'Produit').toString();
-                      final qty = it['quantity'] ?? 1;
-                      final price =
-                          double.tryParse(
-                            '${it['unit_price'] ?? it['line_total']}',
-                          ) ??
-                          0.0;
-                      final size = it['selected_size']?.toString();
-                      final color = it['selected_color']?.toString();
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '$qty x $name ${size != null ? "($size)" : ""} ${color != null ? "[$color]" : ""}',
-                                style: const TextStyle(
-                                  color: KinovaColors.cream,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              formatMoney(price),
-                              style: const TextStyle(
-                                color: KinovaColors.sand,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  const Divider(color: Color(0xFF3E2723), height: 24),
-                  const Text(
-                    'Changer le statut :',
-                    style: TextStyle(
-                      color: KinovaColors.cream,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _StatusBtn(
-                        label: 'En attente',
-                        current: status == 'pending',
-                        color: const Color(0xFFE65100),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _updateOrderStatus(order['id'], 'pending');
-                        },
-                      ),
-                      _StatusBtn(
-                        label: 'En préparation',
-                        current: status == 'processing',
-                        color: const Color(0xFF1565C0),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _updateOrderStatus(order['id'], 'processing');
-                        },
-                      ),
-                      _StatusBtn(
-                        label: 'Expédié / En livraison',
-                        current: status == 'shipped',
-                        color: const Color(0xFF6A1B9A),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _updateOrderStatus(order['id'], 'shipped');
-                        },
-                      ),
-                      _StatusBtn(
-                        label: 'Livré avec succès',
-                        current: status == 'delivered',
-                        color: const Color(0xFF2E7D32),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _updateOrderStatus(order['id'], 'delivered');
-                        },
-                      ),
-                      _StatusBtn(
-                        label: 'Annulé',
-                        current: status == 'cancelled',
-                        color: const Color(0xFFC62828),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _updateOrderStatus(order['id'], 'cancelled');
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    showAdminOrderSheet(
+      context,
+      orderId: '${order['id']}',
+      onChanged: _fetchOrders,
     );
   }
 
@@ -1384,6 +932,8 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                         status: status,
                         createdAt: createdAt,
                         itemsCount: itemsCount,
+                        paymentStatus: (o['payment_status'] ?? 'unpaid')
+                            .toString(),
                       );
 
                       return _OrderListItem(
@@ -4781,6 +4331,29 @@ class _OrderListItem extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      if (order.isPaid) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF66BB6A,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Payée',
+                            style: TextStyle(
+                              color: Color(0xFF66BB6A),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 7,
@@ -4805,71 +4378,6 @@ class _OrderListItem extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetAction extends StatelessWidget {
-  const _SheetAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 16, color: KinovaColors.gold),
-      label: Text(
-        label,
-        style: const TextStyle(color: KinovaColors.cream, fontSize: 12),
-      ),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: KinovaColors.gold.withValues(alpha: 0.5)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-    );
-  }
-}
-
-class _StatusBtn extends StatelessWidget {
-  const _StatusBtn({
-    required this.label,
-    required this.current,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool current;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: current ? color : color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: current ? Colors.white : color,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-          ),
         ),
       ),
     );

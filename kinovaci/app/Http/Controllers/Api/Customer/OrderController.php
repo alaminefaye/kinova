@@ -50,7 +50,9 @@ class OrderController extends Controller
             abort_unless(
                 $order->can_cancel,
                 422,
-                'Cette commande ne peut plus être annulée (déjà expédiée, livrée ou annulée). Contactez le service client.'
+                $order->payment_status === 'paid'
+                    ? 'Cette commande est déjà payée et ne peut plus être annulée. Contactez le service client.'
+                    : 'Cette commande ne peut plus être annulée (déjà expédiée, livrée ou annulée). Contactez le service client.'
             );
 
             $reason = trim((string) ($data['reason'] ?? ''));

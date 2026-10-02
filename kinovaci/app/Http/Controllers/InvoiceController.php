@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\AppSettings;
 use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
@@ -22,6 +23,7 @@ class InvoiceController extends Controller
                 'email' => config('kinova.support_email'),
                 'phone' => config('kinova.support_phone'),
             ],
+            'invoice' => AppSettings::invoicePayload(),
         ]);
     }
 }
