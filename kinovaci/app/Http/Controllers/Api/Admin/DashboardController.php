@@ -12,15 +12,15 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DashboardController extends Controller
 {
-    /** Une vente est datée du jour où elle est devenue effective (livrée et encaissée). */
-    private const SALE_DATE = 'DATE(COALESCE(delivered_at, paid_at, created_at))';
+    /** Une vente est datée du jour de l'encaissement. */
+    private const SALE_DATE = 'DATE(COALESCE(paid_at, created_at))';
 
-    /** Seules les commandes livrées ET payées comptent dans le chiffre d'affaires. */
+    /** Seules les commandes payées (non annulées) comptent dans le chiffre d'affaires. */
     private function sales(): Builder
     {
         return Order::query()
-            ->where('status', 'delivered')
-            ->where('payment_status', 'paid');
+            ->where('payment_status', 'paid')
+            ->where('status', '!=', 'cancelled');
     }
 
     public function __invoke()

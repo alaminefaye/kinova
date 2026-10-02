@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,13 +25,47 @@ class AdminDashboardScreen extends StatefulWidget {
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with WidgetsBindingObserver {
   late int _activeTab;
+  int _pendingOrders = 0;
+  Timer? _badgeTimer;
 
   @override
   void initState() {
     super.initState();
     _activeTab = widget.initialTab;
+    WidgetsBinding.instance.addObserver(this);
+    _refreshBadges();
+    _badgeTimer = Timer.periodic(
+      const Duration(seconds: 45),
+      (_) => _refreshBadges(),
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _badgeTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshBadges();
+  }
+
+  Future<void> _refreshBadges() async {
+    try {
+      final res = await context.read<ApiClient>().get(
+        '/admin/orders',
+        query: {'status': 'pending'},
+      );
+      final total = res is Map ? int.tryParse('${res['total']}') : null;
+      if (mounted && total != null && total != _pendingOrders) {
+        setState(() => _pendingOrders = total);
+      }
+    } catch (_) {}
   }
 
   void _goToStore() {
@@ -45,19 +80,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF140D08),
       body: switch (_activeTab) {
-        0 => _DashboardOverviewTab(onGoToStore: _goToStore),
-        1 => const _AdminOrdersTab(),
+        0 => _DashboardOverviewTab(
+          onGoToStore: _goToStore,
+          onOrdersChanged: _refreshBadges,
+        ),
+        1 => _AdminOrdersTab(onOrdersChanged: _refreshBadges),
         2 => const _AdminProductsTab(),
         3 => const _AdminMessagesTab(),
-        _ => _DashboardOverviewTab(onGoToStore: _goToStore),
+        _ => _DashboardOverviewTab(
+          onGoToStore: _goToStore,
+          onOrdersChanged: _refreshBadges,
+        ),
       },
       bottomNavigationBar: _AdminBottomNavBar(
         currentIndex: _activeTab,
+        pendingOrders: _pendingOrders,
         onTabSelected: (index) {
           if (index == 4) {
             _goToStore();
           } else {
             setState(() => _activeTab = index);
+            _refreshBadges();
           }
         },
       ),
@@ -72,10 +115,12 @@ class _AdminBottomNavBar extends StatelessWidget {
   const _AdminBottomNavBar({
     required this.currentIndex,
     required this.onTabSelected,
+    this.pendingOrders = 0,
   });
 
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
+  final int pendingOrders;
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +159,7 @@ class _AdminBottomNavBar extends StatelessWidget {
                 activeIcon: Icons.receipt_long_rounded,
                 label: 'Commandes',
                 active: currentIndex == 1,
+                badge: pendingOrders,
                 onTap: () => onTabSelected(1),
               ),
               _AdminNavItem(
@@ -154,6 +200,7 @@ class _AdminNavItem extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.isStoreAction = false,
+    this.badge = 0,
   });
 
   final IconData icon;
@@ -162,6 +209,7 @@ class _AdminNavItem extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
   final bool isStoreAction;
+  final int badge;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +243,42 @@ class _AdminNavItem extends StatelessWidget {
                             : Colors.transparent),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(active ? activeIcon : icon, color: color, size: 22),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(active ? activeIcon : icon, color: color, size: 22),
+                    if (badge > 0)
+                      Positioned(
+                        top: -6,
+                        right: -10,
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFF1E130D),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            badge > 99 ? '99+' : '$badge',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 3),
               Text(
@@ -219,9 +302,13 @@ class _AdminNavItem extends StatelessWidget {
 // 2. TAB 1 : DASHBOARD OVERVIEW (STATISTIQUES & KPIS)
 // -----------------------------------------------------------------------------
 class _DashboardOverviewTab extends StatefulWidget {
-  const _DashboardOverviewTab({required this.onGoToStore});
+  const _DashboardOverviewTab({
+    required this.onGoToStore,
+    required this.onOrdersChanged,
+  });
 
   final VoidCallback onGoToStore;
+  final VoidCallback onOrdersChanged;
 
   @override
   State<_DashboardOverviewTab> createState() => _DashboardOverviewTabState();
@@ -272,7 +359,14 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
   }
 
   void _showOrderActionSheet(AdminOrderSummary order) {
-    showAdminOrderSheet(context, orderId: order.id, onChanged: _loadStats);
+    showAdminOrderSheet(
+      context,
+      orderId: order.id,
+      onChanged: () {
+        _loadStats();
+        widget.onOrdersChanged();
+      },
+    );
   }
 
   @override
@@ -594,7 +688,9 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
 // 3. TAB 2 : GESTION DES COMMANDES (_AdminOrdersTab) + CRÉATION MANUELLE
 // -----------------------------------------------------------------------------
 class _AdminOrdersTab extends StatefulWidget {
-  const _AdminOrdersTab();
+  const _AdminOrdersTab({required this.onOrdersChanged});
+
+  final VoidCallback onOrdersChanged;
 
   @override
   State<_AdminOrdersTab> createState() => _AdminOrdersTabState();
@@ -663,7 +759,10 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
     showAdminOrderSheet(
       context,
       orderId: '${order['id']}',
-      onChanged: _fetchOrders,
+      onChanged: () {
+        _fetchOrders();
+        widget.onOrdersChanged();
+      },
     );
   }
 
@@ -678,6 +777,7 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
       builder: (ctx) => _CreateOrderModal(
         onSuccess: () {
           _fetchOrders();
+          widget.onOrdersChanged();
         },
       ),
     );
@@ -3871,7 +3971,7 @@ class _HeroSalesCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Commandes livrées et payées uniquement',
+            'Commandes payées uniquement',
             style: TextStyle(
               color: KinovaColors.sand.withValues(alpha: 0.75),
               fontSize: 10.5,
