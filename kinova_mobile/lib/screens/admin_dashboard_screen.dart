@@ -3772,7 +3772,7 @@ class _HeroSalesCard extends StatelessWidget {
     switch (periodIndex) {
       case 0:
         revenue = data.todayRevenue;
-        orders = data.todayOrdersCount;
+        orders = data.todaySalesCount;
         label = 'Ventes Aujourd’hui';
         break;
       case 1:
@@ -3782,12 +3782,12 @@ class _HeroSalesCard extends StatelessWidget {
         break;
       case 2:
         revenue = data.monthRevenue;
-        orders = data.monthOrdersCount;
+        orders = data.monthSalesCount;
         label = 'Ventes du Mois en Cours';
         break;
       default:
         revenue = data.totalRevenue;
-        orders = data.ordersCount;
+        orders = data.totalSalesCount;
         label = 'Chiffre d’Affaires Global';
     }
 
@@ -3846,7 +3846,7 @@ class _HeroSalesCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '$orders cmd.',
+                      '$orders vente${orders > 1 ? 's' : ''}',
                       style: const TextStyle(
                         color: Color(0xFF81C784),
                         fontSize: 11,
@@ -3869,7 +3869,15 @@ class _HeroSalesCard extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 2),
+          Text(
+            'Commandes livrées et payées uniquement',
+            style: TextStyle(
+              color: KinovaColors.sand.withValues(alpha: 0.75),
+              fontSize: 10.5,
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               _MiniBadge(

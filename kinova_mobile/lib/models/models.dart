@@ -445,6 +445,9 @@ class AdminDashboardData {
     required this.salesByDay,
     required this.lowStock,
     required this.latestOrders,
+    this.todaySalesCount = 0,
+    this.monthSalesCount = 0,
+    this.totalSalesCount = 0,
   });
 
   final double todayRevenue;
@@ -464,6 +467,11 @@ class AdminDashboardData {
   final List<AdminDailySale> salesByDay;
   final List<AdminLowStockProduct> lowStock;
   final List<AdminOrderSummary> latestOrders;
+
+  /// Ventes = commandes livrées ET payées (seules comptées dans le CA).
+  final int todaySalesCount;
+  final int monthSalesCount;
+  final int totalSalesCount;
 
   factory AdminDashboardData.fromJson(Map<String, dynamic> json) {
     final salesList = (json['sales_by_day'] as List<dynamic>? ?? [])
@@ -488,6 +496,9 @@ class AdminDashboardData {
         .toList();
 
     return AdminDashboardData(
+      todaySalesCount: int.tryParse('${json['today_sales_count'] ?? 0}') ?? 0,
+      monthSalesCount: int.tryParse('${json['month_sales_count'] ?? 0}') ?? 0,
+      totalSalesCount: int.tryParse('${json['total_sales_count'] ?? 0}') ?? 0,
       todayRevenue: (json['today_revenue'] is num)
           ? (json['today_revenue'] as num).toDouble()
           : double.tryParse('${json['today_revenue']}') ?? 0.0,

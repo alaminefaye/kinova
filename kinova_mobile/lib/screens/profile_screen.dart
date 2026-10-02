@@ -69,6 +69,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: KinovaColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: const Icon(
+          Icons.exit_to_app_rounded,
+          color: KinovaColors.brown,
+          size: 32,
+        ),
+        title: const Text(
+          'Se déconnecter ?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: KinovaColors.brown,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Vous devrez saisir à nouveau vos identifiants pour accéder à votre compte, vos commandes et vos favoris.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: KinovaColors.mutedBrown,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: KinovaColors.brown,
+                    side: BorderSide(
+                      color: KinovaColors.brown.withValues(alpha: 0.3),
+                    ),
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'ANNULER',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: KinovaColors.brown,
+                    foregroundColor: KinovaColors.cream,
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'DÉCONNECTER',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     final auth = context.read<AuthController>();
     final favorites = context.read<FavoritesController>();
     final cart = context.read<CartController>();

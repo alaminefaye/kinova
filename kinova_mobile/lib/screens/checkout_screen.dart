@@ -67,7 +67,142 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  Future<bool> _askLocationConsent() async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: KinovaColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: KinovaColors.sand.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: KinovaColors.gold.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.my_location_rounded,
+                  color: KinovaColors.brown,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Partager votre position ?',
+                style: TextStyle(
+                  color: KinovaColors.brown,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'KINOVA a besoin de votre position actuelle pour que le livreur trouve votre adresse exacte.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: KinovaColors.mutedBrown,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 14),
+              for (final (icon, text) in const [
+                (
+                  Icons.check_circle_outline_rounded,
+                  'Utilisée une seule fois, pour cette commande',
+                ),
+                (
+                  Icons.lock_outline_rounded,
+                  'Visible uniquement par la boutique et le livreur',
+                ),
+                (Icons.location_off_outlined, 'Aucun suivi en arrière-plan'),
+              ])
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      Icon(icon, size: 18, color: KinovaColors.goldRich),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          text,
+                          style: const TextStyle(
+                            color: KinovaColors.brown,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: KinovaColors.brown,
+                        side: BorderSide(
+                          color: KinovaColors.brown.withValues(alpha: 0.3),
+                        ),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'PLUS TARD',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: KinovaColors.brown,
+                        foregroundColor: KinovaColors.cream,
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'AUTORISER',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _locate() async {
+    if (_locating || !await _askLocationConsent() || !mounted) return;
     setState(() {
       _locating = true;
       _locationError = null;

@@ -27,8 +27,14 @@ const form = reactive({
 const position = ref<{ latitude: number; longitude: number; accuracy: number } | null>(null)
 const locating = ref(false)
 const locationError = ref('')
+const consentOpen = ref(false)
+
+function askLocation() {
+  if (!locating.value) consentOpen.value = true
+}
 
 function locate() {
+  consentOpen.value = false
   locationError.value = ''
   if (!('geolocation' in navigator)) {
     locationError.value = 'La géolocalisation n’est pas disponible sur cet appareil.'
@@ -140,7 +146,7 @@ async function submit() {
             <small v-else>Partagez votre position pour que le livreur vous trouve.</small>
             <small v-if="locationError" class="error">{{ locationError }}</small>
           </div>
-          <button type="button" class="kv-btn" :disabled="locating" @click="locate">
+          <button type="button" class="kv-btn" :disabled="locating" @click="askLocation">
             {{ locating ? 'Localisation…' : position ? 'Actualiser' : 'Utiliser ma position' }}
           </button>
         </div>
@@ -198,6 +204,25 @@ async function submit() {
         {{ loading ? 'Envoi…' : 'Confirmer la commande' }}
       </button>
     </form>
+
+    <Teleport to="body">
+      <div v-if="consentOpen" class="consent-backdrop" @click.self="consentOpen = false">
+        <div class="consent" role="dialog" aria-modal="true" aria-labelledby="consent-title">
+          <div class="consent-icon">📍</div>
+          <h3 id="consent-title">Partager votre position ?</h3>
+          <p>KINOVA a besoin de votre position actuelle pour que le livreur trouve votre adresse exacte.</p>
+          <ul>
+            <li>Utilisée une seule fois, pour cette commande</li>
+            <li>Visible uniquement par la boutique et le livreur</li>
+            <li>Aucun suivi en arrière-plan</li>
+          </ul>
+          <div class="consent-actions">
+            <button type="button" class="kv-btn" @click="consentOpen = false">Plus tard</button>
+            <button type="button" class="kv-btn kv-btn-dark" @click="locate">Autoriser</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -324,5 +349,65 @@ label {
 }
 .full {
   width: 100%;
+}
+.consent-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(20, 12, 7, 0.55);
+}
+.consent {
+  width: 100%;
+  max-width: 440px;
+  padding: 1.4rem 1.3rem 1.2rem;
+  border-radius: 22px 22px 0 0;
+  background: var(--kv-surface, #fff);
+  text-align: center;
+}
+@media (min-width: 640px) {
+  .consent-backdrop {
+    align-items: center;
+  }
+  .consent {
+    border-radius: 22px;
+  }
+}
+.consent-icon {
+  font-size: 1.8rem;
+}
+.consent h3 {
+  margin: 0.4rem 0 0.5rem;
+  color: var(--kv-brown);
+  font-size: 1.05rem;
+}
+.consent p {
+  margin: 0 0 0.8rem;
+  color: var(--kv-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.consent ul {
+  margin: 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  font-size: 0.8rem;
+  color: var(--kv-brown);
+}
+.consent li::before {
+  content: '✓';
+  margin-right: 0.5rem;
+  color: var(--kv-gold);
+  font-weight: 800;
+}
+.consent-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
 }
 </style>

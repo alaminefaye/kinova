@@ -8,35 +8,42 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class DashboardController extends Controller
 {
+    /** Une vente est datée du jour où elle est devenue effective (livrée et encaissée). */
+    private const SALE_DATE = 'DATE(COALESCE(delivered_at, paid_at, created_at))';
+
+    /** Seules les commandes livrées ET payées comptent dans le chiffre d'affaires. */
+    private function sales(): Builder
+    {
+        return Order::query()
+            ->where('status', 'delivered')
+            ->where('payment_status', 'paid');
+    }
+
     public function __invoke()
     {
         $today = Carbon::today();
         $startOfMonth = Carbon::now()->startOfMonth();
 
-        $todayRevenue = (float) Order::query()
-            ->whereNotIn('status', ['cancelled'])
-            ->whereDate('created_at', $today)
-            ->sum('total');
+        $todayRevenue = (float) $this->sales()->whereRaw(self::SALE_DATE.' = ?', [$today->toDateString()])->sum('total');
+        $todaySalesCount = $this->sales()->whereRaw(self::SALE_DATE.' = ?', [$today->toDateString()])->count();
 
         $todayOrdersCount = Order::query()
             ->whereDate('created_at', $today)
             ->count();
 
-        $monthRevenue = (float) Order::query()
-            ->whereNotIn('status', ['cancelled'])
-            ->where('created_at', '>=', $startOfMonth)
-            ->sum('total');
+        $monthRevenue = (float) $this->sales()->whereRaw(self::SALE_DATE.' >= ?', [$startOfMonth->toDateString()])->sum('total');
+        $monthSalesCount = $this->sales()->whereRaw(self::SALE_DATE.' >= ?', [$startOfMonth->toDateString()])->count();
 
         $monthOrdersCount = Order::query()
             ->where('created_at', '>=', $startOfMonth)
             ->count();
 
-        $totalRevenue = (float) Order::query()
-            ->whereNotIn('status', ['cancelled'])
-            ->sum('total');
+        $totalRevenue = (float) $this->sales()->sum('total');
+        $totalSalesCount = $this->sales()->count();
 
         $totalOrdersCount = Order::query()->count();
 
@@ -70,14 +77,8 @@ class DashboardController extends Controller
             $dayOfWeek = $dayNames[$date->dayOfWeek];
             $isToday = $i === 0;
 
-            $amount = (float) Order::query()
-                ->whereNotIn('status', ['cancelled'])
-                ->whereDate('created_at', $date)
-                ->sum('total');
-
-            $count = Order::query()
-                ->whereDate('created_at', $date)
-                ->count();
+            $amount = (float) $this->sales()->whereRaw(self::SALE_DATE.' = ?', [$date->toDateString()])->sum('total');
+            $count = $this->sales()->whereRaw(self::SALE_DATE.' = ?', [$date->toDateString()])->count();
 
             $salesByDay[] = [
                 'date' => $date->format('Y-m-d'),
@@ -104,10 +105,14 @@ class DashboardController extends Controller
         return response()->json([
             'data' => [
                 'today_revenue' => $todayRevenue,
+                'today_sales_count' => $todaySalesCount,
                 'today_orders_count' => $todayOrdersCount,
                 'month_revenue' => $monthRevenue,
+                'month_sales_count' => $monthSalesCount,
                 'month_orders_count' => $monthOrdersCount,
                 'total_revenue' => $totalRevenue,
+                'total_sales_count' => $totalSalesCount,
+                'revenue' => $totalRevenue,
                 'orders_count' => $totalOrdersCount,
                 'pending_orders' => $pendingOrders,
                 'processing_orders' => $processingOrders,
