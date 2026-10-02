@@ -79,7 +79,7 @@ class LoyaltyService
         app(NotificationService::class)->notifyUser(
             $user,
             'Points fidélité KINOVA',
-            "Vous avez gagné {$points} point(s) VIP avec votre commande {$order->reference} (".AppSettings::render('{montant} = {points}').').',
+            "Vous avez gagné {$points} ".($points > 1 ? 'points' : 'point')." VIP avec votre commande {$order->reference} (".AppSettings::render('{montant} = {points}').').',
             'vip',
             'star',
             ['order_reference' => $order->reference, 'points' => $points]

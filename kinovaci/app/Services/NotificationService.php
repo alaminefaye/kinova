@@ -176,6 +176,84 @@ class NotificationService
         return $summary;
     }
 
+    public const STATUS_LABELS = [
+        'pending' => 'En attente',
+        'processing' => 'Confirmée',
+        'shipped' => 'Expédiée',
+        'delivered' => 'Livrée',
+        'cancelled' => 'Annulée',
+    ];
+
+    /**
+     * Notifie le client d'une modification faite par l'admin, en décrivant ce qui a changé.
+     * Un seul push même si plusieurs champs changent en même temps.
+     */
+    public function notifyOrderUpdatedByAdmin(
+        Order $order,
+        bool $statusChanged,
+        bool $paymentChanged,
+        bool $trackingChanged,
+    ): void {
+        $user = $order->user_id ? ($order->user ?? User::query()->find($order->user_id)) : null;
+        if (! $user || (! $statusChanged && ! $paymentChanged && ! $trackingChanged)) {
+            return;
+        }
+
+        $ref = $order->reference;
+        $total = AppSettings::formatMoney((float) $order->total);
+        $tracking = $order->tracking_number
+            ? " Suivi : {$order->tracking_number}".($order->carrier ? " ({$order->carrier})" : '').'.'
+            : '';
+        $parts = [];
+
+        if ($statusChanged) {
+            $title = "Commande {$ref} : ".(self::STATUS_LABELS[$order->status] ?? $order->status);
+            $parts[] = match ($order->status) {
+                'pending' => 'Votre commande est repassée en attente. Nous vous recontacterons.',
+                'processing' => 'Bonne nouvelle ! Votre commande est confirmée et en cours de préparation.',
+                'shipped' => $order->is_delivery
+                    ? 'Votre commande est en route. Le livreur vous appellera. Paiement à la réception, frais de livraison à régler au livreur.'
+                    : 'Votre commande est prête : vous pouvez venir la retirer en boutique. Paiement au retrait.',
+                'delivered' => $order->payment_status === 'paid'
+                    ? "Commande livrée et payée ({$total}). Votre facture est confirmée. Merci pour votre confiance !"
+                    : 'Votre commande a été livrée. Merci pour votre confiance !',
+                'cancelled' => 'Votre commande a été annulée par la boutique. Pour toute question, contactez notre service client.',
+                default => 'Le statut de votre commande a été mis à jour.',
+            };
+            if ($order->status === 'shipped' || $trackingChanged) {
+                $parts[] = trim($tracking);
+            }
+        } elseif ($paymentChanged) {
+            $title = $order->payment_status === 'paid' ? "Paiement reçu — {$ref}" : "Paiement — {$ref}";
+            $parts[] = $order->payment_status === 'paid'
+                ? "Nous avons bien reçu votre paiement de {$total}."
+                    .($order->invoice_status === 'confirmed' ? ' Votre facture est confirmée.' : '')
+                : 'Le paiement de votre commande est indiqué comme non reçu. Contactez-nous en cas d’erreur.';
+            if ($trackingChanged) {
+                $parts[] = trim($tracking);
+            }
+        } else {
+            $title = "Commande {$ref} : suivi de livraison";
+            $parts[] = 'Votre numéro de suivi est disponible.'.$tracking;
+        }
+
+        $this->notifyUser(
+            $user,
+            $title,
+            implode(' ', array_filter($parts)),
+            'order',
+            'package',
+            [
+                'type' => 'order_status',
+                'order_reference' => $ref,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status,
+                'tracking_number' => $order->tracking_number,
+                'invoice_status' => $order->invoice_status,
+            ]
+        );
+    }
+
     public function notifyOrderStatus(Order $order): void
     {
         if (! $order->user_id) {

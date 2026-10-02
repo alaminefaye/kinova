@@ -50,7 +50,7 @@ class OrderController extends Controller
         ]);
 
         $previousStatus = $order->status;
-        $previousInvoiceStatus = $order->invoice_status;
+        $previousPayment = $order->payment_status;
         $previousTracking = $order->tracking_number;
 
         // Paiement à la livraison : le colis livré est considéré payé (modifiable ensuite).
@@ -75,13 +75,12 @@ class OrderController extends Controller
             }
         }
 
-        if (isset($data['status']) && $data['status'] !== $previousStatus) {
-            $notifications->notifyOrderStatus($order);
-        } elseif ($order->invoice_status === 'confirmed' && $previousInvoiceStatus !== 'confirmed') {
-            $notifications->notifyOrderStatus($order);
-        } elseif (! empty($data['tracking_number']) && $data['tracking_number'] !== $previousTracking) {
-            $notifications->notifyOrderStatus($order);
-        }
+        $notifications->notifyOrderUpdatedByAdmin(
+            $order,
+            statusChanged: $order->status !== $previousStatus,
+            paymentChanged: $order->payment_status !== $previousPayment,
+            trackingChanged: ! empty($order->tracking_number) && $order->tracking_number !== $previousTracking,
+        );
 
         if ($order->status === 'delivered') {
             $loyalty->awardForDeliveredOrder($order);
