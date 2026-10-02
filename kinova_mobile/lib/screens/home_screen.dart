@@ -102,6 +102,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final featured = catalog.featured;
     final news = catalog.news;
     final heroSlides = catalog.heroSlides;
+    final settings = catalog.settings;
+    final showHero = settings.showHero && heroSlides.isNotEmpty;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -144,10 +146,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        SizedBox(height: heroSlides.isEmpty ? 12 : 118),
+                        SizedBox(height: showHero ? 118 : 12),
                       ],
                     ),
-                    if (heroSlides.isNotEmpty)
+                    if (showHero)
                       Positioned(
                         left: 18,
                         right: 18,
@@ -175,6 +177,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   slivers: [
                     // ===== Bandeau avantages =====
+                    if (settings.showPromoBanner &&
+                        settings.promoBannerText.trim().isNotEmpty)
                     SliverToBoxAdapter(
                       child: FadeSlideIn(
                         delay: const Duration(milliseconds: 80),
@@ -189,19 +193,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Row(
-                            children: const [
-                              Icon(
+                            children: [
+                              const Icon(
                                 Icons.local_shipping_rounded,
                                 color: KinovaColors.brown,
                                 size: 16,
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'LIVRAISON OFFERTE DÈS 50 000 FCFA  •  RETOURS 14 JOURS',
+                                  settings.promoBannerText,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: KinovaColors.brown,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
@@ -216,11 +220,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     // ===== Catégories =====
+                    if (settings.showCategories) ...[
                     SliverToBoxAdapter(
                       child: FadeSlideIn(
                         delay: const Duration(milliseconds: 110),
                         child: _SectionHeader(
-                          title: 'Nos Univers',
+                          title: settings.categoriesTitle,
                           actionLabel: 'Tout voir',
                           onAction: _openCatalog,
                         ),
@@ -251,10 +256,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
+                    ],
+
                     // ===== Sélection Premium =====
-                    const SliverToBoxAdapter(
+                    if (settings.showFeatured && featured.isNotEmpty) ...[
+                    SliverToBoxAdapter(
                       child: _SectionHeader(
-                        title: 'Sélection Premium',
+                        title: settings.featuredTitle,
                         trailingIcon: Icons.auto_awesome_rounded,
                       ),
                     ),
@@ -280,8 +288,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
+                    ],
+
                     // ===== Bannière Cercle VIP (si non connecté) =====
-                    if (!auth.isLoggedIn)
+                    if (settings.showVipBanner && !auth.isLoggedIn)
                       SliverToBoxAdapter(
                         child: FadeSlideIn(
                           delay: const Duration(milliseconds: 140),
@@ -340,24 +350,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: const [
+                                        children: [
                                           Text(
-                                            'Rejoignez le Cercle VIP',
-                                            style: TextStyle(
+                                            settings.vipTitle,
+                                            style: const TextStyle(
                                               fontFamily: 'PlayfairDisplay',
                                               color: Color(0xFFF7E7CE),
                                               fontSize: 15.5,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
-                                          SizedBox(height: 3),
-                                          Text(
-                                            '10 000 FCFA dépensés = 1 point. Avantages exclusifs.',
-                                            style: TextStyle(
-                                              color: KinovaColors.sand,
-                                              fontSize: 11,
+                                          if (settings.vipSubtitle
+                                              .trim()
+                                              .isNotEmpty) ...[
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              settings.vipSubtitle,
+                                              style: const TextStyle(
+                                                color: KinovaColors.sand,
+                                                fontSize: 11,
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -375,6 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
 
                     // ===== Engagements =====
+                    if (settings.showPerks && settings.perks.isNotEmpty)
                     SliverToBoxAdapter(
                       child: FadeSlideIn(
                         delay: const Duration(milliseconds: 160),
@@ -391,23 +406,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: const [
-                                _PerkItem(
-                                  icon: Icons.local_shipping_outlined,
-                                  title: 'Livraison Offerte',
-                                  subtitle: 'Dès 50 000 FCFA d’achat',
-                                ),
-                                _PerkItem(
-                                  icon: Icons.eco_outlined,
-                                  title: 'Soins Naturels',
-                                  subtitle: 'Formules pures',
-                                ),
-                                _PerkItem(
-                                  icon: Icons.verified_user_outlined,
-                                  title: 'Garantie KINOVA',
-                                  subtitle: 'Satisfait ou remboursé',
-                                ),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (var i = 0; i < settings.perks.length && i < _perkIcons.length; i++) ...[
+                                  if (i > 0) const SizedBox(width: 6),
+                                  Expanded(
+                                    child: _PerkItem(
+                                      icon: _perkIcons[i],
+                                      title: settings.perks[i].title,
+                                      subtitle: settings.perks[i].subtitle,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -416,9 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     // ===== Nouveautés =====
-                    const SliverToBoxAdapter(
+                    if (settings.showNews && news.isNotEmpty) ...[
+                    SliverToBoxAdapter(
                       child: _SectionHeader(
-                        title: 'Nouveautés & Incontournables',
+                        title: settings.newsTitle,
                       ),
                     ),
                     SliverPadding(
@@ -443,6 +454,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
+                    ] else
+                      const SliverToBoxAdapter(child: SizedBox(height: 36)),
                   ],
                 ),
               ),
@@ -1037,6 +1050,12 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+const _perkIcons = [
+  Icons.local_shipping_outlined,
+  Icons.eco_outlined,
+  Icons.verified_user_outlined,
+];
+
 class _PerkItem extends StatelessWidget {
   const _PerkItem({
     required this.icon,
@@ -1064,6 +1083,9 @@ class _PerkItem extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           title,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
@@ -1072,6 +1094,9 @@ class _PerkItem extends StatelessWidget {
         ),
         Text(
           subtitle,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 9, color: KinovaColors.mutedBrown),
         ),
       ],

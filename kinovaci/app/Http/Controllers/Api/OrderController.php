@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\AppSettings;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,8 +75,7 @@ class OrderController extends Controller
                 $lines[] = compact('product', 'item', 'unitPrice', 'lineTotal');
             }
 
-            // Livraison gratuite dès 50 000 FCFA ou si retrait en boutique
-            $shipping = ($isDelivery && $subtotal < 50000) ? 2500.0 : 0.0;
+            $shipping = AppSettings::shippingFor($subtotal, $isDelivery);
             $total = $subtotal + $shipping;
 
             $order = Order::query()->create([

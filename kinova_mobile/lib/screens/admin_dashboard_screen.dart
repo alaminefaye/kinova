@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_config.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
+import 'package:kinova_mobile/models/app_settings.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
+import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
 import 'package:kinova_mobile/widgets/kinova_loader.dart';
@@ -2610,6 +2612,12 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
   String? _selectedColor;
   int _quantity = 1;
   bool _isDelivery = true;
+
+  String _deliveryHint(AppSettings s) {
+    final fee = '+${formatMoney(s.shippingFee)}';
+    if (!s.freeShippingEnabled) return 'Livraison à l\'adresse indiquée ($fee)';
+    return 'Livraison à l\'adresse indiquée ($fee / Offerte dès ${formatMoney(s.freeShippingThreshold)})';
+  }
   String _paymentMethod = 'cash_on_delivery';
   bool _saving = false;
   String? _error;
@@ -2879,7 +2887,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
                             const SizedBox(height: 2),
                             Text(
                               _isDelivery
-                                  ? 'Livraison à l\'adresse indiquée (+2 500 FCFA / Offerte dès 50k)'
+                                  ? _deliveryHint(context.read<CatalogController>().settings)
                                   : 'Retrait en boutique KINOVA (Gratuit - 0 FCFA)',
                               style: TextStyle(
                                 color: _isDelivery ? KinovaColors.gold : KinovaColors.sand.withValues(alpha: 0.8),

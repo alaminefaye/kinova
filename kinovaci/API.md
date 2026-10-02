@@ -46,6 +46,7 @@ Pages admin :
 - `/dashboard/admin/contact-messages` aide & contact
 - `/dashboard/admin/loyalty` points VIP clients
 - `/dashboard/admin/users`
+- `/dashboard/admin/settings` livraison, règle fidélité, sections et textes de l’accueil
 
 ### Compte client démo (API)
 
@@ -64,6 +65,7 @@ Pages admin :
 | GET | `/api/products` | Liste (`?category=`, `?featured=1`, `?new=1`, `?q=`) |
 | GET | `/api/products/{id}` | Détail produit |
 | GET | `/api/hero-slides` | Slides actifs du carrousel accueil |
+| GET | `/api/settings` | Livraison, fidélité, sections visibles et textes de l’accueil |
 | POST | `/api/orders` | Créer commande (optionnel Bearer client) |
 | GET | `/api/orders/{reference}` | Suivi commande (tracking inclus) |
 | GET | `/api/help` | FAQ + contacts |

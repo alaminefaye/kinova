@@ -126,8 +126,7 @@ class OrderController extends Controller
             ];
         }
 
-        // Livraison : 0 FCFA si retrait en boutique ou si commande >= 50 000 FCFA
-        $shipping = ($isDelivery && $subtotal < 50000) ? 2500.0 : 0.0;
+        $shipping = \App\Services\AppSettings::shippingFor($subtotal, $isDelivery);
         $total = $subtotal + $shipping;
 
         $reference = 'CMD-'.strtoupper(\Illuminate\Support\Str::random(6));

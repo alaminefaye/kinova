@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
+use App\Services\AppSettings;
 use Illuminate\Http\Request;
 
 class ContactController extends Controller
@@ -51,7 +52,7 @@ class ContactController extends Controller
                     ],
                     [
                         'q' => 'Comment fonctionnent les points VIP ?',
-                        'a' => '10 000 FCFA dépensés = 1 point. Les paliers débloquent Silver, Gold puis VIP avec des remises et privilèges exclusifs.',
+                        'a' => AppSettings::render('{montant} dépensés = {points}.').' Les paliers débloquent Silver, Gold puis VIP avec des remises et privilèges exclusifs.',
                     ],
                     [
                         'q' => 'Puis-je retourner un article ?',

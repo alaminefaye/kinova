@@ -71,6 +71,10 @@ function openPrivacy() {
   window.location.href = '/politique-confidentialite'
 }
 
+function openSupport() {
+  window.location.href = '/aide'
+}
+
 async function logout() {
   await auth.logout()
   favorites.clear()
@@ -194,7 +198,7 @@ function formatDate(iso?: string) {
       <button type="button" @click="router.push({ name: 'favorites' })">
         <span>♡</span> Mes pièces enregistrées
       </button>
-      <button type="button" @click="router.push({ name: 'help' })">
+      <button type="button" @click="openSupport">
         <span>?</span> Service Client & Assistance
       </button>
       <button type="button" @click="openPrivacy">

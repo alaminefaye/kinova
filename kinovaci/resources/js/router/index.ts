@@ -68,6 +68,12 @@ const router = createRouter({
       meta: { title: 'Rôles & Permissions', requiresAuth: true },
     },
     {
+      path: '/settings',
+      name: 'Settings',
+      component: () => import('../views/Admin/SettingsPage.vue'),
+      meta: { title: 'Paramètres boutique', requiresAuth: true },
+    },
+    {
       path: '/signin',
       name: 'Signin',
       component: () => import('../views/Auth/Signin.vue'),

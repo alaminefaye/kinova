@@ -40,7 +40,11 @@ class KinovaApp extends StatelessWidget {
         Provider<ApiClient>.value(value: api),
         ChangeNotifierProvider(create: (_) => CatalogController(api)),
         ChangeNotifierProvider(create: (_) => AuthController(api)),
-        ChangeNotifierProvider(create: (_) => CartController(api)),
+        ChangeNotifierProxyProvider<CatalogController, CartController>(
+          create: (_) => CartController(api),
+          update: (_, catalog, cart) =>
+              (cart ?? CartController(api))..settings = catalog.settings,
+        ),
         ChangeNotifierProvider(create: (_) => FavoritesController(api)),
       ],
       child: MaterialApp(

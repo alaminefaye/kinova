@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import { api } from '../api/client'
 import type { CartItem, Product } from '../lib/types'
+import { shippingFor, useSettings } from './settings'
 
 const CART_KEY = 'kinova_cart'
 
@@ -51,9 +52,10 @@ export function useCart() {
   const subtotal = computed(() =>
     state.items.reduce((s, i) => s + getProductEffectivePrice(i.product) * i.quantity, 0),
   )
+  useSettings()
   const shipping = computed(() => {
     if (!state.items.length) return 0
-    return subtotal.value >= 50000 ? 0 : 2500
+    return shippingFor(subtotal.value)
   })
   const total = computed(() => subtotal.value + shipping.value)
 

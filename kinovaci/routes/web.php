@@ -17,9 +17,11 @@ Route::view('/dashboard/admin/{any?}', 'dashboard')
 |--------------------------------------------------------------------------
 */
 Route::view('/politique-confidentialite', 'legal.privacy')->name('legal.privacy');
+Route::view('/aide', 'legal.support')->name('legal.support');
 Route::redirect('/confidentialite', '/politique-confidentialite');
 Route::redirect('/privacy', '/politique-confidentialite');
 Route::redirect('/privacy-policy', '/politique-confidentialite');
+Route::redirect('/support', '/aide');
 
 /*
 |--------------------------------------------------------------------------

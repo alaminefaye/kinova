@@ -7,10 +7,14 @@ import SoftImage from '../components/SoftImage.vue'
 import KinovaLoader from '../components/KinovaLoader.vue'
 import { useCatalog } from '../state/catalog'
 import { useAuth } from '../state/auth'
+import { useSettings } from '../state/settings'
 
 const router = useRouter()
 const catalog = useCatalog()
 const auth = useAuth()
+const settings = useSettings()
+const sections = computed(() => settings.state.data.sections)
+const texts = computed(() => settings.state.data.texts)
 const heroIndex = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -51,7 +55,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="home">
     <div class="kv-container">
-      <section v-if="heroSlides.length" class="hero">
+      <section v-if="sections.hero && heroSlides.length" class="hero">
         <div class="hero-track" :style="{ transform: `translateX(-${heroIndex * 100}%)` }">
           <article v-for="slide in heroSlides" :key="slide.id" class="hero-slide">
             <SoftImage :url="slide.imageUrl" :alt="slide.title" />
@@ -76,24 +80,28 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <div class="promo">LIVRAISON OFFERTE DÈS 50 000 FCFA · RETOURS 14 JOURS</div>
+      <div v-if="sections.promo_banner && texts.promo_banner" class="promo">{{ texts.promo_banner }}</div>
 
       <!-- Bannière Cercle VIP si non connecté -->
-      <div v-if="!auth.isLoggedIn.value" class="vip-banner" @click="router.push({ name: 'auth' })">
+      <div
+        v-if="sections.vip_banner && !auth.isLoggedIn.value"
+        class="vip-banner"
+        @click="router.push({ name: 'auth' })"
+      >
         <div class="vip-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
         </div>
         <div class="vip-content">
-          <h3>Rejoignez le Cercle VIP</h3>
-          <p>10 000 FCFA dépensés = 1 point. Avantages exclusifs.</p>
+          <h3>{{ texts.vip_title }}</h3>
+          <p v-if="texts.vip_subtitle">{{ texts.vip_subtitle }}</p>
         </div>
         <span class="vip-arrow">›</span>
       </div>
 
       <!-- Engagements KINOVA -->
-      <div class="perks-row">
+      <div v-if="sections.perks" class="perks-row">
         <div class="perk-card">
           <div class="perk-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -104,8 +112,8 @@ onBeforeUnmount(() => {
             </svg>
           </div>
           <div class="perk-text">
-            <strong>Livraison Offerte</strong>
-            <span>Dès 50 000 FCFA d’achat</span>
+            <strong>{{ texts.perks[0]?.title }}</strong>
+            <span>{{ texts.perks[0]?.subtitle }}</span>
           </div>
         </div>
         <div class="perk-card">
@@ -116,8 +124,8 @@ onBeforeUnmount(() => {
             </svg>
           </div>
           <div class="perk-text">
-            <strong>Soins Naturels</strong>
-            <span>Formules pures</span>
+            <strong>{{ texts.perks[1]?.title }}</strong>
+            <span>{{ texts.perks[1]?.subtitle }}</span>
           </div>
         </div>
         <div class="perk-card">
@@ -128,15 +136,15 @@ onBeforeUnmount(() => {
             </svg>
           </div>
           <div class="perk-text">
-            <strong>Garantie KINOVA</strong>
-            <span>Satisfait ou remboursé</span>
+            <strong>{{ texts.perks[2]?.title }}</strong>
+            <span>{{ texts.perks[2]?.subtitle }}</span>
           </div>
         </div>
       </div>
 
-      <section class="block">
+      <section v-if="sections.categories" class="block">
         <div class="kv-section-title">
-          <h2>Nos Univers</h2>
+          <h2>{{ texts.categories_title }}</h2>
           <RouterLink :to="{ name: 'catalog' }">Tout voir ›</RouterLink>
         </div>
         <div class="univers-row">
@@ -151,9 +159,9 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <section v-if="featured.length" class="block">
+      <section v-if="sections.featured && featured.length" class="block">
         <div class="kv-section-title">
-          <h2>Sélection</h2>
+          <h2>{{ texts.featured_title }}</h2>
           <RouterLink :to="{ name: 'catalog' }">Voir tout ›</RouterLink>
         </div>
         <div class="kv-grid-products">
@@ -161,9 +169,9 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <section v-if="news.length" class="block">
+      <section v-if="sections.news && news.length" class="block">
         <div class="kv-section-title">
-          <h2>Nouveautés</h2>
+          <h2>{{ texts.news_title }}</h2>
           <RouterLink :to="{ name: 'catalog' }">Voir tout ›</RouterLink>
         </div>
         <div class="kv-grid-products">

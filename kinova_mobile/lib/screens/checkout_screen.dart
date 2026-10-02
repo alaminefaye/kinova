@@ -253,7 +253,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _line(
                       'Livraison',
                       shippingFee == 0
-                          ? (_isDelivery ? 'Offerte (dès 50 000 FCFA)' : 'Retrait en boutique (Gratuit)')
+                          ? (!_isDelivery
+                              ? 'Retrait en boutique (Gratuit)'
+                              : cart.settings.freeShippingEnabled
+                                  ? 'Offerte (dès ${formatMoney(cart.settings.freeShippingThreshold)})'
+                                  : 'Offerte')
                           : formatMoney(shippingFee),
                     ),
                     const Divider(color: KinovaColors.sand),

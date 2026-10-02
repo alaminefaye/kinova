@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_mappers.dart';
+import 'package:kinova_mobile/models/app_settings.dart';
 import 'package:kinova_mobile/models/models.dart';
 
 class CartController extends ChangeNotifier {
   CartController(this._api);
 
   final ApiClient _api;
+  AppSettings settings = const AppSettings();
   final List<CartItem> _items = [];
   final List<Order> _orders = [];
 
@@ -17,7 +19,7 @@ class CartController extends ChangeNotifier {
 
   double get subtotal => _items.fold(0, (sum, i) => sum + i.lineTotal);
 
-  double get shipping => _items.isEmpty ? 0 : (subtotal >= 50000 ? 0 : 2500);
+  double get shipping => shippingFor();
 
   double get total => subtotal + shipping;
 
@@ -92,8 +94,9 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  double shippingFor({bool isDelivery = true}) =>
-      (!isDelivery || _items.isEmpty) ? 0 : (subtotal >= 50000 ? 0 : 2500);
+  double shippingFor({bool isDelivery = true}) => _items.isEmpty
+      ? 0
+      : settings.shippingFor(subtotal, isDelivery: isDelivery);
 
   Future<Order> placeOrder({
     required String customerName,
@@ -104,26 +107,29 @@ class CartController extends ChangeNotifier {
     String? city,
     required String paymentMethod,
   }) async {
-    final res = await _api.post('/orders', body: {
-      'customer_name': customerName,
-      'customer_phone': customerPhone,
-      if (customerEmail != null && customerEmail.isNotEmpty)
-        'customer_email': customerEmail,
-      'is_delivery': isDelivery,
-      'address': isDelivery ? (address ?? '') : 'Retrait en boutique KINOVA',
-      'city': isDelivery ? (city ?? 'Abidjan') : 'Abidjan',
-      'payment_method': paymentMethod,
-      'items': _items
-          .map(
-            (i) => {
-              'product_id': int.tryParse(i.product.id) ?? i.product.id,
-              'quantity': i.quantity,
-              if (i.selectedSize != null) 'selected_size': i.selectedSize,
-              if (i.selectedColor != null) 'selected_color': i.selectedColor,
-            },
-          )
-          .toList(),
-    });
+    final res = await _api.post(
+      '/orders',
+      body: {
+        'customer_name': customerName,
+        'customer_phone': customerPhone,
+        if (customerEmail != null && customerEmail.isNotEmpty)
+          'customer_email': customerEmail,
+        'is_delivery': isDelivery,
+        'address': isDelivery ? (address ?? '') : 'Retrait en boutique KINOVA',
+        'city': isDelivery ? (city ?? 'Abidjan') : 'Abidjan',
+        'payment_method': paymentMethod,
+        'items': _items
+            .map(
+              (i) => {
+                'product_id': int.tryParse(i.product.id) ?? i.product.id,
+                'quantity': i.quantity,
+                if (i.selectedSize != null) 'selected_size': i.selectedSize,
+                if (i.selectedColor != null) 'selected_color': i.selectedColor,
+              },
+            )
+            .toList(),
+      },
+    );
 
     final data = res is Map && res['data'] is Map
         ? Map<String, dynamic>.from(res['data'] as Map)

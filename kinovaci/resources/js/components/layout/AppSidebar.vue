@@ -224,6 +224,7 @@ import {
   TableIcon,
   ListIcon,
   PlugInIcon,
+  SettingsIcon,
 } from "../../icons";
 import SidebarWidget from "./SidebarWidget.vue";
 import BoxCubeIcon from "@/icons/BoxCubeIcon.vue";
@@ -286,6 +287,11 @@ const menuGroups = [
         icon: PlugInIcon,
         name: "Rôles & Permissions",
         path: "/roles",
+      },
+      {
+        icon: SettingsIcon,
+        name: "Paramètres boutique",
+        path: "/settings",
       },
     ],
   },

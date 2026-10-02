@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\PermissionController as AdminPermissionController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\Admin\RoleController as AdminRoleController;
+use App\Http\Controllers\Api\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\Customer\ProfileController;
 use App\Http\Controllers\Api\Customer\RatingController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\SettingsController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,7 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/products/{product}/rating', [RatingController::class, 'show']);
 Route::get('/hero-slides', [HeroSlideController::class, 'index']);
+Route::get('/settings', [SettingsController::class, 'index']);
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/{reference}', [OrderController::class, 'show']);
 Route::get('/help', [ContactController::class, 'help']);
@@ -116,6 +119,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
 
         Route::post('/media', [MediaController::class, 'store']);
+
+        Route::get('/settings', [AdminSettingsController::class, 'show']);
+        Route::put('/settings', [AdminSettingsController::class, 'update']);
 
         Route::get('/notifications', [AdminNotificationController::class, 'index']);
         Route::post('/notifications', [AdminNotificationController::class, 'store']);

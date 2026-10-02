@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_mappers.dart';
+import 'package:kinova_mobile/models/app_settings.dart';
 import 'package:kinova_mobile/models/models.dart';
 
 class CatalogController extends ChangeNotifier {
@@ -11,12 +12,14 @@ class CatalogController extends ChangeNotifier {
   List<Category> _categories = [];
   List<Product> _products = [];
   List<HeroSlide> _heroSlides = [];
+  AppSettings _settings = const AppSettings();
   bool _loading = false;
   String? _error;
 
   List<Category> get categories => List.unmodifiable(_categories);
   List<Product> get products => List.unmodifiable(_products);
   List<HeroSlide> get heroSlides => List.unmodifiable(_heroSlides);
+  AppSettings get settings => _settings;
   bool get loading => _loading;
   String? get error => _error;
   bool get isReady => _products.isNotEmpty;
@@ -27,8 +30,9 @@ class CatalogController extends ChangeNotifier {
   List<Product> get news =>
       _products.where((p) => p.isNew).toList(growable: false);
 
-  List<Product> byCategory(String categoryId) =>
-      _products.where((p) => p.categoryId == categoryId).toList(growable: false);
+  List<Product> byCategory(String categoryId) => _products
+      .where((p) => p.categoryId == categoryId)
+      .toList(growable: false);
 
   List<Product> search(String query) {
     final q = query.trim().toLowerCase();
@@ -68,6 +72,8 @@ class CatalogController extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    await _loadSettings();
+
     try {
       final catsRaw = await _api.get('/categories');
       final productsRaw = await _api.get('/products');
@@ -104,6 +110,19 @@ class CatalogController extends ChangeNotifier {
     } finally {
       _loading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final raw = await _api.get('/settings');
+      if (raw is Map && raw['data'] is Map) {
+        _settings = AppSettings.fromJson(
+          Map<String, dynamic>.from(raw['data'] as Map),
+        );
+      }
+    } catch (_) {
+      // Garde les derniers paramètres connus (ou les valeurs par défaut).
     }
   }
 }
