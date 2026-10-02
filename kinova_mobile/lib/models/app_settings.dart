@@ -25,7 +25,41 @@ class AppSettings {
     this.categoriesTitle = 'Nos Univers',
     this.featuredTitle = 'Sélection Premium',
     this.newsTitle = 'Nouveautés & Incontournables',
+    this.tierSilverPoints = 20,
+    this.tierGoldPoints = 50,
+    this.tierVipPoints = 100,
+    this.profileShowLoyalty = true,
+    this.profileShowTierBadge = true,
+    this.profileShowNextTier = true,
+    this.profileLoyaltyTitle = 'FIDÉLITÉ KINOVA',
+    this.profileLoyaltyRule = '10 000 FCFA dépensés = 1 point',
   });
+
+  final int tierSilverPoints;
+  final int tierGoldPoints;
+  final int tierVipPoints;
+
+  final bool profileShowLoyalty;
+  final bool profileShowTierBadge;
+  final bool profileShowNextTier;
+  final String profileLoyaltyTitle;
+  final String profileLoyaltyRule;
+
+  /// « Plus que X points pour OR », ou null si le palier max est atteint.
+  String? nextTierHint(int points) {
+    final steps = [
+      (tierSilverPoints, 'ARGENT'),
+      (tierGoldPoints, 'OR'),
+      (tierVipPoints, 'VIP'),
+    ];
+    for (final (threshold, label) in steps) {
+      if (points < threshold) {
+        final missing = threshold - points;
+        return 'Plus que $missing point${missing > 1 ? 's' : ''} pour $label';
+      }
+    }
+    return null;
+  }
 
   final double shippingFee;
   final bool freeShippingEnabled;
@@ -61,6 +95,8 @@ class AppSettings {
     final loyalty = _map(json['loyalty']);
     final sections = _map(json['sections']);
     final texts = _map(json['texts']);
+    final profile = _map(json['profile']);
+    final tiers = _map(loyalty['tiers']);
 
     final perksRaw = texts['perks'];
     final perks = perksRaw is List
@@ -107,6 +143,26 @@ class AppSettings {
       categoriesTitle: _str(texts['categories_title'], d.categoriesTitle),
       featuredTitle: _str(texts['featured_title'], d.featuredTitle),
       newsTitle: _str(texts['news_title'], d.newsTitle),
+      tierSilverPoints: _num(
+        tiers['silver'],
+        d.tierSilverPoints.toDouble(),
+      ).toInt(),
+      tierGoldPoints: _num(tiers['gold'], d.tierGoldPoints.toDouble()).toInt(),
+      tierVipPoints: _num(tiers['vip'], d.tierVipPoints.toDouble()).toInt(),
+      profileShowLoyalty: _bool(profile['show_loyalty'], d.profileShowLoyalty),
+      profileShowTierBadge: _bool(
+        profile['show_tier_badge'],
+        d.profileShowTierBadge,
+      ),
+      profileShowNextTier: _bool(
+        profile['show_next_tier'],
+        d.profileShowNextTier,
+      ),
+      profileLoyaltyTitle: _str(
+        profile['loyalty_title'],
+        d.profileLoyaltyTitle,
+      ),
+      profileLoyaltyRule: _str(profile['loyalty_rule'], d.profileLoyaltyRule),
     );
   }
 

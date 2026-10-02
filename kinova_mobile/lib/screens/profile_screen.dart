@@ -11,6 +11,7 @@ import 'package:kinova_mobile/screens/help_screen.dart';
 import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
+import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
@@ -36,6 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadOrders() async {
     final auth = context.read<AuthController>();
+    context.read<CatalogController>().refreshSettings();
     if (!auth.isLoggedIn) return;
     setState(() => _loadingOrders = true);
     try {
@@ -106,7 +108,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final orders = context.watch<CartController>().orders;
+    final settings = context.watch<CatalogController>().settings;
     final user = auth.user;
+    final nextTier = user != null && settings.profileShowNextTier
+        ? settings.nextTierHint(user.loyaltyPoints)
+        : null;
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
@@ -163,27 +169,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: KinovaColors.gold,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    user != null
-                                        ? _tierLabel(user.vipTier)
-                                        : 'GUEST',
-                                    style: const TextStyle(
-                                      color: KinovaColors.brown,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w900,
+                                if (settings.profileShowTierBadge) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: KinovaColors.gold,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      user != null
+                                          ? _tierLabel(user.vipTier)
+                                          : 'GUEST',
+                                      style: const TextStyle(
+                                        color: KinovaColors.brown,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                             const SizedBox(height: 3),
@@ -213,33 +221,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: settings.profileShowLoyalty
+                        ? MainAxisAlignment.spaceBetween
+                        : MainAxisAlignment.end,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'FIDÉLITÉ KINOVA',
-                            style: TextStyle(
-                              color: KinovaColors.gold,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.2,
-                            ),
+                      if (settings.profileShowLoyalty) ...[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (settings.profileLoyaltyTitle
+                                  .trim()
+                                  .isNotEmpty) ...[
+                                Text(
+                                  settings.profileLoyaltyTitle,
+                                  style: const TextStyle(
+                                    color: KinovaColors.gold,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                              ],
+                              Text(
+                                user != null
+                                    ? '${user.loyaltyPoints} Points'
+                                    : '— Points',
+                                style: const TextStyle(
+                                  color: KinovaColors.cream,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (settings.profileLoyaltyRule
+                                  .trim()
+                                  .isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  settings.profileLoyaltyRule,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: KinovaColors.sand,
+                                    fontSize: 10.5,
+                                  ),
+                                ),
+                              ],
+                              if (nextTier != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  nextTier,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: KinovaColors.goldLight,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            user != null
-                                ? '${user.loyaltyPoints} Points'
-                                : '— Points',
-                            style: const TextStyle(
-                              color: KinovaColors.cream,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
                       TextButton(
                         onPressed: auth.isLoggedIn ? _loadOrders : _openAuth,
                         style: TextButton.styleFrom(

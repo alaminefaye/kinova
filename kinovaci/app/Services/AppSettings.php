@@ -49,6 +49,13 @@ class AppSettings
         'categories_title' => 'Nos Univers',
         'featured_title' => 'Sélection Premium',
         'news_title' => 'Nouveautés & Incontournables',
+
+        // Profil client (carte fidélité)
+        'profile_show_loyalty' => true,
+        'profile_show_tier_badge' => true,
+        'profile_show_next_tier' => true,
+        'profile_loyalty_title' => 'FIDÉLITÉ KINOVA',
+        'profile_loyalty_rule' => '{montant} dépensés = {points}',
     ];
 
     public const INTEGER_KEYS = [
@@ -178,6 +185,13 @@ class AppSettings
                 'categories_title' => self::render($s['categories_title'], $s),
                 'featured_title' => self::render($s['featured_title'], $s),
                 'news_title' => self::render($s['news_title'], $s),
+            ],
+            'profile' => [
+                'show_loyalty' => $s['profile_show_loyalty'],
+                'show_tier_badge' => $s['profile_show_tier_badge'],
+                'show_next_tier' => $s['profile_show_next_tier'],
+                'loyalty_title' => self::render($s['profile_loyalty_title'], $s),
+                'loyalty_rule' => self::render($s['profile_loyalty_rule'], $s),
             ],
         ];
     }

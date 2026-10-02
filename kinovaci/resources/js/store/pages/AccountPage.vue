@@ -5,6 +5,7 @@ import { api, getToken } from '../api/client'
 import { formatMoney, resolveMediaUrl, statusLabel } from '../lib/format'
 import { useAuth } from '../state/auth'
 import { useFavorites } from '../state/favorites'
+import { nextTierHint, useSettings } from '../state/settings'
 import KinovaLoader from '../components/KinovaLoader.vue'
 import type { OrderSummary } from '../lib/types'
 
@@ -17,6 +18,13 @@ const trackingOrder = ref<OrderSummary | null>(null)
 
 const loggedIn = computed(() => !!getToken())
 const user = computed(() => auth.state.user)
+const settings = useSettings()
+const profileSettings = computed(() => settings.state.data.profile)
+const nextTier = computed(() =>
+  loggedIn.value && profileSettings.value.show_next_tier
+    ? nextTierHint(Number(user.value?.loyalty_points || 0))
+    : null,
+)
 
 const tier = computed(() => {
   if (!loggedIn.value) return 'GUEST'
@@ -124,7 +132,7 @@ function formatDate(iso?: string) {
         <div class="meta">
           <div class="name-line">
             <strong>{{ loggedIn ? user?.name : 'Invité KINOVA' }}</strong>
-            <span class="tier">{{ tier }}</span>
+            <span v-if="profileSettings.show_tier_badge" class="tier">{{ tier }}</span>
           </div>
           <p>{{ subtitle }}</p>
         </div>
@@ -132,10 +140,12 @@ function formatDate(iso?: string) {
 
       <div class="divider" />
 
-      <div class="loyalty">
-        <div>
-          <p class="label">FIDÉLITÉ KINOVA</p>
+      <div class="loyalty" :style="profileSettings.show_loyalty ? undefined : { justifyContent: 'flex-end' }">
+        <div v-if="profileSettings.show_loyalty">
+          <p v-if="profileSettings.loyalty_title" class="label">{{ profileSettings.loyalty_title }}</p>
           <p class="points">{{ pointsLabel }}</p>
+          <p v-if="profileSettings.loyalty_rule" class="rule">{{ profileSettings.loyalty_rule }}</p>
+          <p v-if="nextTier" class="next-tier">{{ nextTier }}</p>
         </div>
         <button type="button" class="pill" @click="loggedIn ? loadOrders() : openAuth()">
           {{ loggedIn ? 'Actualiser' : 'Se connecter' }}
@@ -317,6 +327,17 @@ function formatDate(iso?: string) {
   margin: 0.15rem 0 0;
   font-size: 0.95rem;
   font-weight: 700;
+}
+.rule {
+  margin: 0.2rem 0 0;
+  font-size: 0.7rem;
+  color: var(--kv-sand, #c5a080);
+}
+.next-tier {
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--kv-gold);
 }
 .pill {
   border: none;

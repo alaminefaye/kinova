@@ -21,6 +21,13 @@ export type StoreSettings = {
     featured_title: string
     news_title: string
   }
+  profile: {
+    show_loyalty: boolean
+    show_tier_badge: boolean
+    show_next_tier: boolean
+    loyalty_title: string
+    loyalty_rule: string
+  }
 }
 
 const state = reactive<{ data: StoreSettings; loaded: boolean }>({
@@ -50,6 +57,13 @@ const state = reactive<{ data: StoreSettings; loaded: boolean }>({
       featured_title: 'Sélection',
       news_title: 'Nouveautés',
     },
+    profile: {
+      show_loyalty: true,
+      show_tier_badge: true,
+      show_next_tier: true,
+      loyalty_title: 'FIDÉLITÉ KINOVA',
+      loyalty_rule: '10 000 FCFA dépensés = 1 point',
+    },
   },
 })
 
@@ -76,6 +90,22 @@ export function shippingFor(subtotal: number, isDelivery = true): number {
   const s = state.data.shipping
   if (s.free_enabled && subtotal >= s.free_threshold) return 0
   return s.fee
+}
+
+export function nextTierHint(points: number): string | null {
+  const t = state.data.loyalty.tiers
+  const steps: [number, string][] = [
+    [t.silver, 'ARGENT'],
+    [t.gold, 'OR'],
+    [t.vip, 'VIP'],
+  ]
+  for (const [threshold, label] of steps) {
+    if (points < threshold) {
+      const missing = threshold - points
+      return `Plus que ${missing} point${missing > 1 ? 's' : ''} pour ${label}`
+    }
+  }
+  return null
 }
 
 export function useSettings() {

@@ -22,6 +22,17 @@ const sections = [
   { key: 'section_news', label: 'Nouveautés', hint: 'Grille des nouveautés' },
 ]
 
+const profileToggles = [
+  { key: 'profile_show_loyalty', label: 'Points de fidélité', hint: 'Titre, solde de points et règle' },
+  { key: 'profile_show_tier_badge', label: 'Badge du palier', hint: 'STANDARD / ARGENT / OR / VIP' },
+  { key: 'profile_show_next_tier', label: 'Prochain palier', hint: '« Plus que X points pour… »' },
+]
+
+const profileFields = [
+  { key: 'profile_loyalty_title', label: 'Titre du bloc' },
+  { key: 'profile_loyalty_rule', label: 'Règle affichée sous les points' },
+]
+
 function formatMoney(value: number) {
   return `${Number(value || 0).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')} FCFA`
 }
@@ -164,6 +175,46 @@ onMounted(load)
                 <span class="text-gray-500 block mb-1">VIP</span>
                 <input v-model.number="form.tier_vip_points" type="number" min="0" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 dark:text-white" />
               </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Profil client -->
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] space-y-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Profil client — carte fidélité</h2>
+            <p class="text-sm text-gray-500">Bloc « Fidélité KINOVA » affiché dans l’onglet Compte.</p>
+          </div>
+          <div class="grid gap-3 md:grid-cols-3">
+            <label
+              v-for="s in profileToggles"
+              :key="s.key"
+              class="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-4 py-3 cursor-pointer dark:border-gray-800"
+            >
+              <span>
+                <span class="block text-sm font-medium text-gray-800 dark:text-white">{{ s.label }}</span>
+                <span class="block text-xs text-gray-500">{{ s.hint }}</span>
+              </span>
+              <span class="flex items-center gap-2">
+                <span class="text-xs" :class="form[s.key] ? 'text-success-600' : 'text-gray-400'">
+                  {{ form[s.key] ? 'Affiché' : 'Masqué' }}
+                </span>
+                <input v-model="form[s.key]" type="checkbox" class="h-5 w-5 accent-brand-500" />
+              </span>
+            </label>
+          </div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div v-for="field in profileFields" :key="field.key" class="text-sm">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-gray-500">{{ field.label }}</span>
+                <button type="button" class="text-xs text-gray-400 hover:text-brand-500" @click="resetText(field.key)">Par défaut</button>
+              </div>
+              <input
+                v-model="form[field.key]"
+                :disabled="!form.profile_show_loyalty"
+                class="w-full rounded-lg border border-gray-200 px-3 py-2.5 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+              <p class="mt-1 text-xs text-gray-400">Aperçu : {{ render(form[field.key]) || '(vide = non affiché)' }}</p>
             </div>
           </div>
         </section>

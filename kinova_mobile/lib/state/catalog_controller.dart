@@ -113,6 +113,11 @@ class CatalogController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshSettings() async {
+    await _loadSettings();
+    notifyListeners();
+  }
+
   Future<void> _loadSettings() async {
     try {
       final raw = await _api.get('/settings');
