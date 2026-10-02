@@ -56,6 +56,12 @@ const router = createRouter({
       meta: { title: 'Compte' },
     },
     {
+      path: '/compte/commandes',
+      name: 'orders',
+      component: () => import('./pages/OrdersPage.vue'),
+      meta: { title: 'Mes commandes', requiresAuth: true, hideChrome: true },
+    },
+    {
       path: '/compte/modifier',
       name: 'edit-profile',
       component: () => import('./pages/EditProfilePage.vue'),

@@ -56,6 +56,7 @@ function isActive(tab: (typeof tabs)[number]) {
     return (
       route.name === 'account' ||
       route.name === 'edit-profile' ||
+      route.name === 'orders' ||
       route.name === 'auth' ||
       route.name === 'help' ||
       route.name === 'notifications'

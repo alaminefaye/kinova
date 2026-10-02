@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/orders', [CustomerOrderController::class, 'index']);
         Route::get('/orders/{reference}', [CustomerOrderController::class, 'show']);
+        Route::post('/orders/{reference}/cancel', [CustomerOrderController::class, 'cancel']);
 
         Route::get('/notifications', [CustomerNotificationController::class, 'index']);
         Route::post('/notifications/read-all', [CustomerNotificationController::class, 'markAllRead']);

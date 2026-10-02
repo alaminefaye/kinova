@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/admin_dashboard_screen.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/edit_profile_screen.dart';
 import 'package:kinova_mobile/screens/favorites_screen.dart';
 import 'package:kinova_mobile/screens/help_screen.dart';
-import 'package:kinova_mobile/screens/invoice_screen.dart';
+import 'package:kinova_mobile/screens/orders_screen.dart';
 import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
-import 'package:kinova_mobile/utils/format.dart';
 import 'package:kinova_mobile/widgets/kinova_avatar.dart';
 import 'package:kinova_mobile/widgets/kinova_loader.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
@@ -80,6 +77,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     cart.setOrders(const []);
   }
 
+  void _openOrders() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OrdersScreen()));
+  }
+
   Future<void> _openEditProfile() async {
     final ok = await Navigator.of(
       context,
@@ -114,7 +117,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final nextTier = user != null && settings.profileShowNextTier
         ? settings.nextTierHint(user.loyaltyPoints)
         : null;
-    final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Compte Privilège')),
@@ -462,15 +464,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.shopping_bag_outlined,
               ),
             )
-          else
-            ...orders.asMap().entries.map((entry) {
+          else ...[
+            ...orders.take(2).toList().asMap().entries.map((entry) {
               final i = entry.key;
               final order = entry.value;
               return FadeSlideIn(
                 delay: Duration(milliseconds: 80 + i * 40),
-                child: _OrderCard(order: order, dateFormat: dateFormat),
+                child: OrderCard(order: order),
               );
             }),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _openOrders,
+                child: Text(
+                  orders.length > 2
+                      ? 'Voir toutes mes commandes (${orders.length}) ›'
+                      : 'Gérer mes commandes ›',
+                  style: const TextStyle(
+                    color: KinovaColors.goldRich,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
           FadeSlideIn(
             delay: const Duration(milliseconds: 160),
@@ -488,6 +506,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   if (auth.isLoggedIn) ...[
+                    _Tile(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'Mes commandes',
+                      onTap: _openOrders,
+                    ),
+                    const Divider(
+                      height: 1,
+                      indent: 48,
+                      color: KinovaColors.surfaceMuted,
+                    ),
                     _Tile(
                       icon: Icons.manage_accounts_outlined,
                       title: 'Modifier mon profil',
@@ -684,133 +712,6 @@ class _EmptyCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.dateFormat});
-
-  final Order order;
-  final DateFormat dateFormat;
-
-  @override
-  Widget build(BuildContext context) {
-    final invoiceLabel = switch (order.invoiceStatus) {
-      'confirmed' => 'Facture confirmée',
-      'cancelled' => 'Commande annulée',
-      _ => 'Facture provisoire',
-    };
-    return GestureDetector(
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => InvoiceScreen(order: order))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: KinovaColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: KinovaColors.cardShadow,
-          border: Border.all(
-            color: KinovaColors.gold.withValues(alpha: 0.16),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: KinovaColors.surfaceMuted,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.receipt_long_rounded,
-                color: KinovaColors.brown,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        order.id,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          order.status,
-                          style: const TextStyle(
-                            color: Color(0xFF2E7D32),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${dateFormat.format(order.createdAt)} · ${order.items.length} article${order.items.length > 1 ? 's' : ''}'
-                          '${order.trackingNumber != null ? ' · ${order.trackingNumber}' : ''}',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                      Text(
-                        formatMoney(order.total),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: KinovaColors.brown,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(
-                        order.invoiceStatus == 'confirmed'
-                            ? Icons.verified_rounded
-                            : Icons.description_outlined,
-                        size: 14,
-                        color: KinovaColors.goldRich,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$invoiceLabel ›',
-                        style: const TextStyle(
-                          color: KinovaColors.goldRich,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

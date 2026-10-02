@@ -71,6 +71,10 @@ export type OrderSummary = {
   created_at: string
   tracking_number?: string | null
   carrier?: string | null
+  items?: { product_name: string; quantity: number }[]
+  invoice_status?: 'provisional' | 'confirmed' | 'cancelled'
+  invoice_url?: string | null
+  can_cancel?: boolean
 }
 
 export function mapCategory(json: any): Category {

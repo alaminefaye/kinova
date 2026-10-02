@@ -38,7 +38,11 @@ class Order extends Model
         'invoice_status',
         'invoice_url',
         'maps_url',
+        'can_cancel',
     ];
+
+    /** Statuts où le client peut encore annuler lui-même (avant expédition). */
+    public const CUSTOMER_CANCELLABLE = ['pending', 'processing'];
 
     protected function casts(): array
     {
@@ -62,6 +66,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function getCanCancelAttribute(): bool
+    {
+        return in_array($this->status, self::CUSTOMER_CANCELLABLE, true);
     }
 
     public function getInvoiceNumberAttribute(): string

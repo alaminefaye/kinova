@@ -128,6 +128,30 @@ class NotificationService
         }
     }
 
+    public function notifyAdminsOrderCancelled(Order $order, ?string $reason = null): void
+    {
+        $order->loadMissing('items');
+        $total = AppSettings::formatMoney((float) $order->total);
+        $reason = trim((string) $reason);
+
+        foreach ($this->admins() as $admin) {
+            $this->notifyUser(
+                $admin,
+                "Commande {$order->reference} annulée",
+                "{$order->customer_name} ({$order->customer_phone}) a annulé sa commande : {$this->itemsSummary($order)}. "
+                    ."Total : {$total}.".($reason !== '' ? " Motif : {$reason}" : ''),
+                'order',
+                'package',
+                [
+                    'type' => 'admin_order_cancelled',
+                    'order_reference' => $order->reference,
+                    'order_id' => $order->id,
+                    'customer_phone' => $order->customer_phone,
+                ]
+            );
+        }
+    }
+
     /**
      * @return Collection<int, User>
      */

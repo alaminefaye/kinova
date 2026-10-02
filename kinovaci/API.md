@@ -94,6 +94,7 @@ Pages admin :
 | POST | `/api/customer/favorites/sync` | Sync liste `product_ids` |
 | GET | `/api/customer/orders` | Mes commandes |
 | GET | `/api/customer/orders/{reference}` | Détail commande |
+| POST | `/api/customer/orders/{reference}/cancel` | Annuler (si `can_cancel` : en attente / en préparation). `reason` facultatif. Remet le stock, notifie client + admins |
 | GET | `/api/customer/notifications` | Notifications (+ `unread_count`) |
 | POST | `/api/customer/notifications/{id}/read` | Marquer lue |
 | POST | `/api/customer/notifications/read-all` | Tout lire |

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/screens/orders_screen.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/utils/format.dart';
 
@@ -224,6 +225,20 @@ class InvoiceScreen extends StatelessWidget {
               onPressed: _openPdf,
               icon: const Icon(Icons.picture_as_pdf_outlined),
               label: const Text('OUVRIR / ENREGISTRER EN PDF'),
+            ),
+          ],
+          if (order.canCancel) ...[
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: () async {
+                final cancelled = await confirmCancelOrder(context, order);
+                if (cancelled && context.mounted) Navigator.of(context).pop();
+              },
+              icon: const Icon(Icons.cancel_outlined, size: 18),
+              label: const Text('ANNULER LA COMMANDE'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFC62828),
+              ),
             ),
           ],
         ],

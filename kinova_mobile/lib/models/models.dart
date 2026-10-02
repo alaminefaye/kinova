@@ -217,6 +217,9 @@ class Order {
   /// provisional|confirmed|cancelled
   final String invoiceStatus;
   final String? invoiceUrl;
+
+  /// Même règle que Order::CUSTOMER_CANCELLABLE côté Laravel (avant expédition).
+  bool get canCancel => statusCode == 'pending' || statusCode == 'processing';
 }
 
 class AppUser {

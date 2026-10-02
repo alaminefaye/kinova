@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, getToken } from '../api/client'
-import { formatMoney, resolveMediaUrl, statusLabel } from '../lib/format'
+import { resolveMediaUrl, statusLabel } from '../lib/format'
 import { useAuth } from '../state/auth'
 import { useFavorites } from '../state/favorites'
 import { nextTierHint, useSettings } from '../state/settings'
 import KinovaLoader from '../components/KinovaLoader.vue'
+import OrderCard from '../components/OrderCard.vue'
+import CancelOrderModal from '../components/CancelOrderModal.vue'
 import type { OrderSummary } from '../lib/types'
 
 const router = useRouter()
@@ -15,6 +17,12 @@ const favorites = useFavorites()
 const orders = ref<OrderSummary[]>([])
 const loadingOrders = ref(false)
 const trackingOrder = ref<OrderSummary | null>(null)
+const cancelling = ref<OrderSummary | null>(null)
+
+function onCancelled(order: OrderSummary) {
+  cancelling.value = null
+  orders.value = orders.value.map((o) => (o.reference === order.reference ? order : o))
+}
 
 const loggedIn = computed(() => !!getToken())
 const user = computed(() => auth.state.user)
@@ -107,14 +115,6 @@ async function deleteAccount() {
   }
 }
 
-function formatDate(iso?: string) {
-  if (!iso) return ''
-  try {
-    return new Intl.DateTimeFormat('fr-FR').format(new Date(iso))
-  } catch {
-    return ''
-  }
-}
 </script>
 
 <template>
@@ -188,21 +188,30 @@ function formatDate(iso?: string) {
       </div>
     </div>
 
-    <article
-      v-for="o in orders"
-      :key="o.reference"
-      class="order-card"
-      @click="trackingOrder = o"
-    >
-      <div class="bag">📦</div>
-      <div class="order-body">
-        <strong>{{ o.reference }}</strong>
-        <p>{{ statusLabel(o.status) }} · {{ formatDate(o.created_at) }}</p>
-      </div>
-      <span>{{ formatMoney(Number(o.total)) }}</span>
-    </article>
+    <template v-else>
+      <OrderCard
+        v-for="o in orders.slice(0, 2)"
+        :key="o.reference"
+        :order="o"
+        show-cancel
+        @cancel="cancelling = $event"
+      />
+      <button type="button" class="see-all" @click="router.push({ name: 'orders' })">
+        {{ orders.length > 2 ? `Voir toutes mes commandes (${orders.length}) ›` : 'Gérer mes commandes ›' }}
+      </button>
+    </template>
+
+    <CancelOrderModal
+      v-if="cancelling"
+      :order="cancelling"
+      @close="cancelling = null"
+      @cancelled="onCancelled"
+    />
 
     <section class="menu">
+      <button v-if="loggedIn" type="button" @click="router.push({ name: 'orders' })">
+        <span>🧾</span> Mes commandes
+      </button>
       <button v-if="loggedIn" type="button" @click="router.push({ name: 'edit-profile' })">
         <span>👤</span> Modifier mon profil
       </button>
@@ -406,6 +415,17 @@ function formatDate(iso?: string) {
   margin-left: auto;
   font-weight: 700;
   font-size: 0.85rem;
+}
+.see-all {
+  display: block;
+  margin: 0 0 0 auto;
+  border: none;
+  background: transparent;
+  color: #b8860b;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
 }
 .loading {
   text-align: center;

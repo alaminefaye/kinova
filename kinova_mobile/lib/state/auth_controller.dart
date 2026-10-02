@@ -152,6 +152,15 @@ class AuthController extends ChangeNotifier {
         .toList();
   }
 
+  Future<Order> cancelOrder(String reference, {String? reason}) async {
+    final res = await _api.post(
+      '/customer/orders/$reference/cancel',
+      body: {if (reason != null && reason.isNotEmpty) 'reason': reason},
+    );
+    final data = res is Map && res['data'] is Map ? res['data'] as Map : const {};
+    return ApiOrderParser.parse(Map<String, dynamic>.from(data));
+  }
+
   Future<void> logout() async {
     try {
       if (_api.token != null) {
