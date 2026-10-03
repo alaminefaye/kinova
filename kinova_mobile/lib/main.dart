@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/screens/splash_screen.dart';
+import 'package:kinova_mobile/services/cart_reminder_service.dart';
 import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
@@ -28,6 +29,11 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Notifications push indisponibles : $e');
   }
+  try {
+    await CartReminderService.init();
+  } catch (e) {
+    debugPrint('Rappels panier indisponibles : $e');
+  }
 
   runApp(KinovaApp(api: api));
 }
@@ -46,8 +52,9 @@ class KinovaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthController(api)),
         ChangeNotifierProxyProvider<CatalogController, CartController>(
           create: (_) => CartController(api),
-          update: (_, catalog, cart) =>
-              (cart ?? CartController(api))..settings = catalog.settings,
+          update: (_, catalog, cart) => (cart ?? CartController(api))
+            ..settings = catalog.settings
+            ..attachCatalog(catalog.products),
         ),
         ChangeNotifierProvider(create: (_) => FavoritesController(api)),
       ],

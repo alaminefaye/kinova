@@ -33,6 +33,12 @@ const router = createRouter({
       meta: { title: 'Slider Accueil', requiresAuth: true },
     },
     {
+      path: '/announcements',
+      name: 'Announcements',
+      component: () => import('../views/Admin/AnnouncementsPage.vue'),
+      meta: { title: 'Annonces', requiresAuth: true },
+    },
+    {
       path: '/orders',
       name: 'Orders',
       component: () => import('../views/Admin/OrdersPage.vue'),

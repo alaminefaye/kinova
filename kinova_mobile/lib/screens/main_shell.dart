@@ -15,6 +15,11 @@ class MainShell extends StatefulWidget {
 
   final int initialIndex;
 
+  static const cartTab = 2;
+
+  /// Onglet à afficher depuis l'extérieur (ex. notification de rappel panier).
+  static final ValueNotifier<int?> requestedTab = ValueNotifier<int?>(null);
+
   @override
   State<MainShell> createState() => _MainShellState();
 }
@@ -34,10 +39,25 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex;
+    _index = MainShell.requestedTab.value ?? widget.initialIndex;
+    MainShell.requestedTab.value = null;
+    MainShell.requestedTab.addListener(_onTabRequested);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => PushNotificationService.consumePendingOpen(),
     );
+  }
+
+  @override
+  void dispose() {
+    MainShell.requestedTab.removeListener(_onTabRequested);
+    super.dispose();
+  }
+
+  void _onTabRequested() {
+    final tab = MainShell.requestedTab.value;
+    if (tab == null) return;
+    MainShell.requestedTab.value = null;
+    if (mounted) setState(() => _index = tab);
   }
 
   @override
@@ -59,10 +79,7 @@ class _MainShellState extends State<MainShell> {
             child: child,
           ),
         ),
-        child: KeyedSubtree(
-          key: ValueKey(_index),
-          child: _pages[_index],
-        ),
+        child: KeyedSubtree(key: ValueKey(_index), child: _pages[_index]),
       ),
       bottomNavigationBar: _KinovaNavBar(
         index: _index,
@@ -390,8 +407,7 @@ class _CartNavButtonState extends State<_CartNavButton>
                   fontFamily: 'Montserrat',
                   fontSize: 9.5,
                   letterSpacing: 0.4,
-                  fontWeight:
-                      widget.active ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: widget.active ? FontWeight.w700 : FontWeight.w500,
                   color: widget.active
                       ? KinovaColors.brown
                       : KinovaColors.mutedBrown,

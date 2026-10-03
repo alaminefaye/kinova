@@ -554,4 +554,40 @@ class SecurityTest extends TestCase
         $this->assertSame(1, $product->sizes[0]['stock']);
         $this->assertSame(0, $product->colors[0]['stock']);
     }
+
+    public function test_announcements_are_admin_only_and_single_active(): void
+    {
+        Sanctum::actingAs($this->user());
+        $this->postJson('/api/admin/announcements', ['image_url' => '/storage/media/a.jpg'])->assertForbidden();
+
+        Sanctum::actingAs($this->user('super-admin'));
+        $first = $this->postJson('/api/admin/announcements', ['image_url' => '/storage/media/a.jpg'])
+            ->assertCreated()->json('data.id');
+        $second = $this->postJson('/api/admin/announcements', ['image_url' => '/storage/media/b.jpg'])
+            ->assertCreated()->json('data.id');
+
+        $this->getJson('/api/announcement')->assertOk()
+            ->assertJsonPath('data.id', $second)
+            ->assertJsonPath('data.image_url', '/storage/media/b.jpg');
+        $this->assertFalse(\App\Models\Announcement::query()->findOrFail($first)->is_active);
+
+        $this->putJson("/api/admin/announcements/{$second}", ['is_active' => false])->assertOk();
+        $this->getJson('/api/announcement')->assertOk()->assertJsonPath('data', null);
+    }
+
+    public function test_announcement_views_are_counted_only_when_active(): void
+    {
+        $announcement = \App\Models\Announcement::query()->create(['image_url' => '/storage/media/a.jpg', 'is_active' => true]);
+
+        $this->postJson("/api/announcement/{$announcement->id}/view")->assertOk();
+        $this->postJson("/api/announcement/{$announcement->id}/view")->assertOk();
+        $this->assertSame(2, $announcement->fresh()->views_count);
+
+        $announcement->update(['is_active' => false]);
+        $this->postJson("/api/announcement/{$announcement->id}/view")->assertNotFound();
+        $this->assertSame(2, $announcement->fresh()->views_count);
+
+        Sanctum::actingAs($this->user('super-admin'));
+        $this->getJson('/api/admin/announcements')->assertOk()->assertJsonPath('data.0.views_count', 2);
+    }
 }

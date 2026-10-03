@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\ContactMessageController as AdminContactMessageController;
 use App\Http\Controllers\Api\Admin\DashboardController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Api\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
@@ -47,6 +49,8 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/products/{product}/rating', [RatingController::class, 'show']);
 Route::get('/hero-slides', [HeroSlideController::class, 'index']);
+Route::get('/announcement', [AnnouncementController::class, 'current']);
+Route::post('/announcement/{announcement}/view', [AnnouncementController::class, 'view'])->middleware('throttle:10,1');
 Route::get('/settings', [SettingsController::class, 'index']);
 Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:20,1');
 Route::get('/orders/{reference}', [OrderController::class, 'show'])->middleware('throttle:30,1');
@@ -118,6 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
         Route::apiResource('products', AdminProductController::class);
         Route::apiResource('hero-slides', AdminHeroSlideController::class);
+        Route::apiResource('announcements', AdminAnnouncementController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::apiResource('orders', AdminOrderController::class)->only(['index', 'show', 'store', 'update']);
 
         Route::post('/media', [MediaController::class, 'store']);

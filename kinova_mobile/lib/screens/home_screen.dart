@@ -12,6 +12,7 @@ import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/animated_logo_badge.dart';
+import 'package:kinova_mobile/widgets/announcement_popup.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
 import 'package:kinova_mobile/widgets/product_card.dart';
 import 'package:kinova_mobile/widgets/typewriter_hint.dart';
@@ -31,6 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AnnouncementPopup.maybeShow(context);
+    });
     _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted) return;
       final count = context.read<CatalogController>().heroSlides.length;
@@ -179,115 +183,115 @@ class _HomeScreenState extends State<HomeScreen> {
                     // ===== Bandeau avantages =====
                     if (settings.showPromoBanner &&
                         settings.promoBannerText.trim().isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: FadeSlideIn(
-                        delay: const Duration(milliseconds: 80),
-                        child: Container(
-                          margin: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: KinovaColors.goldGradient,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.local_shipping_rounded,
-                                color: KinovaColors.brown,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  settings.promoBannerText,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: KinovaColors.brown,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.1,
+                      SliverToBoxAdapter(
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 80),
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: KinovaColors.goldGradient,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.local_shipping_rounded,
+                                  color: KinovaColors.brown,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    settings.promoBannerText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: KinovaColors.brown,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.1,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
                     // ===== Catégories =====
                     if (settings.showCategories) ...[
-                    SliverToBoxAdapter(
-                      child: FadeSlideIn(
-                        delay: const Duration(milliseconds: 110),
-                        child: _SectionHeader(
-                          title: settings.categoriesTitle,
-                          actionLabel: 'Tout voir',
-                          onAction: _openCatalog,
+                      SliverToBoxAdapter(
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 110),
+                          child: _SectionHeader(
+                            title: settings.categoriesTitle,
+                            actionLabel: 'Tout voir',
+                            onAction: _openCatalog,
+                          ),
                         ),
                       ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 168,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          scrollDirection: Axis.horizontal,
-                          itemCount: catalog.categories.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 13),
-                          itemBuilder: (context, index) {
-                            final cat = catalog.categories[index];
-                            final count = catalog.byCategory(cat.id).length;
-                            return FadeSlideIn(
-                              delay: Duration(milliseconds: 70 * index),
-                              child: _UniverseCard(
-                                name: cat.name,
-                                imageUrl: cat.imageUrl,
-                                count: count,
-                                onTap: () => _openCatalog(categoryId: cat.id),
-                              ),
-                            );
-                          },
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 168,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: catalog.categories.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 13),
+                            itemBuilder: (context, index) {
+                              final cat = catalog.categories[index];
+                              final count = catalog.byCategory(cat.id).length;
+                              return FadeSlideIn(
+                                delay: Duration(milliseconds: 70 * index),
+                                child: _UniverseCard(
+                                  name: cat.name,
+                                  imageUrl: cat.imageUrl,
+                                  count: count,
+                                  onTap: () => _openCatalog(categoryId: cat.id),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
-
                     ],
 
                     // ===== Sélection Premium =====
                     if (settings.showFeatured && featured.isNotEmpty) ...[
-                    SliverToBoxAdapter(
-                      child: _SectionHeader(
-                        title: settings.featuredTitle,
-                        trailingIcon: Icons.auto_awesome_rounded,
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 275,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          scrollDirection: Axis.horizontal,
-                          itemCount: featured.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 14),
-                          itemBuilder: (context, index) {
-                            return FadeSlideIn(
-                              delay: Duration(milliseconds: 60 * index),
-                              child: ProductCard(
-                                product: featured[index],
-                                width: 175,
-                                heroTag: 'featured-${featured[index].id}',
-                              ),
-                            );
-                          },
+                      SliverToBoxAdapter(
+                        child: _SectionHeader(
+                          title: settings.featuredTitle,
+                          trailingIcon: Icons.auto_awesome_rounded,
                         ),
                       ),
-                    ),
-
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 275,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: featured.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 14),
+                            itemBuilder: (context, index) {
+                              return FadeSlideIn(
+                                delay: Duration(milliseconds: 60 * index),
+                                child: ProductCard(
+                                  product: featured[index],
+                                  width: 175,
+                                  heroTag: 'featured-${featured[index].id}',
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                     ],
 
                     // ===== Bannière Cercle VIP (si non connecté) =====
@@ -311,13 +315,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   gradient: KinovaColors.darkLuxuryGradient,
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: KinovaColors.gold.withValues(alpha: 0.45),
+                                    color: KinovaColors.gold.withValues(
+                                      alpha: 0.45,
+                                    ),
                                     width: 1,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: KinovaColors.brown.withValues(alpha: 
-                                        0.30,
+                                      color: KinovaColors.brown.withValues(
+                                        alpha: 0.30,
                                       ),
                                       blurRadius: 18,
                                       offset: const Offset(0, 8),
@@ -330,12 +336,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: KinovaColors.gold.withValues(alpha: 
-                                          0.15,
+                                        color: KinovaColors.gold.withValues(
+                                          alpha: 0.15,
                                         ),
                                         border: Border.all(
-                                          color: KinovaColors.gold.withValues(alpha: 
-                                            0.5,
+                                          color: KinovaColors.gold.withValues(
+                                            alpha: 0.5,
                                           ),
                                         ),
                                       ),
@@ -390,70 +396,75 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // ===== Engagements =====
                     if (settings.showPerks && settings.perks.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: FadeSlideIn(
-                        delay: const Duration(milliseconds: 160),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: KinovaColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: KinovaColors.gold.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (var i = 0; i < settings.perks.length && i < _perkIcons.length; i++) ...[
-                                  if (i > 0) const SizedBox(width: 6),
-                                  Expanded(
-                                    child: _PerkItem(
-                                      icon: _perkIcons[i],
-                                      title: settings.perks[i].title,
-                                      subtitle: settings.perks[i].subtitle,
-                                    ),
+                      SliverToBoxAdapter(
+                        child: FadeSlideIn(
+                          delay: const Duration(milliseconds: 160),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 22, 18, 0),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: KinovaColors.surfaceMuted,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: KinovaColors.gold.withValues(
+                                    alpha: 0.2,
                                   ),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (
+                                    var i = 0;
+                                    i < settings.perks.length &&
+                                        i < _perkIcons.length;
+                                    i++
+                                  ) ...[
+                                    if (i > 0) const SizedBox(width: 6),
+                                    Expanded(
+                                      child: _PerkItem(
+                                        icon: _perkIcons[i],
+                                        title: settings.perks[i].title,
+                                        subtitle: settings.perks[i].subtitle,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
 
                     // ===== Nouveautés =====
                     if (settings.showNews && news.isNotEmpty) ...[
-                    SliverToBoxAdapter(
-                      child: _SectionHeader(
-                        title: settings.newsTitle,
+                      SliverToBoxAdapter(
+                        child: _SectionHeader(title: settings.newsTitle),
                       ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 36),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 14,
-                              childAspectRatio: 0.65,
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(18, 0, 18, 36),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 14,
+                                childAspectRatio: 0.65,
+                              ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => FadeSlideIn(
+                              delay: Duration(milliseconds: 50 * index),
+                              child: ProductCard(
+                                product: news[index],
+                                heroTag: 'news-${news[index].id}',
+                              ),
                             ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => FadeSlideIn(
-                            delay: Duration(milliseconds: 50 * index),
-                            child: ProductCard(
-                              product: news[index],
-                              heroTag: 'news-${news[index].id}',
-                            ),
+                            childCount: news.length,
                           ),
-                          childCount: news.length,
                         ),
                       ),
-                    ),
                     ] else
                       const SliverToBoxAdapter(child: SizedBox(height: 36)),
                   ],
@@ -530,7 +541,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: Colors.white.withValues(alpha: 0.14),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: KinovaColors.gold.withValues(alpha: 0.6),
+                                    color: KinovaColors.gold.withValues(
+                                      alpha: 0.6,
+                                    ),
                                     width: 0.8,
                                   ),
                                 ),

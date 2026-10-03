@@ -257,6 +257,11 @@ const menuGroups = [
         path: "/hero-slides",
       },
       {
+        icon: PageIcon,
+        name: "Annonces",
+        path: "/announcements",
+      },
+      {
         icon: TableIcon,
         name: "Commandes",
         path: "/orders",
