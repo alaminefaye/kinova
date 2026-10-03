@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:kinova_mobile/api/api_client.dart';
+import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/api/api_mappers.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController(this._api);
+  AuthController(this._api) {
+    _api.onUnauthorized = _onUnauthorized;
+  }
 
   static const _tokenKey = 'kinova_customer_token';
 
@@ -40,9 +44,12 @@ class AuthController extends ChangeNotifier {
       } else if (me is Map) {
         _user = AppUser.fromJson(Map<String, dynamic>.from(me));
       }
-      await PushNotificationService.syncToken();
+      unawaited(PushNotificationService.syncToken());
+    } on ApiException catch (e) {
+      // Hors ligne ou serveur indisponible : on garde la session pour le prochain lancement.
+      if (e.statusCode == 401) await _clearToken();
+      _user = null;
     } catch (_) {
-      await _clearToken();
       _user = null;
     } finally {
       _booting = false;
@@ -186,7 +193,15 @@ class AuthController extends ChangeNotifier {
     await prefs.setString(_tokenKey, token);
     _api.setToken(token);
     _user = AppUser.fromJson(Map<String, dynamic>.from(userRaw));
-    await PushNotificationService.syncToken();
+    unawaited(PushNotificationService.syncToken());
+    notifyListeners();
+  }
+
+  /// Jeton refusé par le serveur (expiré, révoqué, compte bloqué) : retour en mode invité.
+  void _onUnauthorized() {
+    if (_api.token == null && _user == null) return;
+    unawaited(_clearToken());
+    _user = null;
     notifyListeners();
   }
 

@@ -18,7 +18,7 @@ class ProductController extends Controller
             $query->where('name', 'like', "%{$q}%");
         }
 
-        return response()->json($query->latest()->paginate(20));
+        return response()->json($query->latest()->paginate(min(max($request->integer('per_page', 20), 1), 100)));
     }
 
     public function store(Request $request)

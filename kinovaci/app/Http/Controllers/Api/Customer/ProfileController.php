@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class ProfileController extends Controller
 {
@@ -31,7 +32,6 @@ class ProfileController extends Controller
             'email' => ['nullable', 'email', 'max:160', 'unique:users,email,'.$user->id],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'current_password' => ['nullable', 'string'],
-            'avatar_url' => ['nullable', 'string', 'max:500'],
         ]);
 
         if (! empty($data['password'])) {
@@ -53,6 +53,13 @@ class ProfileController extends Controller
 
         $user->update($data);
 
+        if (! empty($data['password'])) {
+            $current = $user->currentAccessToken();
+            $user->tokens()
+                ->when($current instanceof PersonalAccessToken, fn ($q) => $q->whereKeyNot($current->getKey()))
+                ->delete();
+        }
+
         return response()->json(['data' => $this->payload($user->fresh())]);
     }
 
@@ -61,24 +68,17 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'avatar' => ['required', 'image', 'max:5120'],
+            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $file = $request->file('avatar');
-        $name = Str::uuid().'.'.$file->getClientOriginalExtension();
+        $name = Str::uuid().'.'.$file->extension();
         $path = $file->storeAs('avatars', $name, 'public');
 
         // URL absolue utilisable par l'app mobile
         $url = $this->absoluteUrl(Storage::disk('public')->url($path));
 
-        // Supprime l'ancienne image locale si possible
-        if ($user->avatar_url && str_contains((string) $user->avatar_url, '/storage/avatars/')) {
-            $oldPath = parse_url((string) $user->avatar_url, PHP_URL_PATH) ?: '';
-            $old = ltrim(str_replace('/storage/', '', $oldPath), '/');
-            if ($old !== '') {
-                Storage::disk('public')->delete($old);
-            }
-        }
+        $this->deleteStoredAvatar($user->avatar_url);
 
         $user->update(['avatar_url' => $url]);
 
@@ -108,18 +108,22 @@ class ProfileController extends Controller
         // Révoque les tokens Sanctum
         $user->tokens()->delete();
 
-        if ($user->avatar_url && str_contains($user->avatar_url, '/storage/avatars/')) {
-            $old = str_replace('/storage/', '', parse_url($user->avatar_url, PHP_URL_PATH) ?? '');
-            if ($old !== '') {
-                Storage::disk('public')->delete($old);
-            }
-        }
+        $this->deleteStoredAvatar($user->avatar_url);
 
         $user->delete();
 
         return response()->json([
             'message' => 'Votre compte a été définitivement supprimé.',
         ]);
+    }
+
+    /** Supprime uniquement un fichier avatars/<uuid>.<ext> généré par uploadAvatar. */
+    private function deleteStoredAvatar(?string $url): void
+    {
+        $path = (string) parse_url((string) $url, PHP_URL_PATH);
+        if (preg_match('#/storage/(avatars/[0-9a-f-]{36}\.(?:jpe?g|png|webp|gif))$#i', $path, $m)) {
+            Storage::disk('public')->delete($m[1]);
+        }
     }
 
     private function payload($user): array

@@ -44,7 +44,7 @@ class NotificationService
         ?array $data = null,
         ?array $userIds = null,
     ): Collection {
-        $query = User::query()->where('role', 'customer');
+        $query = User::query()->where('role', 'customer')->where('is_blocked', false);
         if ($userIds) {
             $query->whereIn('id', $userIds);
         }

@@ -36,7 +36,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Accès réservé aux super-administrateurs.'], 403);
         }
 
-        $token = $user->createToken('kinova-dashboard')->plainTextToken;
+        $token = $user->createToken('kinova-dashboard', ['*'], now()->addDays(7))->plainTextToken;
 
         $roleNames = $user->roles->pluck('name')->toArray();
         if (empty($roleNames) && $user->role) {

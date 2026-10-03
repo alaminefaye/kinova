@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
 
 const loading = ref(true)
 const sending = ref(false)
@@ -15,12 +16,19 @@ const form = reactive({
   user_id: '' as string | number,
 })
 
-async function load() {
+const page = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+
+async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<any>('/admin/notifications')
+    const res = await api<any>(`/admin/notifications?page=${p}`)
     items.value = res.data || []
+    page.value = res.current_page || 1
+    lastPage.value = res.last_page || 1
+    total.value = res.total || 0
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -54,11 +62,16 @@ async function send() {
 
 async function remove(id: number) {
   if (!confirm('Supprimer ?')) return
-  await api(`/admin/notifications/${id}`, { method: 'DELETE' })
-  await load()
+  error.value = ''
+  try {
+    await api(`/admin/notifications/${id}`, { method: 'DELETE' })
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
-onMounted(load)
+onMounted(() => load())
 </script>
 
 <template>
@@ -127,6 +140,7 @@ onMounted(load)
           </tbody>
         </table>
       </div>
+      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

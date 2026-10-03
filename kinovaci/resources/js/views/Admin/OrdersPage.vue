@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -10,12 +11,19 @@ const selected = ref<any | null>(null)
 const tracking = ref('')
 const carrier = ref('')
 
-async function load() {
+const page = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+
+async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<any>('/admin/orders')
+    const res = await api<any>(`/admin/orders?page=${p}`)
     orders.value = res.data || []
+    page.value = res.current_page || 1
+    lastPage.value = res.last_page || 1
+    total.value = res.total || 0
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -24,26 +32,41 @@ async function load() {
 }
 
 async function open(order: any) {
-  const res = await api<{ data: any }>(`/admin/orders/${order.id}`)
-  selected.value = res.data
-  tracking.value = res.data.tracking_number || ''
-  carrier.value = res.data.carrier || ''
+  error.value = ''
+  try {
+    const res = await api<{ data: any }>(`/admin/orders/${order.id}`)
+    selected.value = res.data
+    tracking.value = res.data.tracking_number || ''
+    carrier.value = res.data.carrier || ''
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
 async function updateStatus(status: string) {
   if (!selected.value) return
-  const res = await api<{ data: any }>(`/admin/orders/${selected.value.id}`, {
-    method: 'PUT',
-    json: {
-      status,
-      tracking_number: tracking.value || selected.value.tracking_number || null,
-      carrier: carrier.value || selected.value.carrier || null,
-    },
-  })
-  selected.value = res.data
-  tracking.value = res.data.tracking_number || ''
-  carrier.value = res.data.carrier || ''
-  await load()
+  error.value = ''
+  try {
+    const res = await api<{ data: any }>(`/admin/orders/${selected.value.id}`, {
+      method: 'PUT',
+      json: {
+        status,
+        tracking_number: tracking.value || selected.value.tracking_number || null,
+        carrier: carrier.value || selected.value.carrier || null,
+      },
+    })
+    selected.value = res.data
+    tracking.value = res.data.tracking_number || ''
+    carrier.value = res.data.carrier || ''
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+    // Remet le sélecteur sur le statut réellement enregistré.
+    const current = selected.value
+    selected.value = null
+    await open(current)
+    error.value = e.message
+  }
 }
 
 async function updatePayment(paymentStatus: 'paid' | 'unpaid') {
@@ -77,7 +100,7 @@ const statusLabels: Record<string, string> = {
 const money = (v: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(Number(v) || 0)
 
-onMounted(load)
+onMounted(() => load())
 </script>
 
 <template>
@@ -205,6 +228,7 @@ onMounted(load)
           </div>
         </div>
       </div>
+      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

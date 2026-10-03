@@ -209,7 +209,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _locationNeedsSettings = false;
     });
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!mounted) return;
+      if (!serviceEnabled) {
         setState(() {
           _locationError = 'Activez la localisation (GPS) de votre téléphone.';
           _locationNeedsSettings = true;
@@ -221,6 +223,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
+      if (!mounted) return;
       if (permission == LocationPermission.denied) {
         setState(
           () => _locationError =
@@ -307,9 +310,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

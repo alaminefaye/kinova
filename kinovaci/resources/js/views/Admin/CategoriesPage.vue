@@ -70,8 +70,13 @@ async function save() {
 
 async function remove(id: number) {
   if (!confirm('Supprimer cette catégorie ?')) return
-  await api(`/admin/categories/${id}`, { method: 'DELETE' })
-  await load()
+  error.value = ''
+  try {
+    await api(`/admin/categories/${id}`, { method: 'DELETE' })
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
 onMounted(load)

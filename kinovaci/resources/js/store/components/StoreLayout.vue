@@ -27,15 +27,17 @@ onMounted(() => {
   if (auth.isLoggedIn.value) notifications.refresh()
 })
 
-const tabs = [
+type Tab = { name: string; label: string; icon: string; cart?: boolean; account?: boolean }
+
+const tabs: Tab[] = [
   { name: 'home', label: 'Accueil', icon: '⌂' },
   { name: 'catalog', label: 'Boutique', icon: '▦' },
   { name: 'cart', label: 'Panier', icon: '🛒', cart: true },
   { name: 'favorites', label: 'Favoris', icon: '♡' },
   { name: 'account', label: 'Compte', icon: '◎', account: true },
-] as const
+]
 
-function go(tab: (typeof tabs)[number]) {
+function go(tab: Tab) {
   if (tab.account) {
     router.push({ name: 'account' })
     return
@@ -51,7 +53,7 @@ function openNotifications() {
   router.push('/notifications')
 }
 
-function isActive(tab: (typeof tabs)[number]) {
+function isActive(tab: Tab) {
   if (tab.account) {
     return (
       route.name === 'account' ||

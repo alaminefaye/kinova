@@ -9,8 +9,14 @@ import 'package:kinova_mobile/api/api_exception.dart';
 class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
 
+  static const _timeout = Duration(seconds: 20);
+  static const _uploadTimeout = Duration(seconds: 90);
+
   final http.Client _client;
   String? _token;
+
+  /// Appelé quand le serveur refuse le jeton (expiré, révoqué, compte bloqué).
+  void Function()? onUnauthorized;
 
   String? get token => _token;
 
@@ -49,40 +55,48 @@ class ApiClient {
 
   Future<dynamic> get(String path, {Map<String, String>? query}) {
     return _guard(() async {
-      final response = await _client.get(_uri(path, query), headers: _headers());
+      final response = await _client
+          .get(_uri(path, query), headers: _headers())
+          .timeout(_timeout);
       return _decode(response);
     });
   }
 
   Future<dynamic> post(String path, {Object? body}) {
     return _guard(() async {
-      final response = await _client.post(
-        _uri(path),
-        headers: _headers(jsonBody: true),
-        body: body == null ? null : jsonEncode(body),
-      );
+      final response = await _client
+          .post(
+            _uri(path),
+            headers: _headers(jsonBody: true),
+            body: body == null ? null : jsonEncode(body),
+          )
+          .timeout(_timeout);
       return _decode(response);
     });
   }
 
   Future<dynamic> put(String path, {Object? body}) {
     return _guard(() async {
-      final response = await _client.put(
-        _uri(path),
-        headers: _headers(jsonBody: true),
-        body: body == null ? null : jsonEncode(body),
-      );
+      final response = await _client
+          .put(
+            _uri(path),
+            headers: _headers(jsonBody: true),
+            body: body == null ? null : jsonEncode(body),
+          )
+          .timeout(_timeout);
       return _decode(response);
     });
   }
 
   Future<dynamic> delete(String path, {Object? body}) {
     return _guard(() async {
-      final response = await _client.delete(
-        _uri(path),
-        headers: _headers(jsonBody: body != null),
-        body: body == null ? null : jsonEncode(body),
-      );
+      final response = await _client
+          .delete(
+            _uri(path),
+            headers: _headers(jsonBody: body != null),
+            body: body == null ? null : jsonEncode(body),
+          )
+          .timeout(_timeout);
       return _decode(response);
     });
   }
@@ -96,8 +110,10 @@ class ApiClient {
       final request = http.MultipartRequest('POST', _uri(path));
       request.headers.addAll(_headers());
       request.files.add(await http.MultipartFile.fromPath(field, file.path));
-      final streamed = await _client.send(request);
-      final response = await http.Response.fromStream(streamed);
+      final streamed = await _client.send(request).timeout(_uploadTimeout);
+      final response = await http.Response.fromStream(
+        streamed,
+      ).timeout(_uploadTimeout);
       return _decode(response);
     });
   }
@@ -112,6 +128,11 @@ class ApiClient {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return raw;
+    }
+
+    final sentToken = response.request?.headers['Authorization'] != null;
+    if (response.statusCode == 401 && sentToken) {
+      onUnauthorized?.call();
     }
 
     String message = 'Erreur serveur (${response.statusCode})';

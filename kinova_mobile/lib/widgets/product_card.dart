@@ -24,10 +24,21 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favorites = context.watch<FavoritesController>();
-    final liked = favorites.isFavorite(product.id);
+    final liked = context.select<FavoritesController, bool>(
+      (f) => f.isFavorite(product.id),
+    );
+    final favorites = context.read<FavoritesController>();
     final cart = context.read<CartController>();
     final tagToUse = heroTag ?? 'product-${product.id}';
+
+    void openDetail() {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              ProductDetailScreen(product: product, heroTag: tagToUse),
+        ),
+      );
+    }
 
     return PressableScale(
       child: Container(
@@ -46,16 +57,7 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ProductDetailScreen(
-                  product: product,
-                  heroTag: tagToUse,
-                ),
-              ),
-            );
-          },
+          onTap: openDetail,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -306,6 +308,12 @@ class ProductCard extends StatelessWidget {
                           onTap: product.isOutOfStock
                               ? null
                               : () {
+                                  // Taille / couleur à choisir sur la fiche produit.
+                                  if (product.effectiveSizes.isNotEmpty ||
+                                      product.effectiveColors.isNotEmpty) {
+                                    openDetail();
+                                    return;
+                                  }
                                   cart.add(product);
                                   // Le produit s'envole vers le panier
                                   CartFly.fly(context, product.imageUrl);

@@ -118,7 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
         Route::apiResource('products', AdminProductController::class);
         Route::apiResource('hero-slides', AdminHeroSlideController::class);
-        Route::apiResource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
+        Route::apiResource('orders', AdminOrderController::class)->only(['index', 'show', 'store', 'update']);
 
         Route::post('/media', [MediaController::class, 'store']);
 

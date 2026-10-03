@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api, uploadMedia } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
 
 const uploading = ref(false)
 
@@ -24,15 +25,22 @@ const form = reactive({
   is_new: false,
 })
 
-async function load() {
+const page = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+
+async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
     const [prodRes, catRes] = await Promise.all([
-      api<any>('/admin/products'),
+      api<any>(`/admin/products?page=${p}`),
       api<{ data: any[] }>('/admin/categories'),
     ])
     products.value = prodRes.data || []
+    page.value = prodRes.current_page || 1
+    lastPage.value = prodRes.last_page || 1
+    total.value = prodRes.total || 0
     categories.value = catRes.data || []
     if (!form.category_id && categories.value.length) {
       form.category_id = categories.value[0].id
@@ -101,8 +109,13 @@ async function save() {
 
 async function remove(id: number) {
   if (!confirm('Supprimer ce produit ?')) return
-  await api(`/admin/products/${id}`, { method: 'DELETE' })
-  await load()
+  error.value = ''
+  try {
+    await api(`/admin/products/${id}`, { method: 'DELETE' })
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
 async function onUpload(e: Event) {
@@ -125,7 +138,7 @@ async function onUpload(e: Event) {
 const money = (v: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(Number(v) || 0)
 
-onMounted(load)
+onMounted(() => load())
 </script>
 
 <template>
@@ -210,6 +223,7 @@ onMounted(load)
           </tbody>
         </table>
       </div>
+      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

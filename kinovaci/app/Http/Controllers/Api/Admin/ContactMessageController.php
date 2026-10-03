@@ -16,7 +16,7 @@ class ContactMessageController extends Controller
             $query->where('status', $request->string('status'));
         }
 
-        return response()->json($query->paginate(20));
+        return response()->json($query->paginate(min(max($request->integer('per_page', 20), 1), 100)));
     }
 
     public function show(ContactMessage $contactMessage)

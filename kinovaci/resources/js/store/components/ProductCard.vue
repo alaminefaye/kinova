@@ -49,6 +49,11 @@ function toggleFav(e: Event) {
 function addCart(e: Event) {
   e.stopPropagation()
   if (isOutOfStock.value) return
+  // Taille / couleur à choisir sur la fiche produit.
+  if (props.product.sizes.length || props.product.colors.length) {
+    open()
+    return
+  }
   cart.add(props.product)
 }
 </script>

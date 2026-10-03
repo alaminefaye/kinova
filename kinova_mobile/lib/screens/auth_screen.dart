@@ -4,6 +4,7 @@ import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/admin_dashboard_screen.dart';
 import 'package:kinova_mobile/screens/privacy_policy_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
+import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/state/favorites_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/animated_logo_badge.dart';
@@ -45,15 +46,13 @@ class _AuthScreenState extends State<AuthScreen>
       parent: _intro,
       curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
     );
-    _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _intro,
-        curve: const Interval(0.25, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
+    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _intro,
+            curve: const Interval(0.25, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
     _cardFade = CurvedAnimation(
       parent: _intro,
       curve: const Interval(0.25, 0.9, curve: Curves.easeOut),
@@ -84,7 +83,9 @@ class _AuthScreenState extends State<AuthScreen>
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
     if (_registerMode && !_acceptTerms) {
-      setState(() => _error = 'Veuillez accepter la politique de confidentialité.');
+      setState(
+        () => _error = 'Veuillez accepter la politique de confidentialité.',
+      );
       return;
     }
     setState(() {
@@ -121,9 +122,9 @@ class _AuthScreenState extends State<AuthScreen>
         Navigator.of(context).pop(true);
       }
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'Connexion impossible. Vérifiez votre réseau.');
+      if (mounted) setState(() => _error = 'Connexion impossible. Vérifiez votre réseau.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -276,15 +277,15 @@ class _AuthScreenState extends State<AuthScreen>
                                   duration: const Duration(milliseconds: 300),
                                   transitionBuilder: (child, anim) =>
                                       FadeTransition(
-                                    opacity: anim,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0, 0.2),
-                                        end: Offset.zero,
-                                      ).animate(anim),
-                                      child: child,
-                                    ),
-                                  ),
+                                        opacity: anim,
+                                        child: SlideTransition(
+                                          position: Tween<Offset>(
+                                            begin: const Offset(0, 0.2),
+                                            end: Offset.zero,
+                                          ).animate(anim),
+                                          child: child,
+                                        ),
+                                      ),
                                   child: Column(
                                     key: ValueKey(_registerMode),
                                     crossAxisAlignment:
@@ -304,7 +305,14 @@ class _AuthScreenState extends State<AuthScreen>
                                       const SizedBox(height: 6),
                                       Text(
                                         _registerMode
-                                            ? 'Créez votre compte et cumulez vos points VIP.'
+                                            ? context
+                                                      .watch<
+                                                        CatalogController
+                                                      >()
+                                                      .settings
+                                                      .loyaltyEnabled
+                                                  ? 'Créez votre compte et cumulez vos points VIP.'
+                                                  : 'Créez votre compte pour suivre vos commandes et favoris.'
                                             : 'Retrouvez vos favoris, commandes et avantages.',
                                         style: const TextStyle(
                                           fontFamily: 'Montserrat',
@@ -329,8 +337,10 @@ class _AuthScreenState extends State<AuthScreen>
                                             _LuxField(
                                               controller: _name,
                                               hint: 'Nom complet',
-                                              icon: Icons.person_outline_rounded,
-                                              validator: (v) => (v == null ||
+                                              icon:
+                                                  Icons.person_outline_rounded,
+                                              validator: (v) =>
+                                                  (v == null ||
                                                       v.trim().isEmpty)
                                                   ? 'Votre nom est requis'
                                                   : null,
@@ -341,7 +351,8 @@ class _AuthScreenState extends State<AuthScreen>
                                               hint: 'Numéro de téléphone',
                                               icon: Icons.phone_iphone_rounded,
                                               keyboardType: TextInputType.phone,
-                                              validator: (v) => (v == null ||
+                                              validator: (v) =>
+                                                  (v == null ||
                                                       v.trim().length < 8)
                                                   ? 'Numéro de téléphone requis'
                                                   : null,
@@ -375,8 +386,8 @@ class _AuthScreenState extends State<AuthScreen>
                                     hint: 'Email ou numéro de téléphone',
                                     icon: Icons.person_outline_rounded,
                                     keyboardType: TextInputType.text,
-                                    validator: (v) => (v == null ||
-                                            v.trim().isEmpty)
+                                    validator: (v) =>
+                                        (v == null || v.trim().isEmpty)
                                         ? 'Email ou téléphone requis'
                                         : null,
                                   ),
@@ -409,19 +420,22 @@ class _AuthScreenState extends State<AuthScreen>
                                   child: _error == null
                                       ? const SizedBox.shrink()
                                       : Container(
-                                          margin:
-                                              const EdgeInsets.only(top: 16),
+                                          margin: const EdgeInsets.only(
+                                            top: 16,
+                                          ),
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 14,
                                             vertical: 12,
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFFDECEA),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             border: Border.all(
-                                              color: const Color(0xFFE57373)
-                                                  .withValues(alpha: 0.5),
+                                              color: const Color(
+                                                0xFFE57373,
+                                              ).withValues(alpha: 0.5),
                                             ),
                                           ),
                                           child: Row(
@@ -451,22 +465,25 @@ class _AuthScreenState extends State<AuthScreen>
 
                                 if (_registerMode) ...[
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Checkbox(
                                         value: _acceptTerms,
                                         onChanged: _loading
                                             ? null
                                             : (v) => setState(
-                                                  () => _acceptTerms = v ?? false,
-                                                ),
+                                                () => _acceptTerms = v ?? false,
+                                              ),
                                         activeColor: KinovaColors.goldRich,
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
                                       ),
                                       Expanded(
                                         child: Padding(
-                                          padding: const EdgeInsets.only(top: 10),
+                                          padding: const EdgeInsets.only(
+                                            top: 10,
+                                          ),
                                           child: Wrap(
                                             crossAxisAlignment:
                                                 WrapCrossAlignment.center,
@@ -492,11 +509,12 @@ class _AuthScreenState extends State<AuthScreen>
                                                   'politique de confidentialité',
                                                   style: TextStyle(
                                                     fontFamily: 'Montserrat',
-                                                    color: KinovaColors.goldLight,
+                                                    color:
+                                                        KinovaColors.goldLight,
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 11,
-                                                    decoration:
-                                                        TextDecoration.underline,
+                                                    decoration: TextDecoration
+                                                        .underline,
                                                   ),
                                                 ),
                                               ),
@@ -533,8 +551,9 @@ class _AuthScreenState extends State<AuthScreen>
                                   children: [
                                     Expanded(
                                       child: Divider(
-                                        color:
-                                            KinovaColors.sand.withValues(alpha: 0.4),
+                                        color: KinovaColors.sand.withValues(
+                                          alpha: 0.4,
+                                        ),
                                       ),
                                     ),
                                     const Padding(
@@ -554,8 +573,9 @@ class _AuthScreenState extends State<AuthScreen>
                                     ),
                                     Expanded(
                                       child: Divider(
-                                        color:
-                                            KinovaColors.sand.withValues(alpha: 0.4),
+                                        color: KinovaColors.sand.withValues(
+                                          alpha: 0.4,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -619,10 +639,7 @@ class _AuthScreenState extends State<AuthScreen>
 
 /// Toggle animé Connexion / Inscription
 class _ModeToggle extends StatelessWidget {
-  const _ModeToggle({
-    required this.registerMode,
-    required this.onChanged,
-  });
+  const _ModeToggle({required this.registerMode, required this.onChanged});
 
   final bool registerMode;
   final ValueChanged<bool> onChanged;

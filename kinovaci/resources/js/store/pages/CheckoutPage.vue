@@ -80,6 +80,7 @@ onMounted(async () => {
 })
 
 async function submit() {
+  if (loading.value) return
   if (!getToken()) {
     router.replace({ name: 'auth', query: { redirect: '/commande' } })
     return

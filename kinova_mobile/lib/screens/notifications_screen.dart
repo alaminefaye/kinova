@@ -6,6 +6,7 @@ import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
+import 'package:kinova_mobile/state/catalog_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/kinova_loader.dart';
 import 'package:kinova_mobile/widgets/motion.dart';
@@ -78,8 +79,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
 
     try {
-      final res = await context.read<ApiClient>().get('/customer/notifications');
-      final list = res is Map && res['data'] is List ? res['data'] as List : const [];
+      final res = await context.read<ApiClient>().get(
+        '/customer/notifications',
+      );
+      final list = res is Map && res['data'] is List
+          ? res['data'] as List
+          : const [];
       final mapped = list.whereType<Map>().map((raw) {
         final json = Map<String, dynamic>.from(raw);
         final category = (json['category'] ?? 'system').toString();
@@ -98,17 +103,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
       }).toList();
 
+      if (!mounted) return;
       setState(() {
         _notifications
           ..clear()
           ..addAll(mapped);
       });
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      setState(
-        () => _error = 'Impossible de charger les notifications. Réessayez.',
-      );
+      if (mounted) {
+        setState(
+          () => _error = 'Impossible de charger les notifications. Réessayez.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -159,9 +167,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _markRead(NotificationItem item) async {
     setState(() => item.isRead = true);
     try {
-      await context
-          .read<ApiClient>()
-          .post('/customer/notifications/${item.id}/read');
+      await context.read<ApiClient>().post(
+        '/customer/notifications/${item.id}/read',
+      );
     } catch (_) {}
   }
 
@@ -215,219 +223,229 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             )
           : _loading
-              ? const KinovaLoader(message: 'Chargement des notifications')
-              : Column(
-                  children: [
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-                          decoration: BoxDecoration(
-                            color: KinovaColors.surfaceMuted,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: KinovaColors.gold.withValues(alpha: 0.28),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.wifi_off_rounded,
-                                color: KinovaColors.brown,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _error!,
-                                  style: const TextStyle(
-                                    color: KinovaColors.brown,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _load,
-                                style: TextButton.styleFrom(
-                                  foregroundColor: KinovaColors.goldRich,
-                                ),
-                                child: const Text('Réessayer'),
-                              ),
-                            ],
-                          ),
+          ? const KinovaLoader(message: 'Chargement des notifications')
+          : Column(
+              children: [
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+                      decoration: BoxDecoration(
+                        color: KinovaColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: KinovaColors.gold.withValues(alpha: 0.28),
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _FilterPill(
-                              label: 'Toutes (${_notifications.length})',
-                              isSelected: _selectedFilter == 'all',
-                              onTap: () => setState(() => _selectedFilter = 'all'),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.wifi_off_rounded,
+                            color: KinovaColors.brown,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: const TextStyle(
+                                color: KinovaColors.brown,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            const SizedBox(width: 10),
-                            _FilterPill(
-                              label: 'Non lues ($unreadCount)',
-                              isSelected: _selectedFilter == 'unread',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'unread'),
+                          ),
+                          TextButton(
+                            onPressed: _load,
+                            style: TextButton.styleFrom(
+                              foregroundColor: KinovaColors.goldRich,
                             ),
-                            const SizedBox(width: 10),
-                            _FilterPill(
-                              label: 'Commandes',
-                              isSelected: _selectedFilter == 'order',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'order'),
-                            ),
-                            const SizedBox(width: 10),
-                            _FilterPill(
-                              label: 'Offres & VIP',
-                              isSelected: _selectedFilter == 'vip',
-                              onTap: () => setState(() => _selectedFilter = 'vip'),
-                            ),
-                          ],
-                        ),
+                            child: const Text('Réessayer'),
+                          ),
+                        ],
                       ),
                     ),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _load,
-                        child: _filteredNotifications.isEmpty
-                            ? ListView(
-                                children: const [
-                                  SizedBox(height: 120),
-                                  Center(child: Text('Aucune notification')),
-                                ],
-                              )
-                            : ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
-                                physics: const AlwaysScrollableScrollPhysics(
-                                  parent: BouncingScrollPhysics(),
-                                ),
-                                itemCount: _filteredNotifications.length,
-                                separatorBuilder: (_, _) =>
-                                    const SizedBox(height: 12),
-                                itemBuilder: (context, index) {
-                                  final item = _filteredNotifications[index];
-                                  return FadeSlideIn(
-                                    delay: Duration(milliseconds: 50 * index),
-                                    child: GestureDetector(
-                                      onTap: () => _markRead(item),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 300),
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: item.isRead
-                                              ? KinovaColors.surface
-                                                  .withValues(alpha: 0.7)
-                                              : KinovaColors.surface,
-                                          borderRadius: BorderRadius.circular(18),
-                                          boxShadow: item.isRead
-                                              ? []
-                                              : KinovaColors.cardShadow,
-                                          border: Border.all(
-                                            color: item.isRead
-                                                ? KinovaColors.gold
-                                                    .withValues(alpha: 0.1)
-                                                : KinovaColors.gold
-                                                    .withValues(alpha: 0.35),
-                                            width: item.isRead ? 0.8 : 1.2,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _FilterPill(
+                          label: 'Toutes (${_notifications.length})',
+                          isSelected: _selectedFilter == 'all',
+                          onTap: () => setState(() => _selectedFilter = 'all'),
+                        ),
+                        const SizedBox(width: 10),
+                        _FilterPill(
+                          label: 'Non lues ($unreadCount)',
+                          isSelected: _selectedFilter == 'unread',
+                          onTap: () =>
+                              setState(() => _selectedFilter = 'unread'),
+                        ),
+                        const SizedBox(width: 10),
+                        _FilterPill(
+                          label: 'Commandes',
+                          isSelected: _selectedFilter == 'order',
+                          onTap: () =>
+                              setState(() => _selectedFilter = 'order'),
+                        ),
+                        const SizedBox(width: 10),
+                        _FilterPill(
+                          label:
+                              context
+                                  .watch<CatalogController>()
+                                  .settings
+                                  .loyaltyEnabled
+                              ? 'Offres & VIP'
+                              : 'Offres',
+                          isSelected: _selectedFilter == 'vip',
+                          onTap: () => setState(() => _selectedFilter = 'vip'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: _filteredNotifications.isEmpty
+                        ? ListView(
+                            children: const [
+                              SizedBox(height: 120),
+                              Center(child: Text('Aucune notification')),
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            itemCount: _filteredNotifications.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final item = _filteredNotifications[index];
+                              return FadeSlideIn(
+                                delay: Duration(milliseconds: 50 * index),
+                                child: GestureDetector(
+                                  onTap: () => _markRead(item),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: item.isRead
+                                          ? KinovaColors.surface.withValues(
+                                              alpha: 0.7,
+                                            )
+                                          : KinovaColors.surface,
+                                      borderRadius: BorderRadius.circular(18),
+                                      boxShadow: item.isRead
+                                          ? []
+                                          : KinovaColors.cardShadow,
+                                      border: Border.all(
+                                        color: item.isRead
+                                            ? KinovaColors.gold.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : KinovaColors.gold.withValues(
+                                                alpha: 0.35,
+                                              ),
+                                        width: item.isRead ? 0.8 : 1.2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: item.iconColor.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            item.icon,
+                                            color: item.iconColor,
+                                            size: 20,
                                           ),
                                         ),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: item.iconColor
-                                                    .withValues(alpha: 0.12),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                item.icon,
-                                                color: item.iconColor,
-                                                size: 20,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 14),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
                                                 children: [
-                                                  Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Text(
-                                                          item.title,
-                                                          style: TextStyle(
-                                                            color:
-                                                                KinovaColors.brown,
-                                                            fontSize: 14,
-                                                            fontWeight: item.isRead
-                                                                ? FontWeight.w600
-                                                                : FontWeight.w800,
-                                                          ),
-                                                        ),
+                                                  Expanded(
+                                                    child: Text(
+                                                      item.title,
+                                                      style: TextStyle(
+                                                        color:
+                                                            KinovaColors.brown,
+                                                        fontSize: 14,
+                                                        fontWeight: item.isRead
+                                                            ? FontWeight.w600
+                                                            : FontWeight.w800,
                                                       ),
-                                                      if (!item.isRead)
-                                                        Container(
-                                                          width: 8,
-                                                          height: 8,
-                                                          margin:
-                                                              const EdgeInsets.only(
+                                                    ),
+                                                  ),
+                                                  if (!item.isRead)
+                                                    Container(
+                                                      width: 8,
+                                                      height: 8,
+                                                      margin:
+                                                          const EdgeInsets.only(
                                                             left: 6,
                                                           ),
-                                                          decoration:
-                                                              const BoxDecoration(
+                                                      decoration:
+                                                          const BoxDecoration(
                                                             color: KinovaColors
                                                                 .goldRich,
                                                             shape:
                                                                 BoxShape.circle,
                                                           ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 6),
-                                                  Text(
-                                                    item.message,
-                                                    style: TextStyle(
-                                                      color: KinovaColors
-                                                          .mutedBrown,
-                                                      fontSize: 12.5,
-                                                      height: 1.35,
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    item.time,
-                                                    style: const TextStyle(
-                                                      color: KinovaColors.sand,
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
                                                 ],
                                               ),
-                                            ),
-                                          ],
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                item.message,
+                                                style: TextStyle(
+                                                  color:
+                                                      KinovaColors.mutedBrown,
+                                                  fontSize: 12.5,
+                                                  height: 1.35,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                item.time,
+                                                style: const TextStyle(
+                                                  color: KinovaColors.sand,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              ),
-                      ),
-                    ),
-                  ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ),
+              ],
+            ),
     );
   }
 }

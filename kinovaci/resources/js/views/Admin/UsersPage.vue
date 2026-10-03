@@ -6,6 +6,7 @@ import { api } from '@/api/client'
 interface RoleItem {
   id: number
   name: string
+  guard_name?: string
   users_count: number
   permissions: string[]
 }
@@ -22,7 +23,7 @@ interface UserItem {
   address: string | null
   city: string | null
   loyalty_points: number
-  vip_tier: 'standard' | 'gold' | 'platinum' | 'diamond'
+  vip_tier: 'standard' | 'silver' | 'gold' | 'vip'
   created_at: string
   orders_count?: number
 }
@@ -66,7 +67,7 @@ const form = reactive({
   address: '',
   city: '',
   roles: ['customer'] as string[],
-  vip_tier: 'standard' as 'standard' | 'gold' | 'platinum' | 'diamond',
+  vip_tier: 'standard' as 'standard' | 'silver' | 'gold' | 'vip',
   loyalty_points: 0,
   is_blocked: false,
 })
@@ -624,9 +625,9 @@ onMounted(() => {
                   class="w-full px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm outline-none"
                 >
                   <option value="standard">Standard</option>
-                  <option value="gold">Gold</option>
-                  <option value="platinum">Platinum</option>
-                  <option value="diamond">Diamond</option>
+                  <option value="silver">Argent</option>
+                  <option value="gold">Or</option>
+                  <option value="vip">VIP</option>
                 </select>
               </div>
               <div>

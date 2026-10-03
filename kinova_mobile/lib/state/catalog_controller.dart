@@ -75,17 +75,18 @@ class CatalogController extends ChangeNotifier {
     await _loadSettings();
 
     try {
-      final catsRaw = await _api.get('/categories');
-      final productsRaw = await _api.get('/products');
-      final slidesRaw = await _api.get('/hero-slides');
+      final results = await Future.wait([
+        _api.get('/categories'),
+        _fetchAllProducts(),
+        _api.get('/hero-slides'),
+      ]);
+      final catsRaw = results[0];
+      final productList = results[1] as List;
+      final slidesRaw = results[2];
 
       final catList = (catsRaw is Map && catsRaw['data'] is List)
           ? catsRaw['data'] as List
           : (catsRaw is List ? catsRaw : const []);
-
-      final productList = (productsRaw is Map && productsRaw['data'] is List)
-          ? productsRaw['data'] as List
-          : (productsRaw is List ? productsRaw : const []);
 
       final slideList = (slidesRaw is Map && slidesRaw['data'] is List)
           ? slidesRaw['data'] as List
@@ -111,6 +112,25 @@ class CatalogController extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  /// L'API pagine les produits : on récupère toutes les pages.
+  Future<List> _fetchAllProducts() async {
+    final all = [];
+    var page = 1;
+    var lastPage = 1;
+    do {
+      final raw = await _api.get(
+        '/products',
+        query: {'per_page': '200', 'page': '$page'},
+      );
+      if (raw is List) return raw;
+      if (raw is! Map || raw['data'] is! List) break;
+      all.addAll(raw['data'] as List);
+      lastPage = int.tryParse('${raw['last_page'] ?? 1}') ?? 1;
+      page++;
+    } while (page <= lastPage && page <= 25);
+    return all;
   }
 
   Future<void> refreshSettings() async {

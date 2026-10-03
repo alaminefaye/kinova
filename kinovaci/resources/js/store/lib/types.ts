@@ -109,13 +109,17 @@ export function mapProduct(json: any): Product {
   const promoPrice =
     json.promo_price != null && Number(json.promo_price) > 0 ? Number(json.promo_price) : null
 
+  const productStock = Number(json.stock ?? 0)
+  // Stock de variante absent = pas de limite propre (le stock produit s'applique), comme côté serveur.
+  const variantStock = (v: any) => (v.stock == null ? productStock : Number(v.stock))
+
   const sizes: ProductSize[] = []
   if (Array.isArray(json.sizes)) {
     for (const s of json.sizes) {
       if (s && s.name) {
         sizes.push({
           name: String(s.name),
-          stock: Number(s.stock ?? 0),
+          stock: variantStock(s),
         })
       }
     }
@@ -128,7 +132,7 @@ export function mapProduct(json: any): Product {
         colors.push({
           name: String(c.name),
           hex: c.hex ? String(c.hex) : undefined,
-          stock: Number(c.stock ?? 0),
+          stock: variantStock(c),
         })
       }
     }
@@ -145,7 +149,7 @@ export function mapProduct(json: any): Product {
     images: gallery.length ? gallery : imageUrl ? [imageUrl] : [],
     sizes,
     colors,
-    stock: Number(json.stock ?? 0),
+    stock: productStock,
     rating: Number(json.rating ?? 0),
     ratingsCount: Number(json.ratings_count ?? 0),
     isNew: json.is_new === true || json.is_new === 1,

@@ -7,7 +7,7 @@ import { api, getToken } from '../api/client'
 import { formatMoney } from '../lib/format'
 import { mapProduct, type Product } from '../lib/types'
 import { useCatalog } from '../state/catalog'
-import { useCart } from '../state/cart'
+import { maxQuantity, useCart } from '../state/cart'
 import { useFavorites } from '../state/favorites'
 
 const route = useRoute()
@@ -24,10 +24,14 @@ const average = ref(0)
 const ratingsCount = ref(0)
 const myRating = ref<number | null>(null)
 const ratingLoading = ref(false)
+const canRate = ref(false)
 const toast = ref('')
 
 const selectedSize = ref<string | null>(null)
 const selectedColor = ref<string | null>(null)
+watch([selectedSize, selectedColor], () => {
+  qty.value = 1
+})
 
 const product = computed(() => {
   return catalog.byId(String(route.params.id)) || remote.value
@@ -113,6 +117,8 @@ async function loadRating() {
   if (!p) return
   average.value = p.rating
   ratingsCount.value = p.ratingsCount
+  myRating.value = null
+  canRate.value = false
   try {
     const path = getToken()
       ? `/customer/products/${p.id}/rating`
@@ -121,6 +127,7 @@ async function loadRating() {
     average.value = Number(res.data.average ?? average.value)
     ratingsCount.value = Number(res.data.count ?? ratingsCount.value)
     myRating.value = res.data.my_rating != null ? Number(res.data.my_rating) : null
+    canRate.value = res.data.can_rate === true
   } catch {
     /* keep */
   }
@@ -142,11 +149,8 @@ watch(
 )
 
 async function rate(stars: number) {
-  if (!product.value) return
-  if (!getToken()) {
-    router.push({ name: 'auth', query: { redirect: route.fullPath } })
-    return
-  }
+  if (!product.value || !canRate.value) return
+  const previous = myRating.value
   ratingLoading.value = true
   myRating.value = stars
   try {
@@ -160,7 +164,9 @@ async function rate(stars: number) {
     catalog.patchRating(product.value.id, average.value, ratingsCount.value)
     toast.value = 'Merci pour votre note !'
   } catch (e: any) {
+    myRating.value = previous
     toast.value = e?.message || 'Impossible d’enregistrer la note'
+    await loadRating()
   } finally {
     ratingLoading.value = false
     setTimeout(() => (toast.value = ''), 2200)
@@ -270,7 +276,13 @@ function addToCart() {
         <div class="qty">
           <button type="button" @click="qty = Math.max(1, qty - 1)">−</button>
           <strong>{{ qty }}</strong>
-          <button type="button" @click="qty++">+</button>
+          <button
+            type="button"
+            :disabled="!product || qty >= maxQuantity(product, selectedSize, selectedColor)"
+            @click="qty++"
+          >
+            +
+          </button>
         </div>
       </div>
 
@@ -279,13 +291,21 @@ function addToCart() {
           <strong>{{ ratingsCount > 0 ? average.toFixed(1) : '—' }}</strong>
           <span>{{ ratingsCount === 0 ? 'Aucune note' : `${ratingsCount} avis` }}</span>
         </div>
-        <p>{{ myRating == null ? 'Notez cet article' : `Votre note : ${myRating}/5` }}</p>
-        <div class="stars">
+        <p>
+          {{
+            myRating != null
+              ? `Votre note : ${myRating}/5`
+              : canRate
+                ? 'Notez cet article'
+                : 'Seuls les clients ayant reçu cet article peuvent le noter.'
+          }}
+        </p>
+        <div v-if="canRate || myRating != null" class="stars">
           <button
             v-for="star in 5"
             :key="star"
             type="button"
-            :disabled="ratingLoading"
+            :disabled="ratingLoading || !canRate"
             @click="rate(star)"
           >
             {{ (myRating ?? 0) >= star ? '★' : '☆' }}

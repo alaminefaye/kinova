@@ -47,6 +47,40 @@ export function getProductEffectivePrice(product: Product): number {
   return product.price
 }
 
+/** Quantité maximale commandable (stock produit, taille et couleur choisies). */
+export function maxQuantity(
+  product: Product,
+  selectedSize?: string | null,
+  selectedColor?: string | null,
+): number {
+  let max = Number(product.stock ?? 0)
+  const size = product.sizes?.find((s) => s.name === selectedSize)
+  if (size && size.stock < max) max = size.stock
+  const color = product.colors?.find((c) => c.name === selectedColor)
+  if (color && color.stock < max) max = color.stock
+  return Math.max(0, Math.min(max, 999))
+}
+
+function clampQuantity(item: CartItem, quantity: number) {
+  const max = maxQuantity(item.product, item.selectedSize, item.selectedColor)
+  return Math.max(1, Math.min(quantity, Math.max(max, 1)))
+}
+
+/** Met à jour prix / stock du panier avec le catalogue frais et retire les produits indisponibles. */
+export function syncCartWithCatalog(byId: (id: string) => Product | undefined) {
+  if (!state.items.length) return
+  state.items = state.items
+    .map((item) => {
+      const fresh = byId(item.product.id)
+      if (!fresh) return null
+      const next = { ...item, product: fresh }
+      next.quantity = clampQuantity(next, next.quantity)
+      return next
+    })
+    .filter((i): i is CartItem => i !== null)
+  persist()
+}
+
 export function useCart() {
   const itemCount = computed(() => state.items.reduce((s, i) => s + i.quantity, 0))
   const subtotal = computed(() =>
@@ -72,14 +106,19 @@ export function useCart() {
         (i.selectedSize ?? null) === (selectedSize ?? null) &&
         (i.selectedColor ?? null) === (selectedColor ?? null),
     )
-    if (idx >= 0) state.items[idx].quantity += quantity
-    else
-      state.items.push({
+    if (idx >= 0) {
+      const item = state.items[idx]
+      item.quantity = clampQuantity(item, item.quantity + quantity)
+    } else {
+      const item: CartItem = {
         product,
         quantity,
         selectedSize: selectedSize ?? null,
         selectedColor: selectedColor ?? null,
-      })
+      }
+      item.quantity = clampQuantity(item, quantity)
+      state.items.push(item)
+    }
     persist()
   }
 
@@ -101,7 +140,7 @@ export function useCart() {
       return
     }
     if (state.items[index]) {
-      state.items[index].quantity = quantity
+      state.items[index].quantity = clampQuantity(state.items[index], quantity)
       persist()
     }
   }

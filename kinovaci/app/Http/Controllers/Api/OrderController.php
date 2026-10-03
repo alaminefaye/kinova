@@ -4,16 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Product;
 use App\Services\AppSettings;
 use App\Services\NotificationService;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
-    public function store(Request $request, NotificationService $notifications)
+    public function store(Request $request, NotificationService $notifications, StockService $stock)
     {
         $isDelivery = $request->boolean('is_delivery', true);
         $hasPosition = $request->filled('latitude') && $request->filled('longitude');
@@ -39,39 +39,13 @@ class OrderController extends Controller
 
         $userId = $request->user()?->id ?? auth('sanctum')->id();
 
-        $order = DB::transaction(function () use ($data, $userId, $isDelivery) {
+        $order = DB::transaction(function () use ($data, $userId, $isDelivery, $stock) {
             $subtotal = 0;
             $lines = [];
-            $requestedByProduct = collect($data['items'])
-                ->groupBy('product_id')
-                ->map(fn ($items) => (int) $items->sum('quantity'));
+            $products = $stock->reserve($data['items']);
 
             foreach ($data['items'] as $item) {
-                $product = Product::query()
-                    ->where('id', $item['product_id'])
-                    ->where('is_active', true)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                if ($product->stock < $requestedByProduct[$product->id]) {
-                    abort(422, "Stock insuffisant pour {$product->name}");
-                }
-
-                // Vérifier le stock de la taille si spécifiée
-                if (!empty($item['selected_size']) && is_array($product->sizes)) {
-                    $sizeOption = collect($product->sizes)->firstWhere('name', $item['selected_size']);
-                    if ($sizeOption && isset($sizeOption['stock']) && $sizeOption['stock'] < $item['quantity']) {
-                        abort(422, "Taille {$item['selected_size']} épuisée pour {$product->name}");
-                    }
-                }
-
-                // Vérifier le stock de la couleur si spécifiée
-                if (!empty($item['selected_color']) && is_array($product->colors)) {
-                    $colorOption = collect($product->colors)->firstWhere('name', $item['selected_color']);
-                    if ($colorOption && isset($colorOption['stock']) && $colorOption['stock'] < $item['quantity']) {
-                        abort(422, "Couleur {$item['selected_color']} épuisée pour {$product->name}");
-                    }
-                }
+                $product = $products[$item['product_id']];
 
                 $unitPrice = ($product->promo_price !== null && $product->promo_price > 0 && $product->promo_price < $product->price)
                     ? (float) $product->promo_price
@@ -120,7 +94,12 @@ class OrderController extends Controller
                     'line_total' => $line['lineTotal'],
                 ]);
 
-                $line['product']->decrement('stock', $line['item']['quantity']);
+                $stock->take(
+                    $line['product'],
+                    (int) $line['item']['quantity'],
+                    $line['item']['selected_size'] ?? null,
+                    $line['item']['selected_color'] ?? null,
+                );
             }
 
             return $order->load('items');
@@ -139,6 +118,21 @@ class OrderController extends Controller
             ->where('reference', $reference)
             ->firstOrFail();
 
-        return response()->json(['data' => $order]);
+        // Suivi public par référence : aucune donnée personnelle (téléphone, adresse, GPS, notes).
+        return response()->json(['data' => [
+            'reference' => $order->reference,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+            'subtotal' => $order->subtotal,
+            'shipping' => $order->shipping,
+            'total' => $order->total,
+            'is_delivery' => $order->is_delivery,
+            'tracking_number' => $order->tracking_number,
+            'carrier' => $order->carrier,
+            'created_at' => $order->created_at,
+            'items' => $order->items->map->only([
+                'product_id', 'product_name', 'selected_size', 'selected_color', 'unit_price', 'quantity', 'line_total',
+            ])->values(),
+        ]]);
     }
 }

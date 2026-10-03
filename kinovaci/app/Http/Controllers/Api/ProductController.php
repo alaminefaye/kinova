@@ -38,7 +38,7 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->latest()->paginate($request->integer('per_page', 20));
+        $products = $query->latest()->paginate(min(max($request->integer('per_page', 20), 1), 200));
 
         return response()->json($products);
     }

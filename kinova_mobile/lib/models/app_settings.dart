@@ -7,13 +7,14 @@ class AppSettings {
     this.shippingFee = 2500,
     this.freeShippingEnabled = true,
     this.freeShippingThreshold = 50000,
+    this.loyaltyEnabled = false,
     this.loyaltyAmountPerStep = 10000,
     this.loyaltyPointsPerStep = 1,
     this.showHero = true,
     this.showPromoBanner = true,
     this.showCategories = true,
     this.showFeatured = true,
-    this.showVipBanner = true,
+    this.showVipBanner = false,
     this.showPerks = true,
     this.showNews = true,
     this.promoBannerText = 'PAIEMENT À LA LIVRAISON  •  RETOURS 14 JOURS',
@@ -30,9 +31,9 @@ class AppSettings {
     this.tierSilverPoints = 20,
     this.tierGoldPoints = 50,
     this.tierVipPoints = 100,
-    this.profileShowLoyalty = true,
-    this.profileShowTierBadge = true,
-    this.profileShowNextTier = true,
+    this.profileShowLoyalty = false,
+    this.profileShowTierBadge = false,
+    this.profileShowNextTier = false,
     this.profileLoyaltyTitle = 'FIDÉLITÉ KINOVA',
     this.profileLoyaltyRule = '10 000 FCFA dépensés = 1 point',
     this.invoiceFooter = 'KINOVA — Abidjan · kinovaci.com',
@@ -79,6 +80,9 @@ class AppSettings {
 
   bool get shippingPaidToCourier => shippingMode != 'fixed';
   final double freeShippingThreshold;
+
+  /// Programme de fidélité désactivé : aucun point ni mention VIP côté client.
+  final bool loyaltyEnabled;
   final double loyaltyAmountPerStep;
   final int loyaltyPointsPerStep;
 
@@ -140,6 +144,7 @@ class AppSettings {
         shipping['free_threshold'],
         d.freeShippingThreshold,
       ),
+      loyaltyEnabled: _bool(loyalty['enabled'], d.loyaltyEnabled),
       loyaltyAmountPerStep: _num(
         loyalty['amount_per_step'],
         d.loyaltyAmountPerStep,

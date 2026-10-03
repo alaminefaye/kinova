@@ -93,8 +93,13 @@ async function save() {
 
 async function remove(id: number) {
   if (!confirm('Supprimer ce slide ?')) return
-  await api(`/admin/hero-slides/${id}`, { method: 'DELETE' })
-  await load()
+  error.value = ''
+  try {
+    await api(`/admin/hero-slides/${id}`, { method: 'DELETE' })
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
 async function onUpload(e: Event) {

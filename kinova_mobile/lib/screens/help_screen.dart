@@ -60,11 +60,12 @@ class _HelpScreenState extends State<HelpScreen> {
       final data = res is Map && res['data'] is Map
           ? Map<String, dynamic>.from(res['data'] as Map)
           : <String, dynamic>{};
+      if (!mounted) return;
       setState(() => _help = data);
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }

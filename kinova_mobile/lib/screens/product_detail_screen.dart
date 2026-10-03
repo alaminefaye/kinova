@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/models/models.dart';
-import 'package:kinova_mobile/screens/auth_screen.dart';
 import 'package:kinova_mobile/screens/cart_screen.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
@@ -16,11 +15,7 @@ import 'package:kinova_mobile/widgets/motion.dart';
 import 'package:kinova_mobile/widgets/promo_badge.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  const ProductDetailScreen({
-    super.key,
-    required this.product,
-    this.heroTag,
-  });
+  const ProductDetailScreen({super.key, required this.product, this.heroTag});
 
   final Product product;
   final String? heroTag;
@@ -36,6 +31,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late int _ratingsCount;
   int? _myRating;
   bool _ratingLoading = false;
+  bool _canRate = false;
   String? _selectedSize;
   String? _selectedColor;
 
@@ -87,36 +83,34 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _ratingsCount = int.tryParse('${data['count']}') ?? _ratingsCount;
         final mine = data['my_rating'];
         _myRating = mine == null ? null : int.tryParse('$mine');
+        _canRate = data['can_rate'] == true;
       });
       context.read<CatalogController>().patchProductRating(
-            widget.product.id,
-            _average,
-            _ratingsCount,
-          );
+        widget.product.id,
+        _average,
+        _ratingsCount,
+      );
     } catch (_) {
       // garde les valeurs locales
     }
   }
 
   Future<void> _rate(int stars) async {
-    final auth = context.read<AuthController>();
-    if (!auth.isLoggedIn) {
-      final ok = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => const AuthScreen()),
-      );
-      if (ok != true || !mounted) return;
-    }
-
+    if (!_canRate) return;
+    final previous = _myRating;
     setState(() {
       _ratingLoading = true;
       _myRating = stars;
     });
 
     try {
-      final res = await context.read<ApiClient>().post('/customer/ratings', body: {
-        'product_id': int.tryParse(widget.product.id) ?? widget.product.id,
-        'stars': stars,
-      });
+      final res = await context.read<ApiClient>().post(
+        '/customer/ratings',
+        body: {
+          'product_id': int.tryParse(widget.product.id) ?? widget.product.id,
+          'stars': stars,
+        },
+      );
       final data = res is Map && res['data'] is Map
           ? Map<String, dynamic>.from(res['data'] as Map)
           : <String, dynamic>{};
@@ -129,10 +123,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _myRating = int.tryParse('${data['my_rating']}') ?? stars;
       });
       context.read<CatalogController>().patchProductRating(
-            widget.product.id,
-            avg,
-            count,
-          );
+        widget.product.id,
+        avg,
+        count,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Merci pour votre note !'),
@@ -141,11 +135,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      setState(() {
+        _myRating = previous;
+        if (e.statusCode == 403) _canRate = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
+      setState(() => _myRating = previous);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Impossible d’enregistrer la note')),
       );
@@ -156,14 +155,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _openCart() {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const CartScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CartScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
-    final product = context.watch<CatalogController>().byId(widget.product.id) ??
+    final product =
+        context.watch<CatalogController>().byId(widget.product.id) ??
         _baseProduct;
     final favorites = context.watch<FavoritesController>();
     final liked = favorites.isFavorite(product.id);
@@ -323,10 +323,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFB71C1C).withValues(alpha: 0.12),
+                                  color: const Color(
+                                    0xFFB71C1C,
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: const Color(0xFFB71C1C).withValues(alpha: 0.25),
+                                    color: const Color(
+                                      0xFFB71C1C,
+                                    ).withValues(alpha: 0.25),
                                   ),
                                 ),
                                 child: Text(
@@ -354,9 +358,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: [
                               Text(
                                 'Taille / Format',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               if (_selectedSize != null)
                                 Text(
@@ -376,7 +379,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: availableSizes.map((size) {
                               final isSelected = _selectedSize == size.name;
                               return GestureDetector(
-                                onTap: () => setState(() => _selectedSize = size.name),
+                                onTap: () => setState(() {
+                                  _selectedSize = size.name;
+                                  _qty = 1;
+                                }),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.symmetric(
@@ -391,13 +397,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     border: Border.all(
                                       color: isSelected
                                           ? KinovaColors.brown
-                                          : KinovaColors.sand.withValues(alpha: 0.5),
+                                          : KinovaColors.sand.withValues(
+                                              alpha: 0.5,
+                                            ),
                                       width: isSelected ? 1.5 : 1,
                                     ),
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: KinovaColors.brown.withValues(alpha: 0.2),
+                                              color: KinovaColors.brown
+                                                  .withValues(alpha: 0.2),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             ),
@@ -428,9 +437,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: [
                               Text(
                                 'Couleur',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               if (_selectedColor != null)
                                 Text(
@@ -451,7 +459,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               final isSelected = _selectedColor == color.name;
                               final parsedColor = _parseHex(color.hex);
                               return GestureDetector(
-                                onTap: () => setState(() => _selectedColor = color.name),
+                                onTap: () => setState(() {
+                                  _selectedColor = color.name;
+                                  _qty = 1;
+                                }),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.symmetric(
@@ -466,13 +477,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     border: Border.all(
                                       color: isSelected
                                           ? KinovaColors.brown
-                                          : KinovaColors.sand.withValues(alpha: 0.5),
+                                          : KinovaColors.sand.withValues(
+                                              alpha: 0.5,
+                                            ),
                                       width: isSelected ? 1.5 : 1,
                                     ),
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: KinovaColors.brown.withValues(alpha: 0.2),
+                                              color: KinovaColors.brown
+                                                  .withValues(alpha: 0.2),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             ),
@@ -494,7 +508,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.15),
+                                              color: Colors.black.withValues(
+                                                alpha: 0.15,
+                                              ),
                                               blurRadius: 2,
                                             ),
                                           ],
@@ -561,8 +577,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         : '$_ratingsCount avis',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: KinovaColors.mutedBrown
-                                          .withValues(alpha: 0.95),
+                                      color: KinovaColors.mutedBrown.withValues(
+                                        alpha: 0.95,
+                                      ),
                                     ),
                                   ),
                                   if (_ratingLoading) ...[
@@ -580,9 +597,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                _myRating == null
+                                _myRating != null
+                                    ? 'Votre note : $_myRating/5'
+                                    : _canRate
                                     ? 'Notez cet article'
-                                    : 'Votre note : $_myRating/5',
+                                    : 'Seuls les clients ayant reçu cet article peuvent le noter.',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -590,36 +609,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   letterSpacing: 0.3,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: List.generate(5, (index) {
-                                  final star = index + 1;
-                                  final filled = (_myRating ?? 0) >= star;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 4),
-                                    child: GestureDetector(
-                                      onTap: _ratingLoading
-                                          ? null
-                                          : () => _rate(star),
-                                      child: AnimatedScale(
-                                        scale: filled ? 1.08 : 1.0,
-                                        duration: const Duration(
-                                          milliseconds: 180,
-                                        ),
-                                        child: Icon(
-                                          filled
-                                              ? Icons.star_rounded
-                                              : Icons.star_outline_rounded,
-                                          size: 34,
-                                          color: filled
-                                              ? KinovaColors.goldRich
-                                              : KinovaColors.sand,
+                              if (_canRate || _myRating != null) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: List.generate(5, (index) {
+                                    final star = index + 1;
+                                    final filled = (_myRating ?? 0) >= star;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 4),
+                                      child: GestureDetector(
+                                        onTap: _ratingLoading || !_canRate
+                                            ? null
+                                            : () => _rate(star),
+                                        child: AnimatedScale(
+                                          scale: filled ? 1.08 : 1.0,
+                                          duration: const Duration(
+                                            milliseconds: 180,
+                                          ),
+                                          child: Icon(
+                                            filled
+                                                ? Icons.star_rounded
+                                                : Icons.star_outline_rounded,
+                                            size: 34,
+                                            color: filled
+                                                ? KinovaColors.goldRich
+                                                : KinovaColors.sand,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }),
-                              ),
+                                    );
+                                  }),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -627,10 +648,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 20),
                         Text(
                           product.description,
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: KinovaColors.mutedBrown,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: KinovaColors.mutedBrown),
                         ),
                         if (!isOutOfStock) ...[
                           const SizedBox(height: 28),
@@ -648,8 +667,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 },
                               ),
                               Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 18),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                ),
                                 child: Text(
                                   '$_qty',
                                   style: Theme.of(context).textTheme.titleLarge,
@@ -657,7 +677,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                               _QtyButton(
                                 icon: Icons.add,
-                                onTap: () => setState(() => _qty++),
+                                onTap: () {
+                                  final max = CartController.maxQuantity(
+                                    product,
+                                    selectedSize: _selectedSize,
+                                    selectedColor: _selectedColor,
+                                  );
+                                  if (_qty < max) setState(() => _qty++);
+                                },
                               ),
                             ],
                           ),
@@ -688,11 +715,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   : ElevatedButton(
                       onPressed: () {
                         context.read<CartController>().add(
-                              product,
-                              quantity: _qty,
-                              selectedSize: _selectedSize,
-                              selectedColor: _selectedColor,
-                            );
+                          product,
+                          quantity: _qty,
+                          selectedSize: _selectedSize,
+                          selectedColor: _selectedColor,
+                        );
                         CartFly.fly(context, product.imageUrl);
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(

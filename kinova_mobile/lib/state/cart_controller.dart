@@ -23,6 +23,22 @@ class CartController extends ChangeNotifier {
 
   double get total => subtotal + shipping;
 
+  /// Quantité maximale commandable (stock produit, taille et couleur choisies).
+  static int maxQuantity(
+    Product product, {
+    String? selectedSize,
+    String? selectedColor,
+  }) {
+    var max = product.effectiveStock;
+    for (final s in product.effectiveSizes) {
+      if (s.name == selectedSize && s.stock < max) max = s.stock;
+    }
+    for (final c in product.effectiveColors) {
+      if (c.name == selectedColor && c.stock < max) max = c.stock;
+    }
+    return max.clamp(0, 999);
+  }
+
   void add(
     Product product, {
     int quantity = 1,
@@ -35,13 +51,21 @@ class CartController extends ChangeNotifier {
           i.selectedSize == selectedSize &&
           i.selectedColor == selectedColor,
     );
+    final max = maxQuantity(
+      product,
+      selectedSize: selectedSize,
+      selectedColor: selectedColor,
+    );
     if (index >= 0) {
-      _items[index].quantity += quantity;
+      _items[index].quantity = (_items[index].quantity + quantity).clamp(
+        1,
+        max < 1 ? 1 : max,
+      );
     } else {
       _items.add(
         CartItem(
           product: product,
-          quantity: quantity,
+          quantity: quantity.clamp(1, max < 1 ? 1 : max),
           selectedSize: selectedSize,
           selectedColor: selectedColor,
         ),
@@ -66,7 +90,12 @@ class CartController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    item.quantity = quantity;
+    final max = maxQuantity(
+      item.product,
+      selectedSize: item.selectedSize,
+      selectedColor: item.selectedColor,
+    );
+    item.quantity = quantity.clamp(1, max < 1 ? 1 : max);
     notifyListeners();
   }
 

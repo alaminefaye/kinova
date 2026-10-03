@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\AppSettings;
 use App\Services\LoyaltyService;
 use App\Services\NotificationService;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -33,7 +36,7 @@ class OrderController extends Controller
             });
         }
 
-        return response()->json($query->paginate(25));
+        return response()->json($query->paginate(min(max($request->integer('per_page', 25), 1), 100)));
     }
 
     public function show(Order $order)
@@ -41,7 +44,7 @@ class OrderController extends Controller
         return response()->json(['data' => $order->load('items')]);
     }
 
-    public function update(Request $request, Order $order, NotificationService $notifications, LoyaltyService $loyalty)
+    public function update(Request $request, Order $order, NotificationService $notifications, LoyaltyService $loyalty, StockService $stock)
     {
         $data = $request->validate([
             'status' => ['sometimes', 'in:pending,processing,shipped,delivered,cancelled'],
@@ -66,29 +69,26 @@ class OrderController extends Controller
             $data['paid_at'] = $data['payment_status'] === 'paid' ? ($order->paid_at ?? now()) : null;
         }
 
-        $order = DB::transaction(function () use ($order, $data, $previousStatus) {
+        $order = DB::transaction(function () use ($order, $data, $previousStatus, $stock) {
             $newStatus = $data['status'] ?? $previousStatus;
             $order->loadMissing('items');
 
             if ($newStatus === 'cancelled' && $previousStatus !== 'cancelled') {
-                foreach ($order->items as $item) {
-                    if ($item->product_id) {
-                        Product::query()->whereKey($item->product_id)->increment('stock', $item->quantity);
-                    }
-                }
+                $stock->restoreOrder($order);
             }
 
             // Réouverture d'une commande annulée : les articles sont de nouveau réservés.
             if ($previousStatus === 'cancelled' && $newStatus !== 'cancelled') {
-                foreach ($order->items as $item) {
-                    if (! $item->product_id) {
-                        continue;
-                    }
-                    $product = Product::query()->whereKey($item->product_id)->lockForUpdate()->first();
-                    if ($product && $product->stock < $item->quantity) {
-                        abort(422, "Stock insuffisant pour réouvrir la commande ({$product->name}).");
-                    }
-                    $product?->decrement('stock', $item->quantity);
+                $items = $order->items->filter(fn ($item) => $item->product_id && Product::query()->whereKey($item->product_id)->exists());
+                $lines = $items->map(fn ($item) => [
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'selected_size' => $item->selected_size,
+                    'selected_color' => $item->selected_color,
+                ])->values()->all();
+                $products = $stock->reserve($lines, activeOnly: false, requireVariants: false);
+                foreach ($items as $item) {
+                    $stock->take($products[$item->product_id], (int) $item->quantity, $item->selected_size, $item->selected_color);
                 }
             }
 
@@ -111,7 +111,8 @@ class OrderController extends Controller
         return response()->json(['data' => $order->fresh()->load('items', 'user')]);
     }
 
-    public function store(Request $request)
+    /** Commande saisie par un admin (vente en boutique, téléphone…). */
+    public function store(Request $request, StockService $stock)
     {
         $isDelivery = $request->boolean('is_delivery', true);
 
@@ -122,75 +123,71 @@ class OrderController extends Controller
             'is_delivery' => ['nullable', 'boolean'],
             'address' => [$isDelivery ? 'required' : 'nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
-            'payment_method' => ['nullable', 'string', 'max:50'],
-            'status' => ['nullable', 'in:pending,processing,shipped,delivered,cancelled'],
-            'notes' => ['nullable', 'string'],
-            'tracking_number' => ['nullable', 'string', 'max:120'],
-            'carrier' => ['nullable', 'string', 'max:80'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'exists:products,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.selected_size' => ['nullable', 'string'],
-            'items.*.selected_color' => ['nullable', 'string'],
-            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'status' => ['nullable', 'in:pending,processing'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.selected_size' => ['nullable', 'string', 'max:50'],
+            'items.*.selected_color' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $subtotal = 0;
-        $orderItemsData = [];
+        $order = DB::transaction(function () use ($data, $isDelivery, $stock) {
+            $subtotal = 0;
+            $lines = [];
+            $products = $stock->reserve($data['items'], activeOnly: false, requireVariants: false);
 
-        foreach ($data['items'] as $it) {
-            $product = \App\Models\Product::find($it['product_id']);
-            $unitPrice = isset($it['unit_price']) ? (float) $it['unit_price'] : (float) ($product->promo_price ?? $product->price);
-            $qty = (int) $it['quantity'];
-            $lineTotal = $unitPrice * $qty;
-            $subtotal += $lineTotal;
+            foreach ($data['items'] as $item) {
+                $product = $products[$item['product_id']];
 
-            if ($product) {
-                if ($product->stock >= $qty) {
-                    $product->decrement('stock', $qty);
-                } else {
-                    $product->update(['stock' => 0]);
-                }
+                $unitPrice = ($product->promo_price !== null && $product->promo_price > 0 && $product->promo_price < $product->price)
+                    ? (float) $product->promo_price
+                    : (float) $product->price;
+                $lineTotal = $unitPrice * $item['quantity'];
+                $subtotal += $lineTotal;
+                $lines[] = compact('product', 'item', 'unitPrice', 'lineTotal');
             }
 
-            $orderItemsData[] = [
-                'product_id' => $product->id,
-                'product_name' => $product->name,
-                'unit_price' => $unitPrice,
-                'quantity' => $qty,
-                'selected_size' => $it['selected_size'] ?? null,
-                'selected_color' => $it['selected_color'] ?? null,
-                'line_total' => $lineTotal,
-            ];
-        }
+            $shipping = AppSettings::shippingFor($subtotal, $isDelivery);
 
-        $shipping = \App\Services\AppSettings::shippingFor($subtotal, $isDelivery);
-        $total = $subtotal + $shipping;
+            $order = Order::query()->create([
+                'reference' => 'KV-'.strtoupper(Str::random(8)),
+                'customer_name' => $data['customer_name'],
+                'customer_phone' => $data['customer_phone'],
+                'customer_email' => $data['customer_email'] ?? null,
+                'is_delivery' => $isDelivery,
+                'address' => $isDelivery ? $data['address'] : 'Retrait en boutique KINOVA',
+                'city' => ($data['city'] ?? null) ?: 'Abidjan',
+                'payment_method' => 'cod',
+                'payment_status' => 'unpaid',
+                'status' => $data['status'] ?? 'pending',
+                'subtotal' => $subtotal,
+                'shipping' => $shipping,
+                'total' => $subtotal + $shipping,
+                'notes' => ($data['notes'] ?? null) ?: ($isDelivery ? null : 'Retrait en boutique'),
+            ]);
 
-        $reference = 'CMD-'.strtoupper(\Illuminate\Support\Str::random(6));
+            foreach ($lines as $line) {
+                $order->items()->create([
+                    'product_id' => $line['product']->id,
+                    'product_name' => $line['product']->name,
+                    'selected_size' => $line['item']['selected_size'] ?? null,
+                    'selected_color' => $line['item']['selected_color'] ?? null,
+                    'unit_price' => $line['unitPrice'],
+                    'quantity' => $line['item']['quantity'],
+                    'line_total' => $line['lineTotal'],
+                ]);
+                $stock->take(
+                    $line['product'],
+                    (int) $line['item']['quantity'],
+                    $line['item']['selected_size'] ?? null,
+                    $line['item']['selected_color'] ?? null,
+                );
+            }
 
-        $order = Order::create([
-            'reference' => $reference,
-            'customer_name' => $data['customer_name'],
-            'customer_phone' => $data['customer_phone'],
-            'customer_email' => $data['customer_email'] ?? null,
-            'is_delivery' => $isDelivery,
-            'address' => $isDelivery ? $data['address'] : ($data['address'] ?? 'Retrait en boutique KINOVA'),
-            'city' => $isDelivery ? ($data['city'] ?? 'Abidjan') : ($data['city'] ?? 'Abidjan'),
-            'payment_method' => $data['payment_method'] ?? 'cash_on_delivery',
-            'status' => $data['status'] ?? 'pending',
-            'subtotal' => $subtotal,
-            'shipping' => $shipping,
-            'total' => $total,
-            'notes' => $data['notes'] ?? ($isDelivery ? null : 'Retrait en boutique'),
-            'tracking_number' => $data['tracking_number'] ?? null,
-            'carrier' => $data['carrier'] ?? null,
-        ]);
+            return $order;
+        });
 
-        foreach ($orderItemsData as $itemData) {
-            $order->items()->create($itemData);
-        }
-
-        return response()->json(['data' => $order->fresh()->load('items', 'user')], 201);
+        return response()->json(['data' => $order->fresh()->load('items')], 201);
     }
 }

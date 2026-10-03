@@ -8,7 +8,9 @@ import 'package:kinova_mobile/api/api_config.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/models/app_settings.dart';
 import 'package:kinova_mobile/models/models.dart';
+import 'package:kinova_mobile/screens/admin_notifications_screen.dart';
 import 'package:kinova_mobile/screens/admin_order_sheet.dart';
+import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:kinova_mobile/screens/main_shell.dart';
 import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
@@ -29,6 +31,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     with WidgetsBindingObserver {
   late int _activeTab;
   int _pendingOrders = 0;
+  int _unreadNotifications = 0;
   Timer? _badgeTimer;
 
   @override
@@ -36,7 +39,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.initState();
     _activeTab = widget.initialTab;
     WidgetsBinding.instance.addObserver(this);
+    PushNotificationService.received.addListener(_refreshBadges);
     _refreshBadges();
+    _startBadgeTimer();
+  }
+
+  void _startBadgeTimer() {
+    _badgeTimer?.cancel();
     _badgeTimer = Timer.periodic(
       const Duration(seconds: 45),
       (_) => _refreshBadges(),
@@ -46,26 +55,50 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    PushNotificationService.received.removeListener(_refreshBadges);
     _badgeTimer?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refreshBadges();
+    if (state == AppLifecycleState.resumed) {
+      _refreshBadges();
+      _startBadgeTimer();
+    } else if (state == AppLifecycleState.paused) {
+      _badgeTimer?.cancel();
+    }
   }
 
   Future<void> _refreshBadges() async {
+    final api = context.read<ApiClient>();
     try {
-      final res = await context.read<ApiClient>().get(
+      final res = await api.get(
         '/admin/orders',
-        query: {'status': 'pending'},
+        query: {'status': 'pending', 'per_page': '1'},
       );
       final total = res is Map ? int.tryParse('${res['total']}') : null;
       if (mounted && total != null && total != _pendingOrders) {
         setState(() => _pendingOrders = total);
       }
     } catch (_) {}
+    try {
+      final res = await api.get('/customer/notifications');
+      final unread = res is Map ? int.tryParse('${res['unread_count']}') : null;
+      if (mounted && unread != null && unread != _unreadNotifications) {
+        setState(() => _unreadNotifications = unread);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            AdminNotificationsScreen(onOrdersChanged: _refreshBadges),
+      ),
+    );
+    _refreshBadges();
   }
 
   void _goToStore() {
@@ -83,6 +116,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         0 => _DashboardOverviewTab(
           onGoToStore: _goToStore,
           onOrdersChanged: _refreshBadges,
+          unreadNotifications: _unreadNotifications,
+          onOpenNotifications: _openNotifications,
         ),
         1 => _AdminOrdersTab(onOrdersChanged: _refreshBadges),
         2 => const _AdminProductsTab(),
@@ -90,6 +125,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         _ => _DashboardOverviewTab(
           onGoToStore: _goToStore,
           onOrdersChanged: _refreshBadges,
+          unreadNotifications: _unreadNotifications,
+          onOpenNotifications: _openNotifications,
         ),
       },
       bottomNavigationBar: _AdminBottomNavBar(
@@ -305,10 +342,14 @@ class _DashboardOverviewTab extends StatefulWidget {
   const _DashboardOverviewTab({
     required this.onGoToStore,
     required this.onOrdersChanged,
+    required this.unreadNotifications,
+    required this.onOpenNotifications,
   });
 
   final VoidCallback onGoToStore;
   final VoidCallback onOrdersChanged;
+  final int unreadNotifications;
+  final VoidCallback onOpenNotifications;
 
   @override
   State<_DashboardOverviewTab> createState() => _DashboardOverviewTabState();
@@ -465,14 +506,49 @@ class _DashboardOverviewTabState extends State<_DashboardOverviewTab> {
                                 ],
                               ),
                             ),
-                            IconButton(
-                              onPressed: _loadStats,
-                              icon: const Icon(
-                                Icons.refresh_rounded,
-                                color: KinovaColors.sand,
-                                size: 22,
-                              ),
-                              tooltip: 'Rafraîchir',
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: widget.onOpenNotifications,
+                                  tooltip: 'Notifications',
+                                  icon: Badge(
+                                    isLabelVisible:
+                                        widget.unreadNotifications > 0,
+                                    backgroundColor: const Color(0xFFE53935),
+                                    label: Text(
+                                      widget.unreadNotifications > 99
+                                          ? '99+'
+                                          : '${widget.unreadNotifications}',
+                                      style: const TextStyle(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      widget.unreadNotifications > 0
+                                          ? Icons.notifications_active_rounded
+                                          : Icons.notifications_none_rounded,
+                                      color: widget.unreadNotifications > 0
+                                          ? KinovaColors.gold
+                                          : KinovaColors.sand,
+                                      size: 23,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    _loadStats();
+                                    widget.onOrdersChanged();
+                                  },
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    color: KinovaColors.sand,
+                                    size: 22,
+                                  ),
+                                  tooltip: 'Rafraîchir',
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -700,6 +776,9 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
   bool _loading = true;
   String? _error;
   List<dynamic> _orders = [];
+  int _pages = 1;
+  int _lastPage = 1;
+  bool _loadingMore = false;
   String _selectedStatus = '';
   final _searchController = TextEditingController();
 
@@ -713,40 +792,50 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
   ];
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _fetchOrders();
   }
 
-  Future<void> _fetchOrders() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Map<String, String> get _ordersQuery => {
+    if (_selectedStatus.isNotEmpty) 'status': _selectedStatus,
+    if (_searchController.text.trim().isNotEmpty)
+      'q': _searchController.text.trim(),
+  };
+
+  /// [keepPages] : rafraîchit sans perdre les pages déjà chargées.
+  Future<void> _fetchOrders({bool keepPages = false}) async {
+    final pages = keepPages ? _pages : 1;
+    if (!keepPages) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
-      final api = context.read<ApiClient>();
-      String url = '/admin/orders?';
-      if (_selectedStatus.isNotEmpty) {
-        url += 'status=$_selectedStatus&';
-      }
-      if (_searchController.text.trim().isNotEmpty) {
-        url += 'q=${Uri.encodeComponent(_searchController.text.trim())}&';
-      }
-
-      final res = await api.get(url);
-      List<dynamic> list = [];
-      if (res is Map && res['data'] is List) {
-        list = res['data'] as List;
-      }
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/orders',
+        query: _ordersQuery,
+        to: pages,
+      );
       if (mounted) {
         setState(() {
-          _orders = list;
+          _orders = result.items;
+          _pages = pages.clamp(1, result.lastPage);
+          _lastPage = result.lastPage;
           _loading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !keepPages) {
         setState(() {
           _error = 'Impossible de charger les commandes.';
           _loading = false;
@@ -755,12 +844,38 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
     }
   }
 
+  Future<void> _loadMoreOrders() async {
+    if (_loadingMore || _pages >= _lastPage) return;
+    setState(() => _loadingMore = true);
+    try {
+      final next = _pages + 1;
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/orders',
+        query: _ordersQuery,
+        from: next,
+        to: next,
+      );
+      if (mounted) {
+        setState(() {
+          _orders = [..._orders, ...result.items];
+          _pages = next;
+          _lastPage = result.lastPage;
+        });
+      }
+    } catch (_) {
+      if (mounted) _showLoadMoreError(context);
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   void _showOrderDetails(Map<String, dynamic> order) {
     showAdminOrderSheet(
       context,
       orderId: '${order['id']}',
       onChanged: () {
-        _fetchOrders();
+        _fetchOrders(keepPages: true);
         widget.onOrdersChanged();
       },
     );
@@ -776,7 +891,7 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
       ),
       builder: (ctx) => _CreateOrderModal(
         onSuccess: () {
-          _fetchOrders();
+          _fetchOrders(keepPages: true);
           widget.onOrdersChanged();
         },
       ),
@@ -998,9 +1113,15 @@ class _AdminOrdersTabState extends State<_AdminOrdersTab> {
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
-                    itemCount: _orders.length,
+                    itemCount: _orders.length + (_pages < _lastPage ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, idx) {
+                      if (idx >= _orders.length) {
+                        return _LoadMoreButton(
+                          loading: _loadingMore,
+                          onPressed: _loadMoreOrders,
+                        );
+                      }
                       final o = Map<String, dynamic>.from(_orders[idx] as Map);
                       final ref = (o['reference'] ?? '#CMD-${o['id']}')
                           .toString();
@@ -1063,6 +1184,9 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
   bool _loading = true;
   String? _error;
   List<dynamic> _products = [];
+  int _pages = 1;
+  int _lastPage = 1;
+  bool _loadingMore = false;
   final _searchController = TextEditingController();
   int _stockFilter = 0; // 0: Tous, 1: Stock faible (<= 5), 2: Rupture (0)
 
@@ -1072,37 +1196,75 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
     _fetchProducts();
   }
 
-  Future<void> _fetchProducts() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Map<String, String> get _productsQuery => {
+    if (_searchController.text.trim().isNotEmpty)
+      'q': _searchController.text.trim(),
+  };
+
+  /// [keepPages] : rafraîchit sans perdre les pages déjà chargées.
+  Future<void> _fetchProducts({bool keepPages = false}) async {
+    final pages = keepPages ? _pages : 1;
+    if (!keepPages) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
-      final api = context.read<ApiClient>();
-      String url = '/admin/products?';
-      if (_searchController.text.trim().isNotEmpty) {
-        url += 'q=${Uri.encodeComponent(_searchController.text.trim())}&';
-      }
-
-      final res = await api.get(url);
-      List<dynamic> list = [];
-      if (res is Map && res['data'] is List) {
-        list = res['data'] as List;
-      }
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/products',
+        query: _productsQuery,
+        to: pages,
+      );
       if (mounted) {
         setState(() {
-          _products = list;
+          _products = result.items;
+          _pages = pages.clamp(1, result.lastPage);
+          _lastPage = result.lastPage;
           _loading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !keepPages) {
         setState(() {
           _error = 'Impossible de charger les produits.';
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_loadingMore || _pages >= _lastPage) return;
+    setState(() => _loadingMore = true);
+    try {
+      final next = _pages + 1;
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/products',
+        query: _productsQuery,
+        from: next,
+        to: next,
+      );
+      if (mounted) {
+        setState(() {
+          _products = [..._products, ...result.items];
+          _pages = next;
+          _lastPage = result.lastPage;
+        });
+      }
+    } catch (_) {
+      if (mounted) _showLoadMoreError(context);
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
     }
   }
 
@@ -1125,7 +1287,7 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
           ),
         );
       }
-      await _fetchProducts();
+      await _fetchProducts(keepPages: true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1189,7 +1351,7 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
           ),
         );
       }
-      await _fetchProducts();
+      await _fetchProducts(keepPages: true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1214,7 +1376,7 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
       builder: (ctx) => _ProductFormModal(
         product: product,
         onSuccess: () {
-          _fetchProducts();
+          _fetchProducts(keepPages: true);
         },
       ),
     );
@@ -1385,7 +1547,7 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                       style: const TextStyle(color: KinovaColors.cream),
                     ),
                   )
-                : filtered.isEmpty
+                : filtered.isEmpty && _pages >= _lastPage
                 ? const Center(
                     child: Text(
                       'Aucun article trouvé.',
@@ -1394,9 +1556,15 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + (_pages < _lastPage ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, idx) {
+                      if (idx >= filtered.length) {
+                        return _LoadMoreButton(
+                          loading: _loadingMore,
+                          onPressed: _loadMoreProducts,
+                        );
+                      }
                       final p = Map<String, dynamic>.from(filtered[idx] as Map);
                       final name = (p['name'] ?? '').toString();
                       final price = double.tryParse('${p['price']}') ?? 0.0;
@@ -1700,6 +1868,9 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
   bool _loading = true;
   String? _error;
   List<dynamic> _messages = [];
+  int _pages = 1;
+  int _lastPage = 1;
+  bool _loadingMore = false;
 
   @override
   void initState() {
@@ -1714,15 +1885,15 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
     });
 
     try {
-      final api = context.read<ApiClient>();
-      final res = await api.get('/admin/contact-messages');
-      List<dynamic> list = [];
-      if (res is Map && res['data'] is List) {
-        list = res['data'] as List;
-      }
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/contact-messages',
+      );
       if (mounted) {
         setState(() {
-          _messages = list;
+          _messages = result.items;
+          _pages = 1;
+          _lastPage = result.lastPage;
           _loading = false;
         });
       }
@@ -1733,6 +1904,31 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_loadingMore || _pages >= _lastPage) return;
+    setState(() => _loadingMore = true);
+    try {
+      final next = _pages + 1;
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/contact-messages',
+        from: next,
+        to: next,
+      );
+      if (mounted) {
+        setState(() {
+          _messages = [..._messages, ...result.items];
+          _pages = next;
+          _lastPage = result.lastPage;
+        });
+      }
+    } catch (_) {
+      if (mounted) _showLoadMoreError(context);
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
     }
   }
 
@@ -1894,9 +2090,15 @@ class _AdminMessagesTabState extends State<_AdminMessagesTab> {
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
-                    itemCount: _messages.length,
+                    itemCount: _messages.length + (_pages < _lastPage ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, idx) {
+                      if (idx >= _messages.length) {
+                        return _LoadMoreButton(
+                          loading: _loadingMore,
+                          onPressed: _loadMoreMessages,
+                        );
+                      }
                       final m = Map<String, dynamic>.from(
                         _messages[idx] as Map,
                       );
@@ -2084,6 +2286,23 @@ class _ProductFormModalState extends State<_ProductFormModal> {
     _fetchCategories();
   }
 
+  @override
+  void dispose() {
+    for (final c in [
+      _nameController,
+      _priceController,
+      _promoPriceController,
+      _stockController,
+      _descriptionController,
+      _imageUrlController,
+      _sizesController,
+      _colorsController,
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _fetchCategories() async {
     try {
       final api = context.read<ApiClient>();
@@ -2175,18 +2394,37 @@ class _ProductFormModalState extends State<_ProductFormModal> {
       final api = context.read<ApiClient>();
       final isEdit = widget.product != null;
 
+      // Conserve le stock / la couleur hex déjà saisis (dashboard web) pour les variantes inchangées.
+      Map<String, Map> existingVariants(String key) {
+        final raw = widget.product?[key];
+        return {
+          if (raw is List)
+            for (final v in raw.whereType<Map>())
+              if (v['name'] != null) v['name'].toString(): v,
+        };
+      }
+
+      final previousSizes = existingVariants('sizes');
+      final previousColors = existingVariants('colors');
+
       final sizes = _sizesController.text
           .split(',')
           .map((s) => s.trim())
           .where((s) => s.isNotEmpty)
-          .map((s) => {'name': s, 'stock': null})
+          .map((s) => {'name': s, 'stock': previousSizes[s]?['stock']})
           .toList();
 
       final colors = _colorsController.text
           .split(',')
           .map((c) => c.trim())
           .where((c) => c.isNotEmpty)
-          .map((c) => {'name': c, 'hex': null, 'stock': null})
+          .map(
+            (c) => {
+              'name': c,
+              'hex': previousColors[c]?['hex'],
+              'stock': previousColors[c]?['stock'],
+            },
+          )
           .toList();
 
       final payload = <String, dynamic>{
@@ -2198,8 +2436,8 @@ class _ProductFormModalState extends State<_ProductFormModal> {
         'image_url': _imageUrlController.text.trim(),
         'sizes': sizes,
         'colors': colors,
-        'is_active': true,
-        'is_new': true,
+        if (!isEdit) 'is_active': true,
+        if (!isEdit) 'is_new': true,
       };
 
       if (_promoPriceController.text.trim().isNotEmpty) {
@@ -2923,12 +3161,15 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
 
   Future<void> _fetchProducts() async {
     try {
-      final api = context.read<ApiClient>();
-      final res = await api.get('/admin/products');
-      if (res is Map && res['data'] is List) {
+      final result = await _fetchAdminPages(
+        context.read<ApiClient>(),
+        '/admin/products',
+        to: 25,
+      );
+      if (result.items.isNotEmpty) {
         if (mounted) {
           setState(() {
-            _products = res['data'] as List;
+            _products = result.items;
             if (_products.isNotEmpty) {
               _selectedProductId = _products.first['id'] as int;
               _productSearchController.text =
@@ -4487,6 +4728,74 @@ class _OrderListItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Charge les pages [from]..[to] d'une liste admin paginée (100 éléments par page).
+Future<({List<dynamic> items, int lastPage})> _fetchAdminPages(
+  ApiClient api,
+  String path, {
+  Map<String, String> query = const {},
+  int from = 1,
+  int to = 1,
+}) async {
+  final items = <dynamic>[];
+  var lastPage = from;
+  for (var page = from; page <= to; page++) {
+    final res = await api.get(
+      path,
+      query: {...query, 'per_page': '100', 'page': '$page'},
+    );
+    if (res is Map && res['data'] is List) items.addAll(res['data'] as List);
+    lastPage = res is Map ? int.tryParse('${res['last_page']}') ?? page : page;
+    if (page >= lastPage) break;
+  }
+  return (items: items, lastPage: lastPage);
+}
+
+void _showLoadMoreError(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Impossible de charger la suite.'),
+      backgroundColor: Color(0xFFB71C1C),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
+
+class _LoadMoreButton extends StatelessWidget {
+  const _LoadMoreButton({required this.loading, required this.onPressed});
+
+  final bool loading;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Center(
+        child: loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: KinovaColors.gold,
+                ),
+              )
+            : OutlinedButton.icon(
+                onPressed: onPressed,
+                icon: const Icon(Icons.expand_more_rounded),
+                label: const Text('Charger plus'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: KinovaColors.gold,
+                  side: BorderSide(
+                    color: KinovaColors.gold.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
       ),
     );
   }

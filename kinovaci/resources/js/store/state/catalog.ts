@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import { api } from '../api/client'
 import { mapCategory, mapHero, mapProduct, type Category, type HeroSlide, type Product } from '../lib/types'
+import { syncCartWithCatalog } from './cart'
 
 const state = reactive({
   categories: [] as Category[],
@@ -41,19 +42,34 @@ export function useCatalog() {
     p.ratingsCount = count
   }
 
+  /** L'API pagine les produits : on récupère toutes les pages. */
+  async function fetchAllProducts(): Promise<any[]> {
+    const all: any[] = []
+    let page = 1
+    let lastPage = 1
+    do {
+      const res = await api<{ data: any[]; last_page?: number }>(`/products?per_page=200&page=${page}`)
+      all.push(...(res.data || []))
+      lastPage = Number(res.last_page ?? 1)
+      page++
+    } while (page <= lastPage && page <= 25)
+    return all
+  }
+
   async function load() {
     state.loading = true
     state.error = ''
     try {
       const [cats, prods, heroes] = await Promise.all([
         api<{ data: any[] }>('/categories'),
-        api<{ data: any[] }>('/products'),
+        fetchAllProducts(),
         api<{ data: any[] }>('/hero-slides'),
       ])
       state.categories = (cats.data || []).map(mapCategory)
-      state.products = (prods.data || []).map(mapProduct)
+      state.products = prods.map(mapProduct)
       state.heroSlides = (heroes.data || []).map(mapHero)
       state.loaded = true
+      syncCartWithCatalog(byId)
     } catch (e: any) {
       state.error = e?.message || 'Impossible de charger le catalogue'
     } finally {

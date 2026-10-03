@@ -152,6 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await auth.logout();
     favorites.clearLocal();
     cart.setOrders(const []);
+    cart.clear();
   }
 
   void _openOrders() {

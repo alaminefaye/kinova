@@ -12,11 +12,11 @@ class MediaController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'image' => ['required', 'image', 'max:5120'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
         ]);
 
         $file = $data['image'];
-        $name = Str::uuid().'.'.$file->getClientOriginalExtension();
+        $name = Str::uuid().'.'.$file->extension();
         $path = $file->storeAs('products', $name, 'public');
 
         return response()->json([

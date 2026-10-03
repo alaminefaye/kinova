@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -9,12 +10,19 @@ const messages = ref<any[]>([])
 const selected = ref<any | null>(null)
 const reply = ref('')
 
-async function load() {
+const page = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+
+async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<any>('/admin/contact-messages')
+    const res = await api<any>(`/admin/contact-messages?page=${p}`)
     messages.value = res.data || []
+    page.value = res.current_page || 1
+    lastPage.value = res.last_page || 1
+    total.value = res.total || 0
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -23,33 +31,48 @@ async function load() {
 }
 
 async function open(msg: any) {
-  const res = await api<{ data: any }>(`/admin/contact-messages/${msg.id}`)
-  selected.value = res.data
-  reply.value = res.data.admin_reply || ''
-  await load()
+  error.value = ''
+  try {
+    const res = await api<{ data: any }>(`/admin/contact-messages/${msg.id}`)
+    selected.value = res.data
+    reply.value = res.data.admin_reply || ''
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
 async function saveReply() {
   if (!selected.value) return
-  const res = await api<{ data: any }>(`/admin/contact-messages/${selected.value.id}`, {
-    method: 'PUT',
-    json: { admin_reply: reply.value, status: 'replied' },
-  })
-  selected.value = res.data
-  await load()
+  error.value = ''
+  try {
+    const res = await api<{ data: any }>(`/admin/contact-messages/${selected.value.id}`, {
+      method: 'PUT',
+      json: { admin_reply: reply.value, status: 'replied' },
+    })
+    selected.value = res.data
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
 async function closeMsg() {
   if (!selected.value) return
-  const res = await api<{ data: any }>(`/admin/contact-messages/${selected.value.id}`, {
-    method: 'PUT',
-    json: { status: 'closed' },
-  })
-  selected.value = res.data
-  await load()
+  error.value = ''
+  try {
+    const res = await api<{ data: any }>(`/admin/contact-messages/${selected.value.id}`, {
+      method: 'PUT',
+      json: { status: 'closed' },
+    })
+    selected.value = res.data
+    await load()
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 
-onMounted(load)
+onMounted(() => load())
 </script>
 
 <template>
@@ -104,6 +127,7 @@ onMounted(load)
           </template>
         </div>
       </div>
+      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

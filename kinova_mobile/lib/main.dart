@@ -23,7 +23,11 @@ Future<void> main() async {
   );
 
   final api = ApiClient();
-  await PushNotificationService.init(api: api);
+  try {
+    await PushNotificationService.init(api: api);
+  } catch (e) {
+    debugPrint('Notifications push indisponibles : $e');
+  }
 
   runApp(KinovaApp(api: api));
 }

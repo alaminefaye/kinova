@@ -28,7 +28,6 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./resources/js', import.meta.url)),
-            vue: 'vue/dist/vue.esm-bundler.js',
         },
     },
     server: {

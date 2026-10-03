@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Product;
 use App\Services\NotificationService;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -33,13 +33,13 @@ class OrderController extends Controller
         return response()->json(['data' => $order]);
     }
 
-    public function cancel(Request $request, string $reference, NotificationService $notifications)
+    public function cancel(Request $request, string $reference, NotificationService $notifications, StockService $stock)
     {
         $data = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $order = DB::transaction(function () use ($request, $reference, $data) {
+        $order = DB::transaction(function () use ($request, $reference, $data, $stock) {
             $order = Order::query()
                 ->with('items')
                 ->where('user_id', $request->user()->id)
@@ -63,11 +63,7 @@ class OrderController extends Controller
                 'notes' => trim(($order->notes ? $order->notes."\n" : '').$note),
             ]);
 
-            foreach ($order->items as $item) {
-                if ($item->product_id) {
-                    Product::query()->whereKey($item->product_id)->increment('stock', $item->quantity);
-                }
-            }
+            $stock->restoreOrder($order);
 
             return $order->fresh()->load('items');
         });

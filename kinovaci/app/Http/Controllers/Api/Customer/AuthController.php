@@ -79,9 +79,7 @@ class AuthController extends Controller
         }
 
         $user = User::query()
-            ->where(function ($query) use ($login) {
-                $query->where('email', $login)->orWhere('phone', $login);
-            })
+            ->where(str_contains($login, '@') ? 'email' : 'phone', $login)
             ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {

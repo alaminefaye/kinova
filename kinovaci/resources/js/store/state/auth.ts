@@ -1,12 +1,25 @@
 import { computed, reactive } from 'vue'
-import { api, getToken, setToken } from '../api/client'
+import { api, getToken, onUnauthorized, setToken } from '../api/client'
 import type { UserProfile } from '../lib/types'
+import { useCart } from './cart'
+import { useFavorites } from './favorites'
+import { useNotifications } from './notifications'
 
 const state = reactive({
   user: null as UserProfile | null,
   loading: false,
   bootstrapped: false,
 })
+
+/** Efface toutes les données du compte précédent (profil, favoris, badge). */
+function resetSession() {
+  setToken(null)
+  state.user = null
+  useFavorites().clear()
+  useNotifications().setUnread(0)
+}
+
+onUnauthorized(resetSession)
 
 export function useAuth() {
   const isLoggedIn = computed(() => !!getToken())
@@ -76,8 +89,8 @@ export function useAuth() {
     } catch {
       /* ignore */
     }
-    setToken(null)
-    state.user = null
+    resetSession()
+    useCart().clear()
   }
 
   return {

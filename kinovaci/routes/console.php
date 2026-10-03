@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\Customer\RatingController;
 use App\Models\AppNotification;
 use App\Models\DeviceToken;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductRating;
 use App\Models\User;
 use App\Services\FirebasePushService;
 use Illuminate\Foundation\Inspiring;
@@ -134,3 +137,25 @@ Artisan::command('push:test {user? : Email, téléphone ou ID du compte} {--orde
         ? $this->info("Push envoyé à {$sent} appareil(s).")
         : $this->error('Échec : '.($push->lastError ?? 'inconnu'));
 })->purpose('Diagnostiquer les notifications push');
+
+Artisan::command('ratings:purge-unverified {--force : Supprimer sans demander confirmation}', function () {
+    $unverified = ProductRating::query()->get()
+        ->reject(fn (ProductRating $r) => RatingController::hasReceived($r->user_id, $r->product_id));
+
+    if ($unverified->isEmpty()) {
+        $this->info('Aucune note sans achat livré.');
+
+        return 0;
+    }
+
+    $this->line($unverified->count().' note(s) données sans commande livrée du produit.');
+    if (! $this->option('force') && ! $this->confirm('Les supprimer et recalculer les moyennes ?')) {
+        return 0;
+    }
+
+    $productIds = $unverified->pluck('product_id')->unique();
+    ProductRating::query()->whereKey($unverified->modelKeys())->delete();
+    Product::query()->whereKey($productIds)->get()->each(fn (Product $p) => RatingController::refreshProductRating($p));
+
+    $this->info($unverified->count().' note(s) supprimée(s), '.$productIds->count().' produit(s) recalculé(s).');
+})->purpose('Supprimer les notes données par des clients n’ayant pas reçu le produit');

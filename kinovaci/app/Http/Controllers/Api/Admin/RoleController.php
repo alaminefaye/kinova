@@ -87,9 +87,10 @@ class RoleController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        // Empêcher de renommer le rôle super-admin
-        if ($role->name === 'super-admin' && $data['name'] !== 'super-admin') {
-            return response()->json(['message' => 'Le rôle super-admin ne peut pas être renommé.'], 422);
+        // Rôles système utilisés par le code (inscription, accès dashboard) : non renommables.
+        if (in_array($role->name, ['super-admin', 'admin', 'customer'], true)
+            && strtolower(trim($data['name'])) !== $role->name) {
+            return response()->json(['message' => "Le rôle {$role->name} est un rôle système et ne peut pas être renommé."], 422);
         }
 
         $role->update([

@@ -78,9 +78,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         const SnackBar(content: Text('Photo de profil mise à jour')),
       );
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Impossible d’envoyer la photo');
+      if (mounted) setState(() => _error = 'Impossible d’envoyer la photo');
     } finally {
       if (mounted) setState(() => _uploadingAvatar = false);
     }
@@ -110,9 +110,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Enregistrement impossible');
+      if (mounted) setState(() => _error = 'Enregistrement impossible');
     } finally {
       if (mounted) setState(() => _saving = false);
     }

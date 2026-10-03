@@ -55,6 +55,13 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        // La suppression d'une catégorie supprimerait aussi tous ses produits (clé étrangère en cascade).
+        if ($category->products()->exists()) {
+            return response()->json([
+                'message' => 'Cette catégorie contient des produits. Déplacez-les ou supprimez-les avant de supprimer la catégorie.',
+            ], 422);
+        }
+
         $category->delete();
 
         return response()->json(['message' => 'Catégorie supprimée.']);

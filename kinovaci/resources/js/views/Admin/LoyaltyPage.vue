@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -9,12 +10,19 @@ const customers = ref<any[]>([])
 const points = ref(100)
 const note = ref('Bonus admin')
 
-async function load() {
+const page = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+
+async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<any>('/admin/loyalty/customers')
+    const res = await api<any>(`/admin/loyalty/customers?page=${p}`)
     customers.value = res.data || []
+    page.value = res.current_page || 1
+    lastPage.value = res.last_page || 1
+    total.value = res.total || 0
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -35,7 +43,7 @@ async function adjust(userId: number, delta: number) {
   }
 }
 
-onMounted(load)
+onMounted(() => load())
 </script>
 
 <template>
@@ -86,6 +94,7 @@ onMounted(load)
           </tbody>
         </table>
       </div>
+      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

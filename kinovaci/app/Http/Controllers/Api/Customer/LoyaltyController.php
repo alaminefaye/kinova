@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\AppSettings;
 use App\Services\LoyaltyService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LoyaltyController extends Controller
 {
@@ -43,16 +45,17 @@ class LoyaltyController extends Controller
 
         $user = $request->user();
 
-        if ($user->loyalty_points < $data['points']) {
-            return response()->json(['message' => 'Points insuffisants.'], 422);
-        }
+        $tx = DB::transaction(function () use ($user, $data, $loyalty) {
+            $locked = User::query()->lockForUpdate()->findOrFail($user->id);
+            abort_if($locked->loyalty_points < $data['points'], 422, 'Points insuffisants.');
 
-        $tx = $loyalty->adjust(
-            $user,
-            -$data['points'],
-            'redeem',
-            "Échange de {$data['points']} points"
-        );
+            return $loyalty->adjust(
+                $locked,
+                -$data['points'],
+                'redeem',
+                "Échange de {$data['points']} points"
+            );
+        });
 
         return response()->json([
             'message' => 'Points échangés.',

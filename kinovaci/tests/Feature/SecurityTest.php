@@ -272,11 +272,286 @@ class SecurityTest extends TestCase
             ->where('title', \App\Services\LoyaltyService::POINTS_NOTIFICATION_TITLE)->count());
     }
 
+    public function test_avatar_upload_ignores_client_extension(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        Sanctum::actingAs($customer = $this->user());
+
+        $html = \Illuminate\Http\UploadedFile::fake()->createWithContent('a.html', "GIF89a<script>alert(1)</script>");
+        $this->postJson('/api/customer/profile/avatar', ['avatar' => $html])->assertStatus(422);
+
+        $disguised = \Illuminate\Http\UploadedFile::fake()->image('photo.html', 50, 50);
+        $this->postJson('/api/customer/profile/avatar', ['avatar' => $disguised])->assertStatus(422);
+
+        $png = \Illuminate\Http\UploadedFile::fake()->image('photo.png', 50, 50);
+        $this->postJson('/api/customer/profile/avatar', ['avatar' => $png])->assertOk();
+
+        $files = \Illuminate\Support\Facades\Storage::disk('public')->files('avatars');
+        $this->assertCount(1, $files);
+        $this->assertStringEndsWith('.png', $files[0]);
+        $this->assertStringContainsString('/storage/avatars/', (string) $customer->fresh()->avatar_url);
+    }
+
+    public function test_customer_cannot_point_avatar_to_other_files_and_delete_them(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('products/victim.jpg', 'x');
+
+        $customer = $this->user();
+        Sanctum::actingAs($customer);
+
+        $this->putJson('/api/customer/profile', [
+            'avatar_url' => 'https://kinovaci.com/storage/avatars/../products/victim.jpg',
+        ])->assertOk();
+        $this->assertNull($customer->fresh()->avatar_url);
+
+        $customer->forceFill(['avatar_url' => 'https://kinovaci.com/storage/avatars/../products/victim.jpg'])->save();
+        $png = \Illuminate\Http\UploadedFile::fake()->image('a.png');
+        $this->postJson('/api/customer/profile/avatar', ['avatar' => $png])->assertOk();
+
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists('products/victim.jpg');
+    }
+
+    public function test_public_order_lookup_hides_personal_data(): void
+    {
+        $order = $this->orderFor(null, ['notes' => 'note interne', 'latitude' => 5.3, 'longitude' => -4.0]);
+
+        $data = $this->getJson("/api/orders/{$order->reference}")->assertOk()->json('data');
+
+        $this->assertSame($order->reference, $data['reference']);
+        foreach (['customer_phone', 'customer_name', 'address', 'latitude', 'longitude', 'notes', 'user_id'] as $key) {
+            $this->assertArrayNotHasKey($key, $data);
+        }
+    }
+
+    public function test_product_listing_page_size_is_capped(): void
+    {
+        $this->product();
+
+        $this->getJson('/api/products?per_page=100000')->assertOk()->assertJsonPath('per_page', 200);
+        $this->getJson('/api/products?per_page=-5')->assertOk()->assertJsonPath('per_page', 1);
+    }
+
+    public function test_last_super_admin_cannot_be_blocked_demoted_or_deleted(): void
+    {
+        $admin = $this->user('super-admin');
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/admin/users/{$admin->id}/toggle-block")->assertStatus(422);
+        $this->putJson("/api/admin/users/{$admin->id}", ['name' => 'Moi', 'roles' => ['customer']])->assertStatus(422);
+        $this->assertTrue($admin->fresh()->isSuperAdmin());
+
+        $other = $this->user('super-admin');
+        $this->postJson("/api/admin/users/{$other->id}/toggle-block")->assertOk();
+        $this->assertTrue($other->fresh()->is_blocked);
+    }
+
+    public function test_admin_user_edit_keeps_unsent_fields_and_accepts_real_tiers(): void
+    {
+        Sanctum::actingAs($this->user('super-admin'));
+        $customer = $this->user('customer', ['loyalty_points' => 42, 'vip_tier' => 'silver', 'city' => 'Bouaké']);
+
+        $this->putJson("/api/admin/users/{$customer->id}", ['name' => 'Nouveau nom', 'email' => $customer->email])->assertOk();
+        $customer->refresh();
+        $this->assertSame(42, $customer->loyalty_points);
+        $this->assertSame('silver', $customer->vip_tier);
+        $this->assertSame('Bouaké', $customer->city);
+
+        $this->putJson("/api/admin/users/{$customer->id}", ['name' => 'X', 'vip_tier' => 'vip'])->assertOk();
+        $this->putJson("/api/admin/users/{$customer->id}", ['name' => 'X', 'roles' => ['inexistant']])->assertStatus(422);
+    }
+
+    public function test_system_roles_cannot_be_renamed(): void
+    {
+        Sanctum::actingAs($this->user('super-admin'));
+        $customerRole = Role::findByName('customer', 'web');
+
+        $this->putJson("/api/admin/roles/{$customerRole->id}", ['name' => 'clients'])->assertStatus(422);
+        $this->assertNotNull(Role::where('name', 'customer')->first());
+    }
+
+    public function test_category_with_products_cannot_be_deleted(): void
+    {
+        $product = $this->product();
+        Sanctum::actingAs($this->user('super-admin'));
+
+        $this->deleteJson("/api/admin/categories/{$product->category_id}")->assertStatus(422);
+        $this->assertNotNull($product->fresh());
+    }
+
+    public function test_admin_manual_order_checks_stock_and_uses_server_price(): void
+    {
+        $product = $this->product(stock: 3, price: 7000);
+        Sanctum::actingAs($this->user('super-admin'));
+
+        $payload = [
+            'customer_name' => 'Boutique',
+            'customer_phone' => '0700000000',
+            'is_delivery' => false,
+            'items' => [['product_id' => $product->id, 'quantity' => 2, 'unit_price' => 1]],
+        ];
+
+        $this->postJson('/api/admin/orders', $payload)->assertCreated()->assertJsonPath('data.total', '14000.00');
+        $this->assertSame(1, $product->fresh()->stock);
+
+        $this->postJson('/api/admin/orders', $payload)->assertStatus(422);
+        $this->assertSame(1, $product->fresh()->stock);
+    }
+
+    public function test_password_change_revokes_other_sessions(): void
+    {
+        $customer = $this->user('customer', ['email' => 'pwd@kinova.test']);
+        $customer->createToken('autre-telephone');
+        $current = $customer->createToken('ce-telephone')->plainTextToken;
+
+        $this->withToken($current)->putJson('/api/customer/profile', [
+            'current_password' => 'password',
+            'password' => 'Nouveau-123456',
+            'password_confirmation' => 'Nouveau-123456',
+        ])->assertOk();
+
+        $this->assertSame(['ce-telephone'], $customer->tokens()->pluck('name')->all());
+    }
+
     public function test_settings_never_expose_private_keys(): void
     {
         $payload = $this->getJson('/api/settings')->assertOk()->json('data');
 
         $this->assertArrayNotHasKey('invoice_stamp_path', $payload);
         $this->assertFalse($payload['loyalty']['enabled']);
+    }
+
+    public function test_customer_cannot_rate_product_without_delivered_purchase(): void
+    {
+        $customer = $this->user();
+        $product = $this->product();
+        Sanctum::actingAs($customer);
+
+        $this->getJson("/api/customer/products/{$product->id}/rating")
+            ->assertOk()->assertJsonPath('data.can_rate', false);
+        $this->postJson('/api/customer/ratings', ['product_id' => $product->id, 'stars' => 1])
+            ->assertForbidden();
+
+        $pending = $this->orderFor($customer, ['status' => 'pending']);
+        $pending->items()->create([
+            'product_id' => $product->id, 'product_name' => $product->name,
+            'unit_price' => 5000, 'quantity' => 1, 'line_total' => 5000,
+        ]);
+        $this->postJson('/api/customer/ratings', ['product_id' => $product->id, 'stars' => 1])
+            ->assertForbidden();
+        $this->assertSame(0, (int) $product->fresh()->ratings_count);
+    }
+
+    public function test_customer_can_rate_product_after_delivery(): void
+    {
+        $customer = $this->user();
+        $product = $this->product();
+        $order = $this->orderFor($customer, ['status' => 'delivered']);
+        $order->items()->create([
+            'product_id' => $product->id, 'product_name' => $product->name,
+            'unit_price' => 5000, 'quantity' => 1, 'line_total' => 5000,
+        ]);
+        Sanctum::actingAs($customer);
+
+        $this->getJson("/api/customer/products/{$product->id}/rating")
+            ->assertOk()->assertJsonPath('data.can_rate', true);
+        $this->postJson('/api/customer/ratings', ['product_id' => $product->id, 'stars' => 4])
+            ->assertOk()->assertJsonPath('data.my_rating', 4);
+        $this->assertSame(1, (int) $product->fresh()->ratings_count);
+    }
+
+    private function variantProduct(): Product
+    {
+        $product = $this->product(10);
+        $product->update([
+            'sizes' => [['name' => 'M', 'stock' => 3], ['name' => 'L', 'stock' => null]],
+            'colors' => [['name' => 'Noir', 'hex' => '#000', 'stock' => 2]],
+        ]);
+
+        return $product->fresh();
+    }
+
+    private function variantLine(Product $product, int $qty, string $size = 'M', string $color = 'Noir'): array
+    {
+        return ['product_id' => $product->id, 'quantity' => $qty, 'selected_size' => $size, 'selected_color' => $color];
+    }
+
+    public function test_order_decrements_size_and_color_stock(): void
+    {
+        $product = $this->variantProduct();
+
+        $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [$this->variantLine($product, 2)],
+        ]))->assertCreated();
+
+        $product->refresh();
+        $this->assertSame(8, (int) $product->stock);
+        $this->assertSame(1, $product->sizes[0]['stock']);
+        $this->assertNull($product->sizes[1]['stock']);
+        $this->assertSame(0, $product->colors[0]['stock']);
+    }
+
+    public function test_order_rejects_when_variant_stock_is_insufficient(): void
+    {
+        $product = $this->variantProduct();
+
+        // 2 lignes de 1 : cumul 2 en Noir OK, mais 3 lignes dépassent le stock couleur (2)
+        $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [$this->variantLine($product, 1), $this->variantLine($product, 1, 'L'), $this->variantLine($product, 1, 'L')],
+        ]))->assertStatus(422);
+
+        $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [$this->variantLine($product, 4, 'M')],
+        ]))->assertStatus(422);
+
+        $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        ]))->assertStatus(422);
+
+        $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [$this->variantLine($product, 1, 'XXL')],
+        ]))->assertStatus(422);
+
+        $this->assertSame(10, (int) $product->fresh()->stock);
+        $this->assertSame(3, $product->fresh()->sizes[0]['stock']);
+    }
+
+    public function test_cancel_restores_variant_stock(): void
+    {
+        $customer = $this->user();
+        $product = $this->variantProduct();
+        Sanctum::actingAs($customer);
+
+        $reference = $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [$this->variantLine($product, 2)],
+        ]))->assertCreated()->json('data.reference');
+
+        $this->postJson("/api/customer/orders/{$reference}/cancel")->assertOk();
+
+        $product->refresh();
+        $this->assertSame(10, (int) $product->stock);
+        $this->assertSame(3, $product->sizes[0]['stock']);
+        $this->assertSame(2, $product->colors[0]['stock']);
+    }
+
+    public function test_admin_reopen_reserves_variant_stock_again(): void
+    {
+        $admin = $this->user('super-admin');
+        $product = $this->variantProduct();
+
+        $reference = $this->postJson('/api/orders', $this->orderPayload($product, 1, [
+            'items' => [$this->variantLine($product, 2)],
+        ]))->assertCreated()->json('data.reference');
+        $order = Order::query()->where('reference', $reference)->firstOrFail();
+
+        Sanctum::actingAs($admin);
+        $this->patchJson("/api/admin/orders/{$order->id}", ['status' => 'cancelled'])->assertOk();
+        $this->assertSame(2, $product->fresh()->colors[0]['stock']);
+
+        $this->patchJson("/api/admin/orders/{$order->id}", ['status' => 'pending'])->assertOk();
+        $product->refresh();
+        $this->assertSame(8, (int) $product->stock);
+        $this->assertSame(1, $product->sizes[0]['stock']);
+        $this->assertSame(0, $product->colors[0]['stock']);
     }
 }

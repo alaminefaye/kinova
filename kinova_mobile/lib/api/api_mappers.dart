@@ -38,6 +38,13 @@ class ApiMappers {
     final imageUrl = (json['image_url'] ?? (gallery.isNotEmpty ? gallery.first : ''))
         .toString();
 
+    final productStock = int.tryParse('${json['stock'] ?? 0}') ?? 0;
+
+    // Stock de variante absent = pas de limite propre (le stock produit s'applique), comme côté serveur.
+    int variantStock(Map<String, dynamic> variant) => variant['stock'] == null
+        ? productStock
+        : int.tryParse('${variant['stock']}') ?? 0;
+
     final sizes = <ProductSize>[];
     final rawSizes = json['sizes'];
     if (rawSizes is List) {
@@ -49,7 +56,7 @@ class ApiMappers {
             sizes.add(
               ProductSize(
                 name: name,
-                stock: int.tryParse('${sMap['stock'] ?? 0}') ?? 0,
+                stock: variantStock(sMap),
               ),
             );
           }
@@ -69,7 +76,7 @@ class ApiMappers {
               ProductColor(
                 name: name,
                 hex: cMap['hex']?.toString(),
-                stock: int.tryParse('${cMap['stock'] ?? 0}') ?? 0,
+                stock: variantStock(cMap),
               ),
             );
           }
@@ -88,7 +95,7 @@ class ApiMappers {
       images: gallery,
       sizes: sizes,
       colors: colors,
-      stock: int.tryParse('${json['stock'] ?? 0}') ?? 0,
+      stock: productStock,
       rating: _toDouble(json['rating'], fallback: 4.8),
       ratingsCount: int.tryParse('${json['ratings_count'] ?? 0}') ?? 0,
       isNew: json['is_new'] == true || json['is_new'] == 1,

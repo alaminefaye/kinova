@@ -53,7 +53,7 @@ class FavoriteController extends Controller
     public function sync(Request $request)
     {
         $data = $request->validate([
-            'product_ids' => ['required', 'array'],
+            'product_ids' => ['required', 'array', 'max:200'],
             'product_ids.*' => ['integer', 'exists:products,id'],
         ]);
 

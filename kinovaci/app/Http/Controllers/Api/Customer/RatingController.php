@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductRating;
 use Illuminate\Http\Request;
@@ -14,11 +15,13 @@ class RatingController extends Controller
         abort_unless($product->is_active, 404);
 
         $mine = null;
-        if ($request->user()) {
+        $canRate = false;
+        if ($user = $request->user()) {
             $mine = ProductRating::query()
-                ->where('user_id', $request->user()->id)
+                ->where('user_id', $user->id)
                 ->where('product_id', $product->id)
                 ->value('stars');
+            $canRate = self::hasReceived($user->id, $product->id);
         }
 
         return response()->json([
@@ -27,6 +30,7 @@ class RatingController extends Controller
                 'average' => (float) $product->rating,
                 'count' => (int) $product->ratings_count,
                 'my_rating' => $mine,
+                'can_rate' => $canRate,
             ],
         ]);
     }
@@ -40,6 +44,11 @@ class RatingController extends Controller
 
         $product = Product::query()->findOrFail($data['product_id']);
         abort_unless($product->is_active, 404);
+        abort_unless(
+            self::hasReceived($request->user()->id, $product->id),
+            403,
+            'Vous pourrez noter cet article une fois votre commande livrée.'
+        );
 
         ProductRating::query()->updateOrCreate(
             [
@@ -59,12 +68,23 @@ class RatingController extends Controller
                 'average' => (float) $product->rating,
                 'count' => (int) $product->ratings_count,
                 'my_rating' => (int) $data['stars'],
+                'can_rate' => true,
             ],
             'message' => 'Merci pour votre note !',
         ]);
     }
 
-    private function refreshProductRating(Product $product): void
+    /** Seul un client ayant reçu l'article (commande livrée) peut le noter. */
+    public static function hasReceived(int $userId, int $productId): bool
+    {
+        return Order::query()
+            ->where('user_id', $userId)
+            ->where('status', 'delivered')
+            ->whereHas('items', fn ($q) => $q->where('product_id', $productId))
+            ->exists();
+    }
+
+    public static function refreshProductRating(Product $product): void
     {
         $stats = ProductRating::query()
             ->where('product_id', $product->id)
