@@ -48,10 +48,10 @@ Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::get('/products/{product}/rating', [RatingController::class, 'show']);
 Route::get('/hero-slides', [HeroSlideController::class, 'index']);
 Route::get('/settings', [SettingsController::class, 'index']);
-Route::post('/orders', [OrderController::class, 'store']);
-Route::get('/orders/{reference}', [OrderController::class, 'show']);
+Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:20,1');
+Route::get('/orders/{reference}', [OrderController::class, 'show'])->middleware('throttle:30,1');
 Route::get('/help', [ContactController::class, 'help']);
-Route::post('/contact', [ContactController::class, 'store']);
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------

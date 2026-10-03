@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Product;
 use App\Services\LoyaltyService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -43,7 +45,7 @@ class OrderController extends Controller
     {
         $data = $request->validate([
             'status' => ['sometimes', 'in:pending,processing,shipped,delivered,cancelled'],
-            'notes' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string', 'max:5000'],
             'tracking_number' => ['nullable', 'string', 'max:120'],
             'carrier' => ['nullable', 'string', 'max:80'],
             'payment_status' => ['sometimes', 'in:unpaid,paid'],
@@ -64,16 +66,36 @@ class OrderController extends Controller
             $data['paid_at'] = $data['payment_status'] === 'paid' ? ($order->paid_at ?? now()) : null;
         }
 
-        $order->update($data);
-        $order = $order->fresh()->load('items');
+        $order = DB::transaction(function () use ($order, $data, $previousStatus) {
+            $newStatus = $data['status'] ?? $previousStatus;
+            $order->loadMissing('items');
 
-        if (isset($data['status']) && $data['status'] === 'cancelled' && $previousStatus !== 'cancelled') {
-            foreach ($order->items as $item) {
-                if ($item->product_id && $product = \App\Models\Product::find($item->product_id)) {
-                    $product->increment('stock', $item->quantity);
+            if ($newStatus === 'cancelled' && $previousStatus !== 'cancelled') {
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        Product::query()->whereKey($item->product_id)->increment('stock', $item->quantity);
+                    }
                 }
             }
-        }
+
+            // Réouverture d'une commande annulée : les articles sont de nouveau réservés.
+            if ($previousStatus === 'cancelled' && $newStatus !== 'cancelled') {
+                foreach ($order->items as $item) {
+                    if (! $item->product_id) {
+                        continue;
+                    }
+                    $product = Product::query()->whereKey($item->product_id)->lockForUpdate()->first();
+                    if ($product && $product->stock < $item->quantity) {
+                        abort(422, "Stock insuffisant pour réouvrir la commande ({$product->name}).");
+                    }
+                    $product?->decrement('stock', $item->quantity);
+                }
+            }
+
+            $order->update($data);
+
+            return $order->fresh()->load('items');
+        });
 
         $notifications->notifyOrderUpdatedByAdmin(
             $order,

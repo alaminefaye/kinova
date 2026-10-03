@@ -29,10 +29,10 @@ class OrderController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'delivery_details' => ['nullable', 'string', 'max:1000'],
             'payment_method' => ['nullable', 'string', 'max:50'],
-            'notes' => ['nullable', 'string'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'exists:products,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'items.*.selected_size' => ['nullable', 'string', 'max:50'],
             'items.*.selected_color' => ['nullable', 'string', 'max:50'],
         ]);
@@ -42,6 +42,9 @@ class OrderController extends Controller
         $order = DB::transaction(function () use ($data, $userId, $isDelivery) {
             $subtotal = 0;
             $lines = [];
+            $requestedByProduct = collect($data['items'])
+                ->groupBy('product_id')
+                ->map(fn ($items) => (int) $items->sum('quantity'));
 
             foreach ($data['items'] as $item) {
                 $product = Product::query()
@@ -50,7 +53,7 @@ class OrderController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($product->stock < $item['quantity']) {
+                if ($product->stock < $requestedByProduct[$product->id]) {
                     abort(422, "Stock insuffisant pour {$product->name}");
                 }
 
