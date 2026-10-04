@@ -3,6 +3,9 @@ import { onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
 import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -19,7 +22,8 @@ async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<any>(`/admin/orders?page=${p}`)
+    const res = await api<any>(`/admin/orders?page=${p}&per_page=10`)
+    if (!res.data?.length && p > 1) return await load(p - 1)
     orders.value = res.data || []
     page.value = res.current_page || 1
     lastPage.value = res.last_page || 1
@@ -97,6 +101,17 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Annulée',
 }
 
+const statusTones: Record<string, 'warning' | 'info' | 'purple' | 'success' | 'error'> = {
+  pending: 'warning',
+  processing: 'info',
+  shipped: 'purple',
+  delivered: 'success',
+  cancelled: 'error',
+}
+
+const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
+
 const money = (v: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(Number(v) || 0)
 
@@ -114,36 +129,59 @@ onMounted(() => load())
       <div v-if="error" class="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-error-700">{{ error }}</div>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] xl:col-span-2 overflow-x-auto">
-          <div v-if="loading" class="text-gray-500">Chargement…</div>
-          <table v-else class="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr class="border-b border-gray-100 text-left text-gray-500 dark:border-gray-800">
-                <th class="py-2">Réf.</th>
-                <th>Client</th>
-                <th>Statut</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="o in orders" :key="o.id" class="border-b border-gray-50 dark:border-gray-800">
-                <td class="py-3 font-medium text-gray-800 dark:text-white">{{ o.reference }}</td>
-                <td>{{ o.customer_name }}</td>
-                <td>
-                  <span class="rounded-full bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ statusLabels[o.status] || o.status }}</span>
-                  <span v-if="o.payment_status === 'paid'" class="ml-1 rounded-full bg-success-50 px-2 py-1 text-xs text-success-600">payé</span>
-                </td>
-                <td>{{ money(o.total) }}</td>
-                <td class="text-right">
-                  <button class="text-brand-500" @click="open(o)">Détail</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="admin-card self-start xl:col-span-2">
+          <div class="admin-card-header">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Toutes les commandes</h2>
+          </div>
+          <TableState :loading="loading" :empty="!orders.length" empty-text="Aucune commande pour le moment">
+            <div class="overflow-x-auto">
+              <table class="admin-table min-w-[680px]">
+                <thead>
+                  <tr>
+                    <th>Commande</th>
+                    <th>Client</th>
+                    <th>Statut</th>
+                    <th class="text-right">Total</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="o in orders"
+                    :key="o.id"
+                    class="cursor-pointer"
+                    :class="{ 'is-selected': selected?.id === o.id }"
+                    @click="open(o)"
+                  >
+                    <td>
+                      <p class="font-medium text-gray-800 dark:text-white">{{ o.reference }}</p>
+                      <p class="text-xs text-gray-500">{{ formatDate(o.created_at) }}</p>
+                    </td>
+                    <td>
+                      <p class="text-gray-800 dark:text-white">{{ o.customer_name }}</p>
+                      <p class="text-xs text-gray-500">{{ o.customer_phone }}</p>
+                    </td>
+                    <td>
+                      <div class="flex flex-wrap gap-1">
+                        <StatusBadge :label="statusLabels[o.status] || o.status" :tone="statusTones[o.status] || 'gray'" />
+                        <StatusBadge v-if="o.payment_status === 'paid'" label="Payée" tone="success" :dot="false" />
+                      </div>
+                    </td>
+                    <td class="whitespace-nowrap text-right font-semibold text-gray-800 dark:text-white">{{ money(o.total) }}</td>
+                    <td>
+                      <div class="flex justify-end">
+                        <ActionButton icon="eye" label="Voir le détail" variant="brand" @click.stop="open(o)" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </TableState>
+          <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="self-start rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
           <h2 class="font-semibold text-gray-800 dark:text-white mb-4">Détail</h2>
           <div v-if="!selected" class="text-sm text-gray-500">Sélectionnez une commande</div>
           <div v-else class="space-y-3 text-sm">
@@ -228,7 +266,6 @@ onMounted(() => load())
           </div>
         </div>
       </div>
-      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

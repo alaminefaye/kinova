@@ -17,7 +17,7 @@ class NotificationController extends Controller
             $query->where('category', $request->string('category'));
         }
 
-        return response()->json($query->paginate(30));
+        return response()->json($query->paginate(min(max($request->integer('per_page', 30), 1), 100)));
     }
 
     public function store(Request $request, NotificationService $notifications)

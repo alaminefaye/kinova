@@ -2,11 +2,17 @@
 import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
+import { useClientPager } from '@/composables/useClientPager'
 
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const categories = ref<any[]>([])
+const { page, lastPage, pageItems } = useClientPager(categories)
 const form = reactive({
   id: null as number | null,
   name: '',
@@ -42,6 +48,7 @@ function edit(cat: any) {
   form.image_url = cat.image_url || ''
   form.sort_order = cat.sort_order || 0
   form.is_active = !!cat.is_active
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 async function save() {
@@ -109,29 +116,51 @@ onMounted(load)
           </div>
         </form>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] xl:col-span-2">
-          <div v-if="loading" class="text-gray-500">Chargement…</div>
-          <table v-else class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-gray-100 text-left text-gray-500 dark:border-gray-800">
-                <th class="py-2">Nom</th>
-                <th>Produits</th>
-                <th>Statut</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="cat in categories" :key="cat.id" class="border-b border-gray-50 dark:border-gray-800">
-                <td class="py-3 font-medium text-gray-800 dark:text-white">{{ cat.name }}</td>
-                <td>{{ cat.products_count }}</td>
-                <td>{{ cat.is_active ? 'Active' : 'Off' }}</td>
-                <td class="text-right space-x-2">
-                  <button class="text-brand-500" @click="edit(cat)">Éditer</button>
-                  <button class="text-error-500" @click="remove(cat.id)">Suppr.</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="admin-card self-start xl:col-span-2">
+          <div class="admin-card-header">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Liste des catégories</h2>
+          </div>
+          <TableState :loading="loading" :empty="!categories.length" empty-text="Aucune catégorie pour le moment">
+            <div class="overflow-x-auto">
+              <table class="admin-table min-w-[560px]">
+                <thead>
+                  <tr>
+                    <th>Catégorie</th>
+                    <th>Produits</th>
+                    <th>Ordre</th>
+                    <th>Statut</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="cat in pageItems" :key="cat.id" :class="{ 'is-selected': form.id === cat.id }">
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <img v-if="cat.image_url" :src="cat.image_url" alt="" class="h-10 w-10 shrink-0 rounded-lg border border-gray-100 object-cover dark:border-gray-800" />
+                        <div v-else class="h-10 w-10 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800" />
+                        <span class="font-medium text-gray-800 dark:text-white">{{ cat.name }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="font-medium text-gray-800 dark:text-white">{{ cat.products_count ?? 0 }}</span>
+                      <span class="text-xs text-gray-400"> article{{ (cat.products_count ?? 0) > 1 ? 's' : '' }}</span>
+                    </td>
+                    <td>{{ cat.sort_order ?? 0 }}</td>
+                    <td>
+                      <StatusBadge :label="cat.is_active ? 'Active' : 'Masquée'" :tone="cat.is_active ? 'success' : 'gray'" />
+                    </td>
+                    <td>
+                      <div class="flex justify-end gap-1.5">
+                        <ActionButton icon="edit" label="Modifier" variant="brand" @click="edit(cat)" />
+                        <ActionButton icon="trash" label="Supprimer" variant="danger" @click="remove(cat.id)" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </TableState>
+          <ListPager :page="page" :last-page="lastPage" :total="categories.length" @change="page = $event" />
         </div>
       </div>
     </div>

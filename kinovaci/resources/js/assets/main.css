@@ -760,3 +760,31 @@ span.flatpickr-weekday,
 .edit-button {
   @apply flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto;
 }
+
+/* Tableaux des listes du dashboard admin */
+@layer components {
+  .admin-card {
+    @apply overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03];
+  }
+  .admin-card-header {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800;
+  }
+  .admin-table {
+    @apply w-full text-left text-sm;
+  }
+  .admin-table thead tr {
+    @apply border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-white/[0.02];
+  }
+  .admin-table th {
+    @apply whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400;
+  }
+  .admin-table td {
+    @apply px-5 py-3.5 align-middle text-gray-700 dark:text-gray-300;
+  }
+  .admin-table tbody tr {
+    @apply border-b border-gray-100 transition-colors last:border-b-0 hover:bg-gray-50/70 dark:border-gray-800 dark:hover:bg-white/[0.02];
+  }
+  .admin-table tbody tr.is-selected {
+    @apply bg-brand-25 dark:bg-white/[0.04];
+  }
+}

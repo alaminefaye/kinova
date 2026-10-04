@@ -3,6 +3,9 @@ import { onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
 import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -18,7 +21,8 @@ async function load(p = page.value) {
   loading.value = true
   error.value = ''
   try {
-    const res = await api<any>(`/admin/contact-messages?page=${p}`)
+    const res = await api<any>(`/admin/contact-messages?page=${p}&per_page=10`)
+    if (!res.data?.length && p > 1) return await load(p - 1)
     messages.value = res.data || []
     page.value = res.current_page || 1
     lastPage.value = res.last_page || 1
@@ -72,6 +76,16 @@ async function closeMsg() {
   }
 }
 
+const statusMeta: Record<string, { label: string; tone: 'info' | 'warning' | 'success' | 'gray' }> = {
+  new: { label: 'Nouveau', tone: 'info' },
+  read: { label: 'Lu', tone: 'warning' },
+  replied: { label: 'Répondu', tone: 'success' },
+  closed: { label: 'Clôturé', tone: 'gray' },
+}
+
+const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso))
+
 onMounted(() => load())
 </script>
 
@@ -86,30 +100,51 @@ onMounted(() => load())
       <div v-if="error" class="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-error-700">{{ error }}</div>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] xl:col-span-2 overflow-x-auto">
-          <div v-if="loading" class="text-gray-500">Chargement…</div>
-          <table v-else class="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr class="border-b border-gray-100 text-left text-gray-500 dark:border-gray-800">
-                <th class="py-2">Sujet</th>
-                <th>Client</th>
-                <th>Statut</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="m in messages" :key="m.id" class="border-b border-gray-50 dark:border-gray-800">
-                <td class="py-3 font-medium text-gray-800 dark:text-white">{{ m.subject }}</td>
-                <td>{{ m.name }}</td>
-                <td>
-                  <span class="rounded-full bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ m.status }}</span>
-                </td>
-                <td class="text-right">
-                  <button class="text-brand-500" @click="open(m)">Ouvrir</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="admin-card self-start xl:col-span-2">
+          <div class="admin-card-header">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Boîte de réception</h2>
+          </div>
+          <TableState :loading="loading" :empty="!messages.length" empty-text="Aucun message pour le moment">
+            <div class="overflow-x-auto">
+              <table class="admin-table min-w-[620px]">
+                <thead>
+                  <tr>
+                    <th>Message</th>
+                    <th>Client</th>
+                    <th>Statut</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="m in messages"
+                    :key="m.id"
+                    class="cursor-pointer"
+                    :class="{ 'is-selected': selected?.id === m.id }"
+                    @click="open(m)"
+                  >
+                    <td>
+                      <p :class="['text-gray-800 dark:text-white', m.status === 'new' ? 'font-semibold' : 'font-medium']">{{ m.subject }}</p>
+                      <p class="text-xs text-gray-500">{{ formatDate(m.created_at) }}</p>
+                    </td>
+                    <td>
+                      <p class="text-gray-800 dark:text-white">{{ m.name }}</p>
+                      <p class="text-xs text-gray-500">{{ m.email }}</p>
+                    </td>
+                    <td>
+                      <StatusBadge :label="statusMeta[m.status]?.label ?? m.status" :tone="statusMeta[m.status]?.tone ?? 'gray'" />
+                    </td>
+                    <td>
+                      <div class="flex justify-end">
+                        <ActionButton icon="eye" label="Ouvrir" variant="brand" @click.stop="open(m)" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </TableState>
+          <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] space-y-3 text-sm">
@@ -127,7 +162,6 @@ onMounted(() => load())
           </template>
         </div>
       </div>
-      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

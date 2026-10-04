@@ -2,6 +2,11 @@
 import { onMounted, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api, uploadMedia } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
+import { useClientPager } from '@/composables/useClientPager'
 
 interface Announcement {
   id: number
@@ -16,6 +21,7 @@ const uploading = ref(false)
 const busyId = ref<number | null>(null)
 const error = ref('')
 const announcements = ref<Announcement[]>([])
+const { page, lastPage, pageItems } = useClientPager(announcements)
 
 async function load() {
   loading.value = true
@@ -106,54 +112,45 @@ onMounted(load)
         <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" :disabled="uploading" @change="onUpload" />
       </label>
 
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div v-if="loading" class="text-gray-500">Chargement…</div>
-        <div v-else-if="announcements.length === 0" class="text-gray-500">Aucune annonce pour le moment.</div>
-        <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div
-            v-for="item in announcements"
-            :key="item.id"
-            class="overflow-hidden rounded-xl border dark:border-gray-800"
-            :class="item.is_active ? 'border-green-400' : 'border-gray-100'"
-          >
-            <img :src="item.image_url" class="aspect-[4/5] w-full bg-gray-50 object-contain dark:bg-gray-900" alt="" />
-            <div class="space-y-2 p-3">
-              <div class="flex items-center justify-between text-xs">
-                <span :class="item.is_active ? 'font-semibold text-green-600' : 'text-gray-400'">
-                  {{ item.is_active ? 'Affichée dans l’app' : 'Inactive' }}
-                </span>
-                <span class="text-gray-400">{{ formatDate(item.created_at) }}</span>
-              </div>
-              <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl font-semibold text-gray-800 dark:text-white">
-                  {{ (item.views_count ?? 0).toLocaleString('fr-FR') }}
-                </span>
-                <span class="text-sm text-gray-500">{{ (item.views_count ?? 0) > 1 ? 'vues' : 'vue' }}</span>
-              </div>
-              <div class="flex gap-2">
-                <button
-                  class="flex-1 rounded-lg px-3 py-1.5 text-sm font-medium"
-                  :class="
-                    item.is_active
-                      ? 'border border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-300'
-                      : 'bg-brand-500 text-white'
-                  "
-                  :disabled="busyId === item.id"
-                  @click="toggle(item)"
-                >
-                  {{ item.is_active ? 'Désactiver' : 'Activer' }}
-                </button>
-                <button
-                  class="rounded-lg border border-error-200 px-3 py-1.5 text-sm text-error-600"
-                  :disabled="busyId === item.id"
-                  @click="remove(item)"
-                >
-                  Suppr.
-                </button>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2 class="font-semibold text-gray-800 dark:text-white">Annonces publiées</h2>
+        </div>
+        <TableState :loading="loading" :empty="!announcements.length" empty-text="Aucune annonce pour le moment">
+          <div class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div
+              v-for="item in pageItems"
+              :key="item.id"
+              class="overflow-hidden rounded-xl border bg-white transition dark:bg-white/[0.02]"
+              :class="item.is_active ? 'border-success-300 ring-2 ring-success-500/20 dark:border-success-500/50' : 'border-gray-200 dark:border-gray-800'"
+            >
+              <img :src="item.image_url" class="aspect-[4/5] w-full bg-gray-50 object-contain dark:bg-gray-900" alt="" />
+              <div class="space-y-3 p-3">
+                <div class="flex items-center justify-between gap-2">
+                  <StatusBadge :label="item.is_active ? 'En ligne' : 'Inactive'" :tone="item.is_active ? 'success' : 'gray'" />
+                  <span class="text-[11px] text-gray-400">{{ formatDate(item.created_at) }}</span>
+                </div>
+                <div class="flex items-end justify-between">
+                  <p>
+                    <span class="text-2xl font-semibold text-gray-800 dark:text-white">{{ (item.views_count ?? 0).toLocaleString('fr-FR') }}</span>
+                    <span class="ml-1 text-sm text-gray-500">{{ (item.views_count ?? 0) > 1 ? 'vues' : 'vue' }}</span>
+                  </p>
+                  <div class="flex gap-1.5">
+                    <ActionButton
+                      icon="power"
+                      :label="item.is_active ? 'Désactiver' : 'Activer'"
+                      :variant="item.is_active ? 'warning' : 'success'"
+                      :disabled="busyId === item.id"
+                      @click="toggle(item)"
+                    />
+                    <ActionButton icon="trash" label="Supprimer" variant="danger" :disabled="busyId === item.id" @click="remove(item)" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </TableState>
+        <ListPager :page="page" :last-page="lastPage" :total="announcements.length" @change="page = $event" />
       </div>
     </div>
   </AdminLayout>

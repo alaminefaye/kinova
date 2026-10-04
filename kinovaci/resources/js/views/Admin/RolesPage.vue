@@ -2,6 +2,10 @@
 import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import TableState from '@/components/admin/TableState.vue'
+import { useClientPager } from '@/composables/useClientPager'
 
 interface PermissionItem {
   id: number
@@ -26,6 +30,7 @@ const error = ref('')
 const successMessage = ref('')
 
 const roles = ref<RoleItem[]>([])
+const { page, lastPage, pageItems } = useClientPager(roles)
 const permissionsGrouped = ref<Record<string, PermissionItem[]>>({})
 const allPermissions = ref<PermissionItem[]>([])
 
@@ -192,7 +197,7 @@ onMounted(() => {
 
 <template>
   <AdminLayout>
-    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="space-y-6">
       <!-- En-tête -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -236,99 +241,69 @@ onMounted(() => {
       </div>
 
       <!-- Tableau des Rôles -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div v-if="loading" class="p-12 text-center text-gray-500 dark:text-gray-400">
-          <svg class="animate-spin h-8 w-8 mx-auto text-amber-500" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          <p class="mt-3 text-sm">Chargement des rôles et autorisations...</p>
-        </div>
-
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-gray-100 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-800/50 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                <th class="py-4 px-6 font-semibold">Rôle</th>
-                <th class="py-4 px-6 font-semibold">Utilisateurs</th>
-                <th class="py-4 px-6 font-semibold">Permissions accordées</th>
-                <th class="py-4 px-6 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 text-sm">
-              <tr
-                v-for="r in roles"
-                :key="r.id"
-                class="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
-              >
-                <!-- Nom du Rôle -->
-                <td class="py-4 px-6">
-                  <div class="flex items-center gap-3">
+      <div class="admin-card">
+        <TableState :loading="loading" :empty="!roles.length" empty-text="Aucun rôle pour le moment">
+          <div class="overflow-x-auto">
+            <table class="admin-table min-w-[760px]">
+              <thead>
+                <tr>
+                  <th>Rôle</th>
+                  <th>Membres</th>
+                  <th>Permissions accordées</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in pageItems" :key="r.id">
+                  <td>
                     <span
-                      class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5"
+                      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider"
                       :class="roleBadgeColors[r.name] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'"
                     >
-                      <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                      <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
                       {{ r.name }}
                     </span>
-                    <span v-if="r.name === 'super-admin'" class="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                      (Accès Total)
-                    </span>
-                  </div>
-                </td>
-
-                <!-- Nombre d'utilisateurs -->
-                <td class="py-4 px-6">
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700/60 text-xs font-medium text-gray-700 dark:text-gray-300">
-                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    {{ r.users_count }} membre(s)
-                  </span>
-                </td>
-
-                <!-- Permissions -->
-                <td class="py-4 px-6 max-w-md">
-                  <div v-if="r.name === 'super-admin'" class="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Toutes les permissions système activées
-                  </div>
-                  <div v-else-if="r.permissions && r.permissions.length" class="flex flex-wrap gap-1.5">
-                    <span
-                      v-for="p in r.permissions"
-                      :key="p"
-                      class="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[11px] font-mono"
-                    >
-                      {{ p }}
-                    </span>
-                  </div>
-                  <span v-else class="text-xs text-gray-400 italic">Aucune permission</span>
-                </td>
-
-                <!-- Actions -->
-                <td class="py-4 px-6 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <button
-                      @click="editRole(r)"
-                      class="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition"
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      v-if="!['super-admin', 'admin', 'customer'].includes(r.name)"
-                      @click="deleteRole(r)"
-                      class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 transition"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  </td>
+                  <td>
+                    <span class="font-medium text-gray-800 dark:text-white">{{ r.users_count }}</span>
+                    <span class="text-xs text-gray-400"> membre{{ r.users_count > 1 ? 's' : '' }}</span>
+                  </td>
+                  <td class="max-w-md">
+                    <p v-if="r.name === 'super-admin'" class="text-xs font-medium text-warning-600 dark:text-warning-400">
+                      Accès total : toutes les permissions
+                    </p>
+                    <div v-else-if="r.permissions && r.permissions.length" class="flex flex-wrap gap-1">
+                      <span
+                        v-for="p in r.permissions.slice(0, 6)"
+                        :key="p"
+                        class="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                      >
+                        {{ p }}
+                      </span>
+                      <span v-if="r.permissions.length > 6" class="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
+                        +{{ r.permissions.length - 6 }}
+                      </span>
+                    </div>
+                    <span v-else class="text-xs italic text-gray-400">Aucune permission</span>
+                  </td>
+                  <td>
+                    <div class="flex justify-end gap-1.5">
+                      <ActionButton icon="edit" label="Modifier" variant="brand" @click="editRole(r)" />
+                      <ActionButton
+                        v-if="!['super-admin', 'admin', 'customer'].includes(r.name)"
+                        icon="trash"
+                        label="Supprimer"
+                        variant="danger"
+                        @click="deleteRole(r)"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </TableState>
+        <ListPager :page="page" :last-page="lastPage" :total="roles.length" @change="page = $event" />
       </div>
 
       <!-- Modal Création / Modification de Rôle -->

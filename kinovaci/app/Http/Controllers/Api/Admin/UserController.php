@@ -44,7 +44,7 @@ class UserController extends Controller
             }
         }
 
-        $paginator = $query->paginate(20);
+        $paginator = $query->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         $paginator->getCollection()->transform(function (User $user) {
             $roleNames = $user->roles->pluck('name')->toArray();

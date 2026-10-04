@@ -3,6 +3,9 @@ import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api, uploadMedia } from '@/api/client'
 import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
 
 const uploading = ref(false)
 
@@ -34,9 +37,10 @@ async function load(p = page.value) {
   error.value = ''
   try {
     const [prodRes, catRes] = await Promise.all([
-      api<any>(`/admin/products?page=${p}`),
+      api<any>(`/admin/products?page=${p}&per_page=10`),
       api<{ data: any[] }>('/admin/categories'),
     ])
+    if (!prodRes.data?.length && p > 1) return await load(p - 1)
     products.value = prodRes.data || []
     page.value = prodRes.current_page || 1
     lastPage.value = prodRes.last_page || 1
@@ -78,6 +82,7 @@ function edit(p: any) {
   form.is_active = !!p.is_active
   form.is_featured = !!p.is_featured
   form.is_new = !!p.is_new
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 async function save() {
@@ -179,51 +184,67 @@ onMounted(() => load())
         </div>
       </form>
 
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] overflow-x-auto">
-        <div v-if="loading" class="text-gray-500">Chargement…</div>
-        <table v-else class="w-full text-sm min-w-[700px]">
-          <thead>
-            <tr class="border-b border-gray-100 text-left text-gray-500 dark:border-gray-800">
-              <th class="py-2">Produit</th>
-              <th>Catégorie</th>
-              <th>Prix</th>
-              <th>Stock</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in products" :key="p.id" class="border-b border-gray-50 dark:border-gray-800">
-              <td class="py-3">
-                <div class="flex items-center gap-3">
-                  <img v-if="p.image_url" :src="p.image_url" class="h-10 w-10 rounded-lg object-cover" />
-                  <span class="font-medium text-gray-800 dark:text-white">{{ p.name }}</span>
-                </div>
-              </td>
-              <td>{{ p.category?.name || '—' }}</td>
-              <td>
-                <div v-if="p.promo_price && Number(p.promo_price) > 0" class="flex items-baseline gap-1.5">
-                  <span class="text-xs text-gray-400 line-through">{{ money(p.price) }}</span>
-                  <span class="font-semibold text-error-600 dark:text-error-400">{{ money(p.promo_price) }}</span>
-                  <span class="text-[10px] bg-error-50 dark:bg-error-900/30 text-error-600 dark:text-error-400 px-1 py-0.5 rounded font-bold">PROMO</span>
-                </div>
-                <div v-else>
-                  {{ money(p.price) }}
-                </div>
-              </td>
-              <td>
-                <span v-if="p.stock <= 0" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Épuisé (0)</span>
-                <span v-else-if="p.stock <= 5" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{{ p.stock }} (Faible)</span>
-                <span v-else class="text-gray-700 dark:text-gray-300">{{ p.stock }}</span>
-              </td>
-              <td class="text-right space-x-2">
-                <button class="text-brand-500" @click="edit(p)">Éditer</button>
-                <button class="text-error-500" @click="remove(p.id)">Suppr.</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h2 class="font-semibold text-gray-800 dark:text-white">Liste des produits</h2>
+        </div>
+        <TableState :loading="loading" :empty="!products.length" empty-text="Aucun produit pour le moment">
+          <div class="overflow-x-auto">
+            <table class="admin-table min-w-[820px]">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Catégorie</th>
+                  <th>Prix</th>
+                  <th>Stock</th>
+                  <th>Statut</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in products" :key="p.id" :class="{ 'is-selected': form.id === p.id }">
+                  <td>
+                    <div class="flex items-center gap-3">
+                      <img v-if="p.image_url" :src="p.image_url" alt="" class="h-11 w-11 shrink-0 rounded-lg border border-gray-100 object-cover dark:border-gray-800" />
+                      <div v-else class="h-11 w-11 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800" />
+                      <div class="min-w-0">
+                        <p class="truncate font-medium text-gray-800 dark:text-white">{{ p.name }}</p>
+                        <div class="mt-0.5 flex gap-1">
+                          <span v-if="p.is_featured" class="rounded bg-brand-50 px-1.5 py-px text-[10px] font-semibold uppercase text-brand-600 dark:bg-white/10 dark:text-brand-300">Vedette</span>
+                          <span v-if="p.is_new" class="rounded bg-blue-light-50 px-1.5 py-px text-[10px] font-semibold uppercase text-blue-light-700 dark:bg-blue-light-500/15 dark:text-blue-light-400">Nouveau</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ p.category?.name || '—' }}</td>
+                  <td class="whitespace-nowrap">
+                    <div v-if="p.promo_price && Number(p.promo_price) > 0">
+                      <p class="font-semibold text-error-600 dark:text-error-400">{{ money(p.promo_price) }}</p>
+                      <p class="text-xs text-gray-400 line-through">{{ money(p.price) }}</p>
+                    </div>
+                    <p v-else class="font-medium text-gray-800 dark:text-white">{{ money(p.price) }}</p>
+                  </td>
+                  <td>
+                    <StatusBadge v-if="Number(p.stock) <= 0" label="Épuisé" tone="error" />
+                    <StatusBadge v-else-if="Number(p.stock) <= 5" :label="`${p.stock} · faible`" tone="warning" />
+                    <span v-else class="font-medium text-gray-800 dark:text-white">{{ p.stock }}</span>
+                  </td>
+                  <td>
+                    <StatusBadge :label="p.is_active ? 'En ligne' : 'Masqué'" :tone="p.is_active ? 'success' : 'gray'" />
+                  </td>
+                  <td>
+                    <div class="flex justify-end gap-1.5">
+                      <ActionButton icon="edit" label="Modifier" variant="brand" @click="edit(p)" />
+                      <ActionButton icon="trash" label="Supprimer" variant="danger" @click="remove(p.id)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </TableState>
+        <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
       </div>
-      <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
     </div>
   </AdminLayout>
 </template>

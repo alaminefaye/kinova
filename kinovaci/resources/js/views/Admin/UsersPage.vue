@@ -2,6 +2,10 @@
 import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
 
 interface RoleItem {
   id: number
@@ -105,11 +109,13 @@ async function load(page = 1) {
   try {
     const params = new URLSearchParams()
     params.set('page', String(page))
+    params.set('per_page', '10')
     if (filters.q) params.set('q', filters.q)
     if (filters.role) params.set('role', filters.role)
     if (filters.status) params.set('status', filters.status)
 
     const res = await api<any>(`/admin/users?${params.toString()}`)
+    if (!res.data?.length && page > 1) return await load(page - 1)
     users.value = res.data || []
     pagination.currentPage = res.current_page || 1
     pagination.lastPage = res.last_page || 1
@@ -255,7 +261,7 @@ onMounted(() => {
 
 <template>
   <AdminLayout>
-    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="space-y-6">
       <!-- En-tête -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -355,164 +361,74 @@ onMounted(() => {
       </div>
 
       <!-- Tableau des Utilisateurs -->
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div v-if="loading" class="p-12 text-center text-gray-500 dark:text-gray-400">
-          <svg class="animate-spin h-8 w-8 mx-auto text-amber-500" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          <p class="mt-3 text-sm">Chargement des utilisateurs...</p>
-        </div>
-
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-gray-100 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-800/50 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                <th class="py-4 px-6 font-semibold">Utilisateur</th>
-                <th class="py-4 px-6 font-semibold">Rôle(s) Spatie</th>
-                <th class="py-4 px-6 font-semibold">Statut</th>
-                <th class="py-4 px-6 font-semibold">VIP & Points</th>
-                <th class="py-4 px-6 font-semibold">Commandes</th>
-                <th class="py-4 px-6 font-semibold">Inscrit le</th>
-                <th class="py-4 px-6 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 text-sm">
-              <tr
-                v-for="u in users"
-                :key="u.id"
-                class="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors"
-              >
-                <!-- Infos Utilisateur -->
-                <td class="py-4 px-6">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
-                      {{ u.name.charAt(0).toUpperCase() }}
-                    </div>
-                    <div>
-                      <div class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        {{ u.name }}
+      <div class="admin-card">
+        <TableState :loading="loading" :empty="!users.length" empty-text="Aucun utilisateur ne correspond à ces filtres">
+          <div class="overflow-x-auto">
+            <table class="admin-table min-w-[900px]">
+              <thead>
+                <tr>
+                  <th>Utilisateur</th>
+                  <th>Rôle(s)</th>
+                  <th>Statut</th>
+                  <th>VIP & points</th>
+                  <th>Commandes</th>
+                  <th>Inscrit le</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="u in users" :key="u.id">
+                  <td>
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-600 dark:bg-white/10 dark:text-brand-300">
+                        {{ u.name.charAt(0).toUpperCase() }}
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-medium text-gray-800 dark:text-white">{{ u.name }}</p>
+                        <p class="text-xs text-gray-500">{{ u.email }}</p>
+                        <p v-if="u.phone" class="text-xs text-gray-400">{{ u.phone }}</p>
                       </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">{{ u.email }}</div>
-                      <div v-if="u.phone" class="text-xs text-gray-400 font-mono">{{ u.phone }}</div>
                     </div>
-                  </div>
-                </td>
-
-                <!-- Rôles Spatie -->
-                <td class="py-4 px-6">
-                  <div class="flex flex-wrap gap-1.5">
-                    <template v-if="u.roles && u.roles.length">
+                  </td>
+                  <td>
+                    <div class="flex flex-wrap gap-1">
                       <span
-                        v-for="r in u.roles"
+                        v-for="r in u.roles && u.roles.length ? u.roles : [u.role || 'customer']"
                         :key="r"
-                        class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1"
+                        class="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
                         :class="roleBadgeColors[r] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'"
                       >
                         {{ r }}
                       </span>
-                    </template>
-                    <span
-                      v-else
-                      class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1"
-                      :class="roleBadgeColors[u.role] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'"
-                    >
-                      {{ u.role || 'customer' }}
-                    </span>
-                  </div>
-                </td>
-
-                <!-- Statut -->
-                <td class="py-4 px-6">
-                  <span
-                    v-if="u.is_blocked"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                    Bloqué
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Actif
-                  </span>
-                </td>
-
-                <!-- VIP & Points -->
-                <td class="py-4 px-6">
-                  <div class="text-xs font-semibold text-gray-900 dark:text-white uppercase">
-                    {{ u.vip_tier || 'standard' }}
-                  </div>
-                  <div class="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    {{ u.loyalty_points || 0 }} pts
-                  </div>
-                </td>
-
-                <!-- Commandes -->
-                <td class="py-4 px-6">
-                  <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {{ u.orders_count ?? 0 }}
-                  </span>
-                </td>
-
-                <!-- Date inscription -->
-                <td class="py-4 px-6 text-xs text-gray-500 dark:text-gray-400">
-                  {{ formatDate(u.created_at) }}
-                </td>
-
-                <!-- Actions -->
-                <td class="py-4 px-6 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <button
-                      @click="toggleBlockUser(u)"
-                      class="px-2.5 py-1 rounded-lg text-xs font-medium transition"
-                      :class="u.is_blocked ? 'text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-red-600 bg-red-500/10 hover:bg-red-500/20'"
-                    >
-                      {{ u.is_blocked ? 'Débloquer' : 'Bloquer' }}
-                    </button>
-                    <button
-                      @click="editUser(u)"
-                      class="px-2.5 py-1 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition"
-                    >
-                      Éditer
-                    </button>
-                    <button
-                      @click="deleteUser(u)"
-                      class="px-2.5 py-1 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 transition"
-                    >
-                      Suppr.
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="pagination.lastPage > 1" class="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <span class="text-xs text-gray-500 dark:text-gray-400">
-            Page {{ pagination.currentPage }} sur {{ pagination.lastPage }} ({{ pagination.total }} utilisateurs)
-          </span>
-          <div class="flex gap-2">
-            <button
-              :disabled="pagination.currentPage <= 1"
-              @click="load(pagination.currentPage - 1)"
-              class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              Précédent
-            </button>
-            <button
-              :disabled="pagination.currentPage >= pagination.lastPage"
-              @click="load(pagination.currentPage + 1)"
-              class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              Suivant
-            </button>
+                    </div>
+                  </td>
+                  <td>
+                    <StatusBadge :label="u.is_blocked ? 'Bloqué' : 'Actif'" :tone="u.is_blocked ? 'error' : 'success'" />
+                  </td>
+                  <td>
+                    <p class="text-xs font-semibold uppercase text-gray-800 dark:text-white">{{ u.vip_tier || 'standard' }}</p>
+                    <p class="text-xs text-warning-600 dark:text-warning-400">{{ u.loyalty_points || 0 }} pts</p>
+                  </td>
+                  <td class="font-medium text-gray-800 dark:text-white">{{ u.orders_count ?? 0 }}</td>
+                  <td class="whitespace-nowrap text-xs text-gray-500">{{ formatDate(u.created_at) }}</td>
+                  <td>
+                    <div class="flex justify-end gap-1.5">
+                      <ActionButton icon="edit" label="Modifier" variant="brand" @click="editUser(u)" />
+                      <ActionButton
+                        :icon="u.is_blocked ? 'unlock' : 'lock'"
+                        :label="u.is_blocked ? 'Débloquer' : 'Bloquer'"
+                        :variant="u.is_blocked ? 'success' : 'warning'"
+                        @click="toggleBlockUser(u)"
+                      />
+                      <ActionButton icon="trash" label="Supprimer" variant="danger" @click="deleteUser(u)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
+        </TableState>
+        <ListPager :page="pagination.currentPage" :last-page="pagination.lastPage" :total="pagination.total" @change="load" />
       </div>
 
       <!-- Modal Création / Édition Utilisateur -->

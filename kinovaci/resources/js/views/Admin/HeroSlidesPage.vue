@@ -2,6 +2,11 @@
 import { onMounted, reactive, ref } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api, uploadMedia } from '@/api/client'
+import ListPager from '@/components/admin/ListPager.vue'
+import ActionButton from '@/components/admin/ActionButton.vue'
+import StatusBadge from '@/components/admin/StatusBadge.vue'
+import TableState from '@/components/admin/TableState.vue'
+import { useClientPager } from '@/composables/useClientPager'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -9,6 +14,16 @@ const uploading = ref(false)
 const error = ref('')
 const slides = ref<any[]>([])
 const categories = ref<any[]>([])
+const { page, lastPage, pageItems } = useClientPager(slides)
+
+const linkLabel = (slide: any) => {
+  if (slide.link_type === 'none') return 'Sans lien'
+  if (slide.link_type === 'category') {
+    const cat = categories.value.find((c) => String(c.id) === String(slide.link_value))
+    return `Catégorie · ${cat?.name ?? '—'}`
+  }
+  return 'Boutique'
+}
 
 const form = reactive({
   id: null as number | null,
@@ -61,6 +76,7 @@ function edit(slide: any) {
   form.link_value = slide.link_value || ''
   form.sort_order = slide.sort_order || 0
   form.is_active = !!slide.is_active
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 async function save() {
@@ -227,40 +243,50 @@ onMounted(load)
           </div>
         </form>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] xl:col-span-2">
-          <div v-if="loading" class="text-gray-500">Chargement…</div>
-          <div v-else-if="slides.length === 0" class="text-gray-500">Aucun slide pour le moment.</div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="slide in slides"
-              :key="slide.id"
-              class="flex flex-col gap-3 rounded-xl border border-gray-100 p-3 sm:flex-row sm:items-center dark:border-gray-800"
-            >
-              <img
-                :src="slide.image_url"
-                class="h-20 w-full rounded-lg object-cover sm:h-16 sm:w-28"
-                alt=""
-              />
-              <div class="min-w-0 flex-1">
-                <div class="font-medium text-gray-800 dark:text-white whitespace-pre-line">{{ slide.title }}</div>
-                <div class="mt-1 text-xs text-gray-500">
-                  {{ slide.tag || '—' }} · {{ slide.cta_label }} · ordre {{ slide.sort_order }}
-                  ·
-                  <span :class="slide.is_active ? 'text-green-600' : 'text-gray-400'">
-                    {{ slide.is_active ? 'Actif' : 'Inactif' }}
-                  </span>
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <button class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm" @click="edit(slide)">
-                  Éditer
-                </button>
-                <button class="rounded-lg border border-error-200 px-3 py-1.5 text-sm text-error-600" @click="remove(slide.id)">
-                  Suppr.
-                </button>
-              </div>
-            </div>
+        <div class="admin-card self-start xl:col-span-2">
+          <div class="admin-card-header">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Slides du carrousel</h2>
           </div>
+          <TableState :loading="loading" :empty="!slides.length" empty-text="Aucun slide pour le moment">
+            <div class="overflow-x-auto">
+              <table class="admin-table min-w-[640px]">
+                <thead>
+                  <tr>
+                    <th>Slide</th>
+                    <th>Lien</th>
+                    <th>Ordre</th>
+                    <th>Statut</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="slide in pageItems" :key="slide.id" :class="{ 'is-selected': form.id === slide.id }">
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <img :src="slide.image_url" alt="" class="h-12 w-20 shrink-0 rounded-lg border border-gray-100 object-cover dark:border-gray-800" />
+                        <div class="min-w-0">
+                          <p class="line-clamp-2 whitespace-pre-line font-medium text-gray-800 dark:text-white">{{ slide.title }}</p>
+                          <p class="mt-0.5 text-xs text-gray-500">{{ slide.tag || 'Sans tag' }} · {{ slide.cta_label }}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="whitespace-nowrap text-xs">{{ linkLabel(slide) }}</td>
+                    <td>{{ slide.sort_order ?? 0 }}</td>
+                    <td>
+                      <StatusBadge :label="slide.is_active ? 'Actif' : 'Inactif'" :tone="slide.is_active ? 'success' : 'gray'" />
+                    </td>
+                    <td>
+                      <div class="flex justify-end gap-1.5">
+                        <ActionButton icon="edit" label="Modifier" variant="brand" @click="edit(slide)" />
+                        <ActionButton icon="trash" label="Supprimer" variant="danger" @click="remove(slide.id)" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </TableState>
+          <ListPager :page="page" :last-page="lastPage" :total="slides.length" @change="page = $event" />
         </div>
       </div>
     </div>
