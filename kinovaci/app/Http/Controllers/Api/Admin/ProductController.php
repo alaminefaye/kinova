@@ -99,7 +99,6 @@ class ProductController extends Controller
             'colors.*.name' => ['required_with:colors', 'string'],
             'colors.*.hex' => ['nullable', 'string', 'max:20'],
             'colors.*.stock' => ['nullable', 'integer', 'min:0'],
-            'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
             'stock' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
             'is_featured' => ['boolean'],

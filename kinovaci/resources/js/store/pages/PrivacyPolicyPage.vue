@@ -15,7 +15,7 @@ const updatedAt = '1er septembre 2026'
     </header>
 
     <div class="kv-container body">
-      <p class="updated">Dernière mise à jour : {{ updatedAt }}</p>
+      <p class="updated">Dernière mise à jour : 3 octobre 2026</p>
 
       <section class="card">
         <h2>1. Introduction</h2>
@@ -38,8 +38,10 @@ const updatedAt = '1er septembre 2026'
           <li><strong>Contact :</strong> numéro de téléphone (obligatoire), adresse e-mail (optionnelle)</li>
           <li><strong>Compte :</strong> mot de passe (stocké de manière chiffrée), photo de profil</li>
           <li><strong>Commandes :</strong> articles, montants, adresse de livraison, historique</li>
+            <li><strong>Localisation :</strong> position GPS de livraison, uniquement si vous choisissez de la partager lors d’une commande (jamais en arrière-plan)</li>
           <li><strong>Favoris &amp; avis :</strong> produits enregistrés, notes laissées</li>
           <li><strong>Notifications :</strong> messages in-app et token push (Firebase) pour vous alerter</li>
+            <li><strong>Panier :</strong> contenu du panier conservé sur votre appareil, avec un rappel local si une commande n’est pas finalisée</li>
           <li><strong>Support :</strong> messages envoyés via le formulaire de contact</li>
           <li><strong>Technique :</strong> type d’appareil, système (via les services Firebase pour les push)</li>
         </ul>
@@ -84,7 +86,7 @@ const updatedAt = '1er septembre 2026'
         <p>Vous pouvez à tout moment :</p>
         <ul>
           <li>Consulter et modifier votre profil dans l’app ou sur le site</li>
-          <li>Demander la suppression de votre compte (Profil → Supprimer mon compte, code <code>kinovaci</code>)</li>
+          <li>Demander la suppression de votre compte (Compte → Supprimer mon compte, code <code>kinovaci</code> — détails sur <a href="/suppression-compte">kinovaci.com/suppression-compte</a>)</li>
           <li>Refuser les notifications push via les réglages de votre téléphone</li>
           <li>Nous contacter pour toute question : <router-link to="/aide">Service client</router-link></li>
         </ul>

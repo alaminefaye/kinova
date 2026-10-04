@@ -96,7 +96,17 @@ class _HomeScreenState extends State<HomeScreen> {
       tasks.add(favorites.loadFromApi());
     }
 
-    await Future.wait(tasks);
+    try {
+      await Future.wait(tasks);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Actualisation impossible. Vérifiez votre connexion.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override

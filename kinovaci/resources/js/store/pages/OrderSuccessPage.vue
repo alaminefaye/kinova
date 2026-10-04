@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { api } from '../api/client'
 import { formatMoney } from '../lib/format'
 
 const route = useRoute()
 const router = useRouter()
 const reference = computed(() => String(route.params.reference || ''))
-const total = computed(() => Number(route.query.total || 0))
+const total = ref(0)
+
+// Montant relu côté serveur : le paramètre d'URL ne fait pas foi.
+onMounted(async () => {
+  try {
+    const res = await api<{ data: { total: number | string } }>(
+      `/orders/${encodeURIComponent(reference.value)}`,
+    )
+    total.value = Number(res.data.total || 0)
+  } catch {
+    total.value = 0
+  }
+})
 </script>
 
 <template>

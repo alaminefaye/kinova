@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:kinova_mobile/api/api_client.dart';
 import 'package:kinova_mobile/api/api_exception.dart';
 import 'package:kinova_mobile/api/api_mappers.dart';
@@ -9,10 +9,17 @@ import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AuthController extends ChangeNotifier {
+class AuthController extends ChangeNotifier with WidgetsBindingObserver {
   AuthController(this._api) {
     _api.onUnauthorized = _onUnauthorized;
+    WidgetsBinding.instance.addObserver(this);
   }
+
+  /// Appelé quand le serveur refuse le jeton (expiré, révoqué, compte bloqué).
+  VoidCallback? onSessionExpired;
+
+  /// Session enregistrée mais non vérifiée (lancement hors ligne) : nouvel essai au retour dans l'app.
+  bool _sessionPending = false;
 
   static const _tokenKey = 'kinova_customer_token';
 
@@ -45,11 +52,17 @@ class AuthController extends ChangeNotifier {
         _user = AppUser.fromJson(Map<String, dynamic>.from(me));
       }
       unawaited(PushNotificationService.syncToken());
+      _sessionPending = false;
     } on ApiException catch (e) {
-      // Hors ligne ou serveur indisponible : on garde la session pour le prochain lancement.
-      if (e.statusCode == 401) await _clearToken();
+      if (e.statusCode == 401) {
+        await _clearToken();
+        _sessionPending = false;
+      } else {
+        _keepSessionForRetry();
+      }
       _user = null;
     } catch (_) {
+      _keepSessionForRetry();
       _user = null;
     } finally {
       _booting = false;
@@ -61,10 +74,10 @@ class AuthController extends ChangeNotifier {
   Future<void> login(String identifier, String password) async {
     _error = null;
     notifyListeners();
-    final res = await _api.post('/customer/auth/login', body: {
-      'login': identifier.trim(),
-      'password': password,
-    });
+    final res = await _api.post(
+      '/customer/auth/login',
+      body: {'login': identifier.trim(), 'password': password},
+    );
     await _applyAuth(res);
   }
 
@@ -77,13 +90,16 @@ class AuthController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     final trimmedEmail = email?.trim() ?? '';
-    final res = await _api.post('/customer/auth/register', body: {
-      'name': name.trim(),
-      'phone': phone.trim(),
-      'password': password,
-      'password_confirmation': password,
-      if (trimmedEmail.isNotEmpty) 'email': trimmedEmail,
-    });
+    final res = await _api.post(
+      '/customer/auth/register',
+      body: {
+        'name': name.trim(),
+        'phone': phone.trim(),
+        'password': password,
+        'password_confirmation': password,
+        if (trimmedEmail.isNotEmpty) 'email': trimmedEmail,
+      },
+    );
     await _applyAuth(res);
   }
 
@@ -141,9 +157,10 @@ class AuthController extends ChangeNotifier {
 
   /// Suppression définitive — le code de confirmation doit être `kinovaci`.
   Future<void> deleteAccount(String confirmationCode) async {
-    await _api.post('/customer/profile/delete', body: {
-      'confirmation_code': confirmationCode.trim(),
-    });
+    await _api.post(
+      '/customer/profile/delete',
+      body: {'confirmation_code': confirmationCode.trim()},
+    );
     await _clearToken();
     _user = null;
     notifyListeners();
@@ -152,7 +169,9 @@ class AuthController extends ChangeNotifier {
   Future<List<Order>> fetchOrders() async {
     if (!isLoggedIn) return const [];
     final res = await _api.get('/customer/orders');
-    final list = res is Map && res['data'] is List ? res['data'] as List : const [];
+    final list = res is Map && res['data'] is List
+        ? res['data'] as List
+        : const [];
     return list
         .whereType<Map>()
         .map((e) => ApiOrderParser.parse(Map<String, dynamic>.from(e)))
@@ -164,7 +183,9 @@ class AuthController extends ChangeNotifier {
       '/customer/orders/$reference/cancel',
       body: {if (reason != null && reason.isNotEmpty) 'reason': reason},
     );
-    final data = res is Map && res['data'] is Map ? res['data'] as Map : const {};
+    final data = res is Map && res['data'] is Map
+        ? res['data'] as Map
+        : const {};
     return ApiOrderParser.parse(Map<String, dynamic>.from(data));
   }
 
@@ -192,9 +213,30 @@ class AuthController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     _api.setToken(token);
+    _sessionPending = false;
     _user = AppUser.fromJson(Map<String, dynamic>.from(userRaw));
     unawaited(PushNotificationService.syncToken());
     notifyListeners();
+  }
+
+  /// Hors ligne ou serveur indisponible : jeton conservé sur l'appareil mais pas utilisé
+  /// tant que la session n'est pas confirmée (l'app ne paraît pas déconnectée tout en restant liée au compte).
+  void _keepSessionForRetry() {
+    _api.setToken(null);
+    _sessionPending = true;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _sessionPending && !_booting) {
+      unawaited(bootstrap());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// Jeton refusé par le serveur (expiré, révoqué, compte bloqué) : retour en mode invité.
@@ -202,6 +244,7 @@ class AuthController extends ChangeNotifier {
     if (_api.token == null && _user == null) return;
     unawaited(_clearToken());
     _user = null;
+    onSessionExpired?.call();
     notifyListeners();
   }
 

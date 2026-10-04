@@ -211,6 +211,11 @@ class UserController extends Controller
         DB::transaction(function () use ($user, $updateData, $assignedRoles, $data) {
             $user->update($updateData);
 
+            // Nouveau mot de passe imposé par l'admin : les sessions ouvertes avec l'ancien sont fermées.
+            if (isset($updateData['password'])) {
+                $user->tokens()->delete();
+            }
+
             if ($assignedRoles !== null) {
                 $user->syncRoles($assignedRoles);
             }

@@ -66,7 +66,7 @@ class FirebasePushService
 
     public function isEnabled(): bool
     {
-        if (! filter_var(env('FIREBASE_PUSH_ENABLED', true), FILTER_VALIDATE_BOOL)) {
+        if (! filter_var(config('firebase.push_enabled', true), FILTER_VALIDATE_BOOL)) {
             return false;
         }
 

@@ -145,7 +145,7 @@ class CartItem {
     this.selectedColor,
   });
 
-  final Product product;
+  Product product;
   int quantity;
   final String? selectedSize;
   final String? selectedColor;

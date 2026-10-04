@@ -109,7 +109,9 @@ class _AuthScreenState extends State<AuthScreen>
       if (!mounted) return;
       // Déjà connecté (token reçu) — sync favoris sans bloquer la session.
       try {
-        await context.read<FavoritesController>().loadFromApi();
+        final favorites = context.read<FavoritesController>();
+        await favorites.mergeLocalIntoAccount();
+        await favorites.loadFromApi();
       } catch (_) {}
       if (!mounted) return;
 
@@ -124,7 +126,9 @@ class _AuthScreenState extends State<AuthScreen>
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) setState(() => _error = 'Connexion impossible. Vérifiez votre réseau.');
+      if (mounted) {
+        setState(() => _error = 'Connexion impossible. Vérifiez votre réseau.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -409,9 +413,15 @@ class _AuthScreenState extends State<AuthScreen>
                                       size: 20,
                                     ),
                                   ),
-                                  validator: (v) => (v == null || v.length < 6)
-                                      ? '6 caractères minimum'
-                                      : null,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) {
+                                      return 'Mot de passe requis';
+                                    }
+                                    if (_registerMode && v.length < 8) {
+                                      return '8 caractères minimum';
+                                    }
+                                    return null;
+                                  },
                                 ),
 
                                 // Erreur

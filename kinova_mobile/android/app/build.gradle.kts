@@ -70,6 +70,14 @@ flutter {
     source = "../.."
 }
 
+// Une version release signée avec la clé debug serait refusée par le Play Store.
+gradle.taskGraph.whenReady {
+    val releaseRequested = allTasks.any { it.project == project && it.name.contains("Release") }
+    if (releaseRequested && !keystorePropertiesFile.exists()) {
+        throw GradleException("android/key.properties introuvable : impossible de signer la version release.")
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

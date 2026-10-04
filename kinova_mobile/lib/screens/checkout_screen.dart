@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +20,17 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
+  /// Même identifiant pour chaque nouvel essai : le serveur ne crée pas de doublon.
+  final String _clientToken = _newClientToken();
+
+  static String _newClientToken() {
+    final random = Random.secure();
+    return List.generate(
+      32,
+      (_) => random.nextInt(16).toRadixString(16),
+    ).join();
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _phone = TextEditingController();
@@ -277,6 +289,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _submitting = true;
@@ -298,6 +311,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         latitude: _isDelivery ? _position?.latitude : null,
         longitude: _isDelivery ? _position?.longitude : null,
         deliveryDetails: _isDelivery ? _details.text.trim() : null,
+        clientToken: _clientToken,
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

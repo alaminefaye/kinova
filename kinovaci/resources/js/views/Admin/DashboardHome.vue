@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import { api } from '@/api/client'
 
-const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const stats = reactive({
@@ -25,9 +23,6 @@ async function load() {
     Object.assign(stats, res.data)
   } catch (e: any) {
     error.value = e.message || 'Erreur'
-    if (String(e.message).includes('Unauthenticated') || String(e.message).includes('admin')) {
-      router.push('/signin')
-    }
   } finally {
     loading.value = false
   }

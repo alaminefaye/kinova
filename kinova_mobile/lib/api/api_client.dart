@@ -24,14 +24,17 @@ class ApiClient {
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final normalized = path.startsWith('/') ? path : '/$path';
-    return Uri.parse('${ApiConfig.baseUrl}$normalized').replace(queryParameters: query);
+    return Uri.parse(
+      '${ApiConfig.baseUrl}$normalized',
+    ).replace(queryParameters: query);
   }
 
   Map<String, String> _headers({bool jsonBody = false}) {
     return {
       'Accept': 'application/json',
       if (jsonBody) 'Content-Type': 'application/json',
-      if (_token != null && _token!.isNotEmpty) 'Authorization': 'Bearer $_token',
+      if (_token != null && _token!.isNotEmpty)
+        'Authorization': 'Bearer $_token',
     };
   }
 

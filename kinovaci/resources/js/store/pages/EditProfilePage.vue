@@ -27,7 +27,13 @@ onMounted(async () => {
     router.replace({ name: 'auth', query: { redirect: '/compte/modifier' } })
     return
   }
-  if (!auth.state.user) await auth.refreshProfile()
+  if (!auth.state.user) {
+    try {
+      await auth.refreshProfile()
+    } catch {
+      /* champs laissés vides, l'utilisateur peut réessayer */
+    }
+  }
   const u = auth.state.user
   form.name = u?.name || ''
   form.phone = u?.phone || ''
@@ -123,7 +129,7 @@ async function save() {
 
       <h3>Mot de passe (optionnel)</h3>
       <label>Mot de passe actuel<input v-model="form.current_password" type="password" class="kv-input" /></label>
-      <label>Nouveau mot de passe<input v-model="form.password" type="password" class="kv-input" minlength="6" /></label>
+      <label>Nouveau mot de passe<input v-model="form.password" type="password" class="kv-input" minlength="8" /></label>
       <label>Confirmer<input v-model="form.password_confirmation" type="password" class="kv-input" /></label>
 
       <p v-if="error" class="error">{{ error }}</p>

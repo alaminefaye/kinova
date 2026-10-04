@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TypewriterHint from './TypewriterHint.vue'
 import AnimatedLogoBadge from './AnimatedLogoBadge.vue'
@@ -23,9 +23,6 @@ const hideChrome = computed(() => !!route.meta.hideChrome)
 const cartCount = computed(() => cart.itemCount.value)
 const unread = computed(() => notifications.unread.value)
 
-onMounted(() => {
-  if (auth.isLoggedIn.value) notifications.refresh()
-})
 
 type Tab = { name: string; label: string; icon: string; cart?: boolean; account?: boolean }
 

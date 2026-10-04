@@ -60,7 +60,8 @@ class FavoriteController extends Controller
         $user = $request->user();
         $ids = collect($data['product_ids'])->unique()->values();
 
-        $user->favoriteProducts()->sync($ids);
+        // Fusion (jamais de suppression) : un appareil ne doit pas effacer les favoris ajoutés ailleurs.
+        $user->favoriteProducts()->syncWithoutDetaching($ids);
 
         return response()->json([
             'message' => 'Favoris synchronisés.',

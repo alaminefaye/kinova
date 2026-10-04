@@ -7,6 +7,8 @@ import 'package:kinova_mobile/screens/home_screen.dart';
 import 'package:kinova_mobile/screens/profile_screen.dart';
 import 'package:kinova_mobile/services/push_notification_service.dart';
 import 'package:kinova_mobile/state/cart_controller.dart';
+import 'package:kinova_mobile/state/favorites_controller.dart';
+import 'package:kinova_mobile/state/auth_controller.dart';
 import 'package:kinova_mobile/theme/kinova_colors.dart';
 import 'package:kinova_mobile/widgets/cart_fly.dart';
 
@@ -42,6 +44,12 @@ class _MainShellState extends State<MainShell> {
     _index = MainShell.requestedTab.value ?? widget.initialIndex;
     MainShell.requestedTab.value = null;
     MainShell.requestedTab.addListener(_onTabRequested);
+    final favorites = context.read<FavoritesController>();
+    final cart = context.read<CartController>();
+    context.read<AuthController>().onSessionExpired = () {
+      favorites.clearLocal();
+      cart.setOrders(const []);
+    };
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => PushNotificationService.consumePendingOpen(),
     );

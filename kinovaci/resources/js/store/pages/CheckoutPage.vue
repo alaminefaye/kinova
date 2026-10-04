@@ -111,7 +111,6 @@ async function submit() {
     router.replace({
       name: 'order-success',
       params: { reference: order.reference || order.id },
-      query: { total: String(order.total ?? '') },
     })
   } catch (e: any) {
     error.value = e?.message || 'Commande impossible'

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\ProductRating;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -110,7 +112,12 @@ class ProfileController extends Controller
 
         $this->deleteStoredAvatar($user->avatar_url);
 
+        $ratedProductIds = ProductRating::query()->where('user_id', $user->id)->pluck('product_id');
+
         $user->delete();
+
+        Product::query()->whereKey($ratedProductIds)->get()
+            ->each(fn (Product $product) => RatingController::refreshProductRating($product));
 
         return response()->json([
             'message' => 'Votre compte a été définitivement supprimé.',

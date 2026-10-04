@@ -146,7 +146,9 @@ class PushNotificationService {
     if (_api?.token == null) return;
     try {
       if (Platform.isIOS && !await _waitForApnsToken()) {
-        debugPrint('FCM: jeton APNs indisponible (simulateur ou push non autorisé).');
+        debugPrint(
+          'FCM: jeton APNs indisponible (simulateur ou push non autorisé).',
+        );
         return;
       }
       final token = await _messaging.getToken();

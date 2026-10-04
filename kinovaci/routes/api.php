@@ -92,7 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/favorites', [FavoriteController::class, 'index']);
         Route::post('/favorites', [FavoriteController::class, 'store']);
         Route::post('/favorites/sync', [FavoriteController::class, 'sync']);
-        Route::delete('/favorites/{productId}', [FavoriteController::class, 'destroy']);
+        Route::delete('/favorites/{productId}', [FavoriteController::class, 'destroy'])->whereNumber('productId');
 
         Route::get('/products/{product}/rating', [RatingController::class, 'show']);
         Route::post('/ratings', [RatingController::class, 'store']);

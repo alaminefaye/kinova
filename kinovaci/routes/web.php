@@ -19,6 +19,9 @@ Route::view('/dashboard/admin/{any?}', 'dashboard')
 */
 Route::view('/politique-confidentialite', 'legal.privacy')->name('legal.privacy');
 Route::view('/aide', 'legal.support')->name('legal.support');
+Route::view('/suppression-compte', 'legal.account-deletion')->name('legal.account-deletion');
+Route::redirect('/supprimer-compte', '/suppression-compte');
+Route::redirect('/delete-account', '/suppression-compte');
 Route::redirect('/confidentialite', '/politique-confidentialite');
 Route::redirect('/privacy', '/politique-confidentialite');
 Route::redirect('/privacy-policy', '/politique-confidentialite');

@@ -590,4 +590,108 @@ class SecurityTest extends TestCase
         Sanctum::actingAs($this->user('super-admin'));
         $this->getJson('/api/admin/announcements')->assertOk()->assertJsonPath('data.0.views_count', 2);
     }
+
+    public function test_account_deletion_page_is_public_and_ratings_are_recalculated(): void
+    {
+        $this->get('/suppression-compte')->assertOk()->assertSee('Supprimer votre compte KINOVA');
+        $this->get('/delete-account')->assertRedirect('/suppression-compte');
+
+        $customer = $this->user();
+        $product = $this->product();
+        $order = $this->orderFor($customer, ['status' => 'delivered']);
+        $order->items()->create([
+            'product_id' => $product->id, 'product_name' => $product->name,
+            'unit_price' => 5000, 'quantity' => 1, 'line_total' => 5000,
+        ]);
+        Sanctum::actingAs($customer);
+        $this->postJson('/api/customer/ratings', ['product_id' => $product->id, 'stars' => 5])->assertOk();
+        $this->assertSame(1, (int) $product->fresh()->ratings_count);
+
+        $this->postJson('/api/customer/profile/delete', ['confirmation_code' => 'kinovaci'])->assertOk();
+
+        $this->assertSame(0, (int) $product->fresh()->ratings_count);
+        $this->assertNull($order->fresh()->user_id);
+    }
+
+    public function test_retried_order_with_same_client_token_is_not_duplicated(): void
+    {
+        $product = $this->product(10);
+        $payload = $this->orderPayload($product, 2, ['client_token' => 'retry-token-1234567890']);
+
+        $first = $this->postJson('/api/orders', $payload)->assertCreated()->json('data.reference');
+        $second = $this->postJson('/api/orders', $payload)->assertOk()->json('data.reference');
+
+        $this->assertSame($first, $second);
+        $this->assertSame(1, Order::query()->count());
+        $this->assertSame(8, (int) $product->fresh()->stock);
+
+        // Le jeton d'une commande invité ne permet pas de lire la commande depuis un autre compte.
+        Sanctum::actingAs($this->user());
+        $this->postJson('/api/orders', $payload)->assertStatus(409);
+    }
+
+    public function test_favorites_sync_merges_without_removing(): void
+    {
+        $customer = $this->user();
+        $a = $this->product();
+        $b = $this->product();
+        $customer->favoriteProducts()->attach($a->id);
+        Sanctum::actingAs($customer);
+
+        $this->postJson('/api/customer/favorites/sync', ['product_ids' => [$b->id]])->assertOk();
+
+        $this->assertEqualsCanonicalizing([$a->id, $b->id], $customer->favoriteProducts()->pluck('products.id')->all());
+    }
+
+    public function test_orders_are_capped_to_prevent_stock_hoarding(): void
+    {
+        $product = $this->product(500);
+        $admin = $this->user('super-admin');
+
+        $this->postJson('/api/orders', $this->orderPayload($product, 21))->assertStatus(422);
+
+        $tooMany = $this->orderPayload($product, 20);
+        $tooMany['items'] = array_fill(0, 3, $tooMany['items'][0]);
+        $this->postJson('/api/orders', $tooMany)->assertStatus(422);
+
+        for ($i = 0; $i < 3; $i++) {
+            $this->postJson('/api/orders', $this->orderPayload($product, 1))->assertCreated();
+        }
+        $this->postJson('/api/orders', $this->orderPayload($product, 1))->assertStatus(429);
+        $this->postJson('/api/orders', $this->orderPayload($product, 1, ['customer_phone' => '0711111111']))->assertCreated();
+
+        $this->assertSame(496, $product->fresh()->stock);
+        $this->assertSame(4, \App\Models\AppNotification::query()->where('user_id', $admin->id)->count());
+    }
+
+    public function test_admin_password_reset_revokes_existing_sessions(): void
+    {
+        $customer = $this->user('customer');
+        $customer->createToken('mobile');
+
+        Sanctum::actingAs($this->user('super-admin'));
+        $this->putJson("/api/admin/users/{$customer->id}", [
+            'name' => $customer->name,
+            'password' => 'NouveauPass123!',
+        ])->assertOk();
+
+        $this->assertSame(0, $customer->tokens()->count());
+    }
+
+    public function test_loyalty_points_are_awarded_once_and_ledger_matches_balance(): void
+    {
+        \App\Services\AppSettings::update(['loyalty_enabled' => true]);
+        $customer = $this->user('customer', ['loyalty_points' => 0]);
+        $order = $this->orderFor($customer, ['status' => 'delivered', 'total' => 50000]);
+
+        $loyalty = app(\App\Services\LoyaltyService::class);
+        $this->assertNotNull($loyalty->awardForDeliveredOrder($order));
+        $this->assertNull($loyalty->awardForDeliveredOrder($order));
+
+        $customer->refresh();
+        $loyalty->adjust($customer, -999999, 'adjust');
+
+        $this->assertSame(0, $customer->fresh()->loyalty_points);
+        $this->assertSame(0, (int) $customer->loyaltyTransactions()->sum('points'));
+    }
 }

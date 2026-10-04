@@ -31,7 +31,7 @@ class LoyaltyController extends Controller
         abort_unless($user->role === 'customer', 404);
 
         $data = $request->validate([
-            'points' => ['required', 'integer', 'not_in:0'],
+            'points' => ['required', 'integer', 'not_in:0', 'between:-1000000,1000000'],
             'description' => ['nullable', 'string', 'max:255'],
         ]);
 

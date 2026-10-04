@@ -1268,11 +1268,15 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
     }
   }
 
+  final Set<String> _adjustingStock = {};
+
   Future<void> _adjustStock(
     dynamic productId,
     int currentStock,
     int delta,
   ) async {
+    final key = '$productId';
+    if (!_adjustingStock.add(key)) return;
     final newStock = (currentStock + delta).clamp(0, 99999);
     try {
       final api = context.read<ApiClient>();
@@ -1298,6 +1302,8 @@ class _AdminProductsTabState extends State<_AdminProductsTab> {
           ),
         );
       }
+    } finally {
+      _adjustingStock.remove(key);
     }
   }
 
@@ -2306,7 +2312,7 @@ class _ProductFormModalState extends State<_ProductFormModal> {
   Future<void> _fetchCategories() async {
     try {
       final api = context.read<ApiClient>();
-      final res = await api.get('/categories');
+      final res = await api.get('/admin/categories');
       if (res is Map && res['data'] is List) {
         if (mounted) {
           setState(() {
@@ -3171,7 +3177,7 @@ class _CreateOrderModalState extends State<_CreateOrderModal> {
           setState(() {
             _products = result.items;
             if (_products.isNotEmpty) {
-              _selectedProductId = _products.first['id'] as int;
+              _selectedProductId = int.tryParse('${_products.first['id']}');
               _productSearchController.text =
                   _products.first['name']?.toString() ?? '';
               _onProductChanged(_selectedProductId);

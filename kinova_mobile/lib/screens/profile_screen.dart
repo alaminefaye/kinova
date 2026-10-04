@@ -180,7 +180,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (deleted != true || !mounted) return;
 
     context.read<FavoritesController>().clearLocal();
-    context.read<CartController>().setOrders(const []);
+    context.read<CartController>()
+      ..setOrders(const [])
+      ..clear();
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Compte supprimé')));

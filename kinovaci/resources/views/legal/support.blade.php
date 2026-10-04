@@ -27,5 +27,6 @@
         </p>
         <p><a href="{{ url('/') }}">Retour à la boutique KINOVA</a></p>
         <p><a href="{{ url('/politique-confidentialite') }}">Politique de confidentialité</a></p>
+        <p><a href="{{ url('/suppression-compte') }}">Supprimer mon compte</a></p>
     </section>
 @endsection

@@ -11,6 +11,9 @@ return [
 
     'default' => env('FIREBASE_PROJECT', 'app'),
 
+    // Lu via config() : env() renvoie null une fois la configuration mise en cache.
+    'push_enabled' => env('FIREBASE_PUSH_ENABLED', true),
+
     /*
      * ------------------------------------------------------------------------
      * Firebase project configurations

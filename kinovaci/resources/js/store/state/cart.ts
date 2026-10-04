@@ -4,6 +4,8 @@ import type { CartItem, Product } from '../lib/types'
 import { shippingFor, useSettings } from './settings'
 
 const CART_KEY = 'kinova_cart'
+/** Plafond accepté par l'API par ligne de commande. */
+const MAX_PER_LINE = 20
 
 type StoredLine = {
   product: Product
@@ -58,7 +60,7 @@ export function maxQuantity(
   if (size && size.stock < max) max = size.stock
   const color = product.colors?.find((c) => c.name === selectedColor)
   if (color && color.stock < max) max = color.stock
-  return Math.max(0, Math.min(max, 999))
+  return Math.max(0, Math.min(max, MAX_PER_LINE))
 }
 
 function clampQuantity(item: CartItem, quantity: number) {
@@ -73,6 +75,7 @@ export function syncCartWithCatalog(byId: (id: string) => Product | undefined) {
     .map((item) => {
       const fresh = byId(item.product.id)
       if (!fresh) return null
+      if (maxQuantity(fresh, item.selectedSize, item.selectedColor) < 1) return null
       const next = { ...item, product: fresh }
       next.quantity = clampQuantity(next, next.quantity)
       return next

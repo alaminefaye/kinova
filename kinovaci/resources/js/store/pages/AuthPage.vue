@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AnimatedLogoBadge from '../components/AnimatedLogoBadge.vue'
 import { useAuth } from '../state/auth'
 import { useFavorites } from '../state/favorites'
+import { useNotifications } from '../state/notifications'
 import { useSettings } from '../state/settings'
 
 const route = useRoute()
@@ -52,6 +53,7 @@ async function submit() {
     try {
       await favorites.sync()
       await favorites.loadFromApi()
+      await useNotifications().refresh()
     } catch {
       /* ignore */
     }
@@ -128,7 +130,7 @@ function goBack() {
             :type="obscure ? 'password' : 'text'"
             placeholder="Mot de passe"
             required
-            minlength="6"
+            :minlength="registerMode ? 8 : undefined"
           />
           <button
             class="eye"

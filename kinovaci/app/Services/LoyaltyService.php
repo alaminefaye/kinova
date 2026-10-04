@@ -29,15 +29,17 @@ class LoyaltyService
         return DB::transaction(function () use ($user, $points, $type, $description, $order) {
             $user = User::query()->lockForUpdate()->findOrFail($user->id);
             $newBalance = max(0, $user->loyalty_points + $points);
+            $applied = $newBalance - $user->loyalty_points;
 
             $user->update([
                 'loyalty_points' => $newBalance,
                 'vip_tier' => self::tierFor($newBalance),
             ]);
 
+            // Points réellement appliqués (solde jamais négatif) : l'historique reste égal au solde.
             return LoyaltyTransaction::query()->create([
                 'user_id' => $user->id,
-                'points' => $points,
+                'points' => $applied,
                 'type' => $type,
                 'description' => $description,
                 'order_id' => $order?->id,
@@ -51,15 +53,6 @@ class LoyaltyService
             return null;
         }
 
-        $already = LoyaltyTransaction::query()
-            ->where('order_id', $order->id)
-            ->where('type', 'earn')
-            ->exists();
-
-        if ($already) {
-            return null;
-        }
-
         if (! AppSettings::loyaltyEnabled()) {
             return null;
         }
@@ -69,18 +62,33 @@ class LoyaltyService
             return null;
         }
 
-        $user = $order->user ?? User::query()->find($order->user_id);
-        if (! $user) {
+        // Verrou sur le client : deux validations simultanées de la livraison n'attribuent les points qu'une fois.
+        [$user, $tx] = DB::transaction(function () use ($order, $points) {
+            $user = User::query()->lockForUpdate()->find($order->user_id);
+            if (! $user) {
+                return [null, null];
+            }
+
+            $already = LoyaltyTransaction::query()
+                ->where('order_id', $order->id)
+                ->where('type', 'earn')
+                ->exists();
+            if ($already) {
+                return [$user, null];
+            }
+
+            return [$user, $this->adjust(
+                $user,
+                $points,
+                'earn',
+                "Points gagnés commande {$order->reference}",
+                $order
+            )];
+        });
+
+        if (! $user || ! $tx) {
             return null;
         }
-
-        $tx = $this->adjust(
-            $user,
-            $points,
-            'earn',
-            "Points gagnés commande {$order->reference}",
-            $order
-        );
 
         app(NotificationService::class)->notifyUser(
             $user,

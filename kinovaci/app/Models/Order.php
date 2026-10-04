@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'reference',
+    'client_token',
     'user_id',
     'customer_name',
     'customer_phone',
@@ -33,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Order extends Model
 {
+    protected $hidden = ['client_token'];
+
     protected $appends = [
         'invoice_number',
         'invoice_status',

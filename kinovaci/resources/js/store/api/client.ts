@@ -42,7 +42,7 @@ export async function api<T = any>(path: string, options: ApiOptions = {}): Prom
     body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
   })
 
-  if (response.status === 401 && sentToken) {
+  if (response.status === 401 && sentToken && getToken() === sentToken) {
     setToken(null)
     unauthorizedHandler?.()
   }

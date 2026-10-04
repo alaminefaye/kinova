@@ -50,8 +50,11 @@ class CartController extends ChangeNotifier {
     for (final c in product.effectiveColors) {
       if (c.name == selectedColor && c.stock < max) max = c.stock;
     }
-    return max.clamp(0, 999);
+    return max.clamp(0, maxPerLine);
   }
+
+  /// Plafond accepté par l'API par ligne de commande.
+  static const maxPerLine = 20;
 
   void add(
     Product product, {
@@ -120,8 +123,7 @@ class CartController extends ChangeNotifier {
     }
     final index = _items.indexWhere((i) => i.product.id == productId);
     if (index >= 0) {
-      _items[index].quantity = quantity;
-      _changed();
+      setItemQuantity(_items[index], quantity);
     }
   }
 
@@ -198,7 +200,36 @@ class CartController extends ChangeNotifier {
   void attachCatalog(List<Product> products) {
     if (products.isEmpty || identical(products, _catalog)) return;
     _catalog = products;
-    if (_saved != null) scheduleMicrotask(_restore);
+    scheduleMicrotask(_saved != null ? _restore : _refreshItems);
+  }
+
+  /// Prix et stock du panier alignés sur le catalogue rechargé
+  /// (lignes mises à jour sur place : les écrans gardent des références valides).
+  void _refreshItems() {
+    if (_items.isEmpty) return;
+    final byId = {for (final p in _catalog) p.id: p};
+    final before = _items.length;
+    _items.removeWhere((item) {
+      final product = byId[item.product.id];
+      return product == null ||
+          maxQuantity(
+                product,
+                selectedSize: item.selectedSize,
+                selectedColor: item.selectedColor,
+              ) <
+              1;
+    });
+    for (final item in _items) {
+      item.product = byId[item.product.id]!;
+      final max = maxQuantity(
+        item.product,
+        selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor,
+      );
+      if (item.quantity > max) item.quantity = max;
+    }
+    notifyListeners();
+    if (_items.length != before) unawaited(_persist());
   }
 
   void _restore() {
@@ -255,6 +286,7 @@ class CartController extends ChangeNotifier {
     double? longitude,
     String? deliveryDetails,
     String paymentMethod = 'cod',
+    String? clientToken,
   }) async {
     final res = await _api.post(
       '/orders',
@@ -273,6 +305,7 @@ class CartController extends ChangeNotifier {
         if (isDelivery && deliveryDetails != null && deliveryDetails.isNotEmpty)
           'delivery_details': deliveryDetails,
         'payment_method': paymentMethod,
+        'client_token': ?clientToken,
         'items': _items
             .map(
               (i) => {

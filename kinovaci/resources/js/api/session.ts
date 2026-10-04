@@ -34,7 +34,6 @@ export async function ensureSession(): Promise<AdminUser | null> {
     session.user = me
     return me
   } catch {
-    setToken(null)
     return null
   }
 }

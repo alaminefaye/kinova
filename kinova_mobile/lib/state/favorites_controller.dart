@@ -26,7 +26,9 @@ class FavoritesController extends ChangeNotifier {
     notifyListeners();
     try {
       final res = await _api.get('/customer/favorites');
-      final list = res is Map && res['data'] is List ? res['data'] as List : const [];
+      final list = res is Map && res['data'] is List
+          ? res['data'] as List
+          : const [];
       _ids.clear();
       _products.clear();
       for (final item in list.whereType<Map>()) {
@@ -37,6 +39,21 @@ class FavoritesController extends ChangeNotifier {
     } finally {
       _syncing = false;
       notifyListeners();
+    }
+  }
+
+  /// Ajoute au compte les favoris choisis en mode invité (fusion côté serveur).
+  Future<void> mergeLocalIntoAccount() async {
+    if (_api.token == null || _ids.isEmpty) return;
+    try {
+      await _api.post(
+        '/customer/favorites/sync',
+        body: {
+          'product_ids': _ids.map((id) => int.tryParse(id) ?? id).toList(),
+        },
+      );
+    } catch (_) {
+      // les favoris locaux restent affichés
     }
   }
 
@@ -59,9 +76,10 @@ class FavoritesController extends ChangeNotifier {
       if (wasFavorite) {
         await _api.delete('/customer/favorites/$id');
       } else {
-        await _api.post('/customer/favorites', body: {
-          'product_id': int.tryParse(id) ?? id,
-        });
+        await _api.post(
+          '/customer/favorites',
+          body: {'product_id': int.tryParse(id) ?? id},
+        );
       }
     } catch (_) {
       // rollback

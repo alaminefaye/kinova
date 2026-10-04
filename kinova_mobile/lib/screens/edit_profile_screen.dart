@@ -96,18 +96,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final newPass = _password.text.trim();
       await context.read<AuthController>().updateProfile(
-            name: _name.text,
-            phone: _phone.text,
-            email: _email.text,
-            address: _address.text,
-            city: _city.text,
-            password: newPass.isEmpty ? null : newPass,
-            currentPassword: _currentPassword.text,
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil enregistré')),
+        name: _name.text,
+        phone: _phone.text,
+        email: _email.text,
+        address: _address.text,
+        city: _city.text,
+        password: newPass.isEmpty ? null : newPass,
+        currentPassword: _currentPassword.text,
       );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profil enregistré')));
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -154,289 +154,293 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                    // ===== Carte avatar =====
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
-                      decoration: BoxDecoration(
-                        gradient: KinovaColors.darkLuxuryGradient,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: KinovaColors.gold.withValues(alpha: 0.4),
+                      // ===== Carte avatar =====
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+                        decoration: BoxDecoration(
+                          gradient: KinovaColors.darkLuxuryGradient,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: KinovaColors.gold.withValues(alpha: 0.4),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: KinovaColors.brown.withValues(alpha: 0.28),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: KinovaColors.brown.withValues(alpha: 0.28),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                        child: Column(
+                          children: [
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                KinovaAvatar(
+                                  name: user?.name ?? 'K',
+                                  imageUrl: user?.avatarUrl,
+                                  radius: 52,
+                                ),
+                                Positioned(
+                                  right: -2,
+                                  bottom: -2,
+                                  child: GestureDetector(
+                                    onTap: _uploadingAvatar
+                                        ? null
+                                        : _pickAvatar,
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        gradient: KinovaColors.goldGradient,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: const Color(0xFF1B110B),
+                                          width: 2.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: KinovaColors.goldRich
+                                                .withValues(alpha: 0.45),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: _uploadingAvatar
+                                          ? const Padding(
+                                              padding: EdgeInsets.all(9),
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: KinovaColors.brown,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.camera_alt_rounded,
+                                              size: 18,
+                                              color: KinovaColors.brown,
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              user?.name ?? 'Profil KINOVA',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontFamily: 'PlayfairDisplay',
+                                color: KinovaColors.cream,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Touchez l’appareil photo pour changer',
+                              style: TextStyle(
+                                color: KinovaColors.sand.withValues(alpha: 0.9),
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 22),
+                      const _SectionTitle(
+                        title: 'Informations',
+                        subtitle: 'Vos coordonnées personnelles',
+                      ),
+                      const SizedBox(height: 12),
+                      _ProfileCard(
+                        children: [
+                          _LuxProfileField(
+                            controller: _name,
+                            label: 'Nom complet',
+                            hint: 'Votre nom',
+                            icon: Icons.person_outline_rounded,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Nom requis'
+                                : null,
+                          ),
+                          _LuxProfileField(
+                            controller: _phone,
+                            label: 'Téléphone',
+                            hint: '+225 …',
+                            icon: Icons.phone_iphone_rounded,
+                            keyboardType: TextInputType.phone,
+                            validator: (v) => (v == null || v.trim().length < 8)
+                                ? 'Téléphone requis'
+                                : null,
+                          ),
+                          _LuxProfileField(
+                            controller: _email,
+                            label: 'Email',
+                            hint: 'optionnel',
+                            icon: Icons.mail_outline_rounded,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (v) {
+                              final t = v?.trim() ?? '';
+                              if (t.isEmpty) return null;
+                              if (!t.contains('@')) return 'Email invalide';
+                              return null;
+                            },
+                          ),
+                          _LuxProfileField(
+                            controller: _address,
+                            label: 'Adresse',
+                            hint: 'optionnel',
+                            icon: Icons.home_outlined,
+                          ),
+                          _LuxProfileField(
+                            controller: _city,
+                            label: 'Ville',
+                            hint: 'optionnel',
+                            icon: Icons.location_city_outlined,
+                            isLast: true,
                           ),
                         ],
                       ),
-                      child: Column(
+
+                      const SizedBox(height: 22),
+                      const _SectionTitle(
+                        title: 'Sécurité',
+                        subtitle: 'Laissez vide pour ne pas changer',
+                      ),
+                      const SizedBox(height: 12),
+                      _ProfileCard(
                         children: [
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              KinovaAvatar(
-                                name: user?.name ?? 'K',
-                                imageUrl: user?.avatarUrl,
-                                radius: 52,
+                          _LuxProfileField(
+                            controller: _currentPassword,
+                            label: 'Mot de passe actuel',
+                            hint: '••••••••',
+                            icon: Icons.lock_outline_rounded,
+                            obscure: _obscure,
+                          ),
+                          _LuxProfileField(
+                            controller: _password,
+                            label: 'Nouveau mot de passe',
+                            hint: '8 caractères minimum',
+                            icon: Icons.lock_rounded,
+                            obscure: _obscure,
+                            validator: (v) {
+                              final t = v?.trim() ?? '';
+                              if (t.isEmpty) return null;
+                              if (t.length < 8) return '8 caractères minimum';
+                              return null;
+                            },
+                            suffix: IconButton(
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: KinovaColors.sand,
+                                size: 20,
                               ),
-                              Positioned(
-                                right: -2,
-                                bottom: -2,
-                                child: GestureDetector(
-                                  onTap:
-                                      _uploadingAvatar ? null : _pickAvatar,
-                                  child: Container(
-                                    width: 38,
-                                    height: 38,
-                                    decoration: BoxDecoration(
-                                      gradient: KinovaColors.goldGradient,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFF1B110B),
-                                        width: 2.5,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: KinovaColors.goldRich
-                                              .withValues(alpha: 0.45),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: _uploadingAvatar
-                                        ? const Padding(
-                                            padding: EdgeInsets.all(9),
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: KinovaColors.brown,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.camera_alt_rounded,
-                                            size: 18,
-                                            color: KinovaColors.brown,
-                                          ),
+                            ),
+                          ),
+                          _LuxProfileField(
+                            controller: _passwordConfirm,
+                            label: 'Confirmation',
+                            hint: 'Répétez le mot de passe',
+                            icon: Icons.verified_user_outlined,
+                            obscure: _obscure,
+                            isLast: true,
+                            validator: (v) {
+                              if (_password.text.isEmpty) return null;
+                              if (v != _password.text) {
+                                return 'Les mots de passe ne correspondent pas';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDECEA),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(
+                                0xFFE57373,
+                              ).withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                color: Color(0xFFC62828),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(
+                                    color: Color(0xFFC62828),
+                                    fontSize: 12.5,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            user?.name ?? 'Profil KINOVA',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontFamily: 'PlayfairDisplay',
-                              color: KinovaColors.cream,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Touchez l’appareil photo pour changer',
-                            style: TextStyle(
-                              color: KinovaColors.sand.withValues(alpha: 0.9),
-                              fontSize: 11.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-                    const _SectionTitle(
-                      title: 'Informations',
-                      subtitle: 'Vos coordonnées personnelles',
-                    ),
-                    const SizedBox(height: 12),
-                    _ProfileCard(
-                      children: [
-                        _LuxProfileField(
-                          controller: _name,
-                          label: 'Nom complet',
-                          hint: 'Votre nom',
-                          icon: Icons.person_outline_rounded,
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Nom requis'
-                              : null,
-                        ),
-                        _LuxProfileField(
-                          controller: _phone,
-                          label: 'Téléphone',
-                          hint: '+225 …',
-                          icon: Icons.phone_iphone_rounded,
-                          keyboardType: TextInputType.phone,
-                          validator: (v) =>
-                              (v == null || v.trim().length < 8)
-                                  ? 'Téléphone requis'
-                                  : null,
-                        ),
-                        _LuxProfileField(
-                          controller: _email,
-                          label: 'Email',
-                          hint: 'optionnel',
-                          icon: Icons.mail_outline_rounded,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (v) {
-                            final t = v?.trim() ?? '';
-                            if (t.isEmpty) return null;
-                            if (!t.contains('@')) return 'Email invalide';
-                            return null;
-                          },
-                        ),
-                        _LuxProfileField(
-                          controller: _address,
-                          label: 'Adresse',
-                          hint: 'optionnel',
-                          icon: Icons.home_outlined,
-                        ),
-                        _LuxProfileField(
-                          controller: _city,
-                          label: 'Ville',
-                          hint: 'optionnel',
-                          icon: Icons.location_city_outlined,
-                          isLast: true,
                         ),
                       ],
-                    ),
 
-                    const SizedBox(height: 22),
-                    const _SectionTitle(
-                      title: 'Sécurité',
-                      subtitle: 'Laissez vide pour ne pas changer',
-                    ),
-                    const SizedBox(height: 12),
-                    _ProfileCard(
-                      children: [
-                        _LuxProfileField(
-                          controller: _currentPassword,
-                          label: 'Mot de passe actuel',
-                          hint: '••••••••',
-                          icon: Icons.lock_outline_rounded,
-                          obscure: _obscure,
-                        ),
-                        _LuxProfileField(
-                          controller: _password,
-                          label: 'Nouveau mot de passe',
-                          hint: '6 caractères minimum',
-                          icon: Icons.lock_rounded,
-                          obscure: _obscure,
-                          validator: (v) {
-                            final t = v?.trim() ?? '';
-                            if (t.isEmpty) return null;
-                            if (t.length < 6) return '6 caractères minimum';
-                            return null;
-                          },
-                          suffix: IconButton(
-                            onPressed: () =>
-                                setState(() => _obscure = !_obscure),
-                            icon: Icon(
-                              _obscure
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: KinovaColors.sand,
-                              size: 20,
+                      const SizedBox(height: 26),
+                      PressableScale(
+                        onTap: _saving ? null : _save,
+                        child: Container(
+                          height: 54,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            gradient: KinovaColors.darkLuxuryGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: KinovaColors.gold.withValues(alpha: 0.55),
                             ),
-                          ),
-                        ),
-                        _LuxProfileField(
-                          controller: _passwordConfirm,
-                          label: 'Confirmation',
-                          hint: 'Répétez le mot de passe',
-                          icon: Icons.verified_user_outlined,
-                          obscure: _obscure,
-                          isLast: true,
-                          validator: (v) {
-                            if (_password.text.isEmpty) return null;
-                            if (v != _password.text) {
-                              return 'Les mots de passe ne correspondent pas';
-                            }
-                            return null;
-                          },
-                        ),
-                      ],
-                    ),
-
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFDECEA),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: const Color(0xFFE57373).withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline_rounded,
-                              color: Color(0xFFC62828),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(
-                                  color: Color(0xFFC62828),
-                                  fontSize: 12.5,
+                            boxShadow: [
+                              BoxShadow(
+                                color: KinovaColors.brown.withValues(
+                                  alpha: 0.28,
                                 ),
+                                blurRadius: 16,
+                                offset: const Offset(0, 7),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          child: _saving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: KinovaColors.gold,
+                                  ),
+                                )
+                              : const Text(
+                                  'ENREGISTRER LES MODIFICATIONS',
+                                  style: TextStyle(
+                                    color: KinovaColors.goldLight,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.2,
+                                    fontSize: 12,
+                                  ),
+                                ),
                         ),
                       ),
-                    ],
-
-                    const SizedBox(height: 26),
-                    PressableScale(
-                      onTap: _saving ? null : _save,
-                      child: Container(
-                        height: 54,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          gradient: KinovaColors.darkLuxuryGradient,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: KinovaColors.gold.withValues(alpha: 0.55),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: KinovaColors.brown.withValues(alpha: 0.28),
-                              blurRadius: 16,
-                              offset: const Offset(0, 7),
-                            ),
-                          ],
-                        ),
-                        child: _saving
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: KinovaColors.gold,
-                                ),
-                              )
-                            : const Text(
-                                'ENREGISTRER LES MODIFICATIONS',
-                                style: TextStyle(
-                                  color: KinovaColors.goldLight,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.2,
-                                  fontSize: 12,
-                                ),
-                              ),
-                      ),
-                    ),
                     ],
                   ),
                 ),

@@ -83,24 +83,27 @@ class _HelpScreenState extends State<HelpScreen> {
     }
     setState(() => _sending = true);
     try {
-      await context.read<ApiClient>().post('/contact', body: {
-        'name': _name.text.trim(),
-        'email': _email.text.trim(),
-        'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-        'subject': _subject.text.trim(),
-        'message': _message.text.trim(),
-      });
+      await context.read<ApiClient>().post(
+        '/contact',
+        body: {
+          'name': _name.text.trim(),
+          'email': _email.text.trim(),
+          'phone': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          'subject': _subject.text.trim(),
+          'message': _message.text.trim(),
+        },
+      );
       if (!mounted) return;
       _subject.clear();
       _message.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message envoyé')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Message envoyé')));
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -119,7 +122,10 @@ class _HelpScreenState extends State<HelpScreen> {
               children: [
                 if (_error != null)
                   Text(_error!, style: const TextStyle(color: Colors.red)),
-                Text('Nous contacter', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'Nous contacter',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 8),
                 Text('Email: ${_help?['email'] ?? '—'}'),
                 Text('Tél: ${_help?['phone'] ?? '—'}'),
@@ -139,8 +145,10 @@ class _HelpScreenState extends State<HelpScreen> {
                   );
                 }),
                 const SizedBox(height: 20),
-                Text('Écrire au service client',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'Écrire au service client',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _name,
@@ -154,7 +162,9 @@ class _HelpScreenState extends State<HelpScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _phone,
-                  decoration: const InputDecoration(hintText: 'Téléphone (optionnel)'),
+                  decoration: const InputDecoration(
+                    hintText: 'Téléphone (optionnel)',
+                  ),
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 8),

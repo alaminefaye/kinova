@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
+import 'package:kinova_mobile/api/api_config.dart';
 import 'package:kinova_mobile/models/models.dart';
 import 'package:kinova_mobile/services/invoice_pdf.dart';
 import 'package:kinova_mobile/state/catalog_controller.dart';
@@ -42,7 +43,7 @@ class _InvoicePdfScreenState extends State<InvoicePdfScreen> {
     if (url != null) {
       try {
         final res = await http
-            .get(Uri.parse(url))
+            .get(Uri.parse(ApiConfig.resolveMediaUrl(url)))
             .timeout(const Duration(seconds: 10));
         if (res.statusCode == 200) stamp = res.bodyBytes;
       } catch (_) {}

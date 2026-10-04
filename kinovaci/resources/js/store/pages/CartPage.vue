@@ -67,7 +67,7 @@ const cart = useCart()
             }}
           </strong>
         </div>
-        <div class="total"><span>Total</span><strong>{{ formatMoney(cart.total.value) }}</strong></div>
+        <div class="total"><span>{{ cart.shipping.value > 0 && !cart.shippingToCourier.value ? 'Total (livraison incluse)' : 'Total' }}</span><strong>{{ formatMoney(cart.total.value) }}</strong></div>
       </section>
 
       <button class="kv-btn kv-btn-dark full" type="button" @click="router.push({ name: 'checkout' })">

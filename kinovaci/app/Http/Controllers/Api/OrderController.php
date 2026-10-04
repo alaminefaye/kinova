@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Services\AppSettings;
 use App\Services\NotificationService;
 use App\Services\StockService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,16 +31,80 @@ class OrderController extends Controller
             'delivery_details' => ['nullable', 'string', 'max:1000'],
             'payment_method' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'client_token' => ['nullable', 'string', 'alpha_dash', 'min:16', 'max:64'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
             'items.*.selected_size' => ['nullable', 'string', 'max:50'],
             'items.*.selected_color' => ['nullable', 'string', 'max:50'],
+        ], [
+            'items.*.quantity.max' => 'Maximum 20 exemplaires par article.',
         ]);
 
         $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $clientToken = $data['client_token'] ?? null;
 
-        $order = DB::transaction(function () use ($data, $userId, $isDelivery, $stock) {
+        // Nouvel envoi de la même commande (réseau coupé avant la réponse) : on renvoie l'existante.
+        if ($existing = $this->findRetriedOrder($clientToken, $userId)) {
+            return response()->json(['data' => $existing], 200);
+        }
+
+        // Le stock est réservé dès la commande : on empêche de bloquer le catalogue avec de fausses commandes.
+        abort_if(
+            collect($data['items'])->sum('quantity') > 50,
+            422,
+            'Commande limitée à 50 articles. Contactez-nous pour une commande plus importante.'
+        );
+        abort_if(
+            Order::query()
+                ->where('customer_phone', $data['customer_phone'])
+                ->where('status', 'pending')
+                ->count() >= 3,
+            429,
+            'Vous avez déjà 3 commandes en attente. Notre équipe vous contacte rapidement ; vous pouvez aussi nous appeler.'
+        );
+
+        try {
+            $order = $this->createOrder($data, $userId, $isDelivery, $clientToken, $stock);
+        } catch (UniqueConstraintViolationException $e) {
+            $existing = $this->findRetriedOrder($clientToken, $userId);
+            abort_unless($existing, 409, 'Commande déjà envoyée.');
+
+            return response()->json(['data' => $existing], 200);
+        }
+
+        // Notifications et push envoyés après la réponse : le client n'attend pas Firebase.
+        // Les callbacks terminating restent enregistrés si l'application est réutilisée (tests, Octane).
+        $sent = false;
+        app()->terminating(function () use ($notifications, $order, &$sent) {
+            if ($sent) {
+                return;
+            }
+            $sent = true;
+            $notifications->notifyOrderCreated($order);
+            $notifications->notifyAdminsNewOrder($order);
+        });
+
+        return response()->json(['data' => $order], 201);
+    }
+
+    private function findRetriedOrder(?string $clientToken, ?int $userId): ?Order
+    {
+        if (! $clientToken) {
+            return null;
+        }
+        $order = Order::query()->with('items')->where('client_token', $clientToken)->first();
+        if (! $order) {
+            return null;
+        }
+        abort_unless((string) $order->user_id === (string) $userId, 409, 'Commande déjà envoyée.');
+
+        return $order;
+    }
+
+    private function createOrder(array $data, ?int $userId, bool $isDelivery, ?string $clientToken, StockService $stock): Order
+    {
+        return DB::transaction(function () use ($data, $userId, $isDelivery, $clientToken, $stock) {
             $subtotal = 0;
             $lines = [];
             $products = $stock->reserve($data['items']);
@@ -61,6 +126,7 @@ class OrderController extends Controller
 
             $order = Order::query()->create([
                 'reference' => 'KV-'.strtoupper(Str::random(8)),
+                'client_token' => $clientToken,
                 'user_id' => $userId,
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
@@ -104,11 +170,6 @@ class OrderController extends Controller
 
             return $order->load('items');
         });
-
-        $notifications->notifyOrderCreated($order);
-        $notifications->notifyAdminsNewOrder($order);
-
-        return response()->json(['data' => $order], 201);
     }
 
     public function show(string $reference)

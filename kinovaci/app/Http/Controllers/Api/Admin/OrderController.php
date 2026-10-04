@@ -54,22 +54,26 @@ class OrderController extends Controller
             'payment_status' => ['sometimes', 'in:unpaid,paid'],
         ]);
 
-        $previousStatus = $order->status;
-        $previousPayment = $order->payment_status;
-        $previousTracking = $order->tracking_number;
+        $previousStatus = $previousPayment = $previousTracking = null;
 
-        // Paiement à la livraison : le colis livré est considéré payé (modifiable ensuite).
-        if (($data['status'] ?? null) === 'delivered' && $previousStatus !== 'delivered') {
-            $data['delivered_at'] = now();
-            if (! array_key_exists('payment_status', $data)) {
-                $data['payment_status'] = 'paid';
+        $order = DB::transaction(function () use ($order, $data, $stock, &$previousStatus, &$previousPayment, &$previousTracking) {
+            // Ligne verrouillée : une annulation client simultanée ne peut pas remettre le stock deux fois.
+            $order = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $previousStatus = $order->status;
+            $previousPayment = $order->payment_status;
+            $previousTracking = $order->tracking_number;
+
+            // Paiement à la livraison : le colis livré est considéré payé (modifiable ensuite).
+            if (($data['status'] ?? null) === 'delivered' && $previousStatus !== 'delivered') {
+                $data['delivered_at'] = now();
+                if (! array_key_exists('payment_status', $data)) {
+                    $data['payment_status'] = 'paid';
+                }
             }
-        }
-        if (array_key_exists('payment_status', $data)) {
-            $data['paid_at'] = $data['payment_status'] === 'paid' ? ($order->paid_at ?? now()) : null;
-        }
+            if (array_key_exists('payment_status', $data)) {
+                $data['paid_at'] = $data['payment_status'] === 'paid' ? ($order->paid_at ?? now()) : null;
+            }
 
-        $order = DB::transaction(function () use ($order, $data, $previousStatus, $stock) {
             $newStatus = $data['status'] ?? $previousStatus;
             $order->loadMissing('items');
 

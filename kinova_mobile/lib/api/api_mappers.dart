@@ -1,3 +1,4 @@
+import 'package:kinova_mobile/api/api_config.dart';
 import 'package:kinova_mobile/models/models.dart';
 
 class ApiMappers {
@@ -7,7 +8,7 @@ class ApiMappers {
     return Category(
       id: '${json['id']}',
       name: (json['name'] ?? '').toString(),
-      imageUrl: (json['image_url'] ?? '').toString(),
+      imageUrl: ApiConfig.resolveMediaUrl(json['image_url']?.toString()),
       slug: (json['slug'] ?? '').toString(),
     );
   }
@@ -16,7 +17,7 @@ class ApiMappers {
     return HeroSlide(
       id: '${json['id']}',
       title: (json['title'] ?? '').toString(),
-      imageUrl: (json['image_url'] ?? '').toString(),
+      imageUrl: ApiConfig.resolveMediaUrl(json['image_url']?.toString()),
       tag: (json['tag'] ?? '').toString(),
       ctaLabel: (json['cta_label'] ?? 'DÉCOUVRIR').toString(),
       linkType: (json['link_type'] ?? 'catalog').toString(),
@@ -30,13 +31,15 @@ class ApiMappers {
     if (rawGallery is List) {
       for (final item in rawGallery) {
         if (item != null && item.toString().isNotEmpty) {
-          gallery.add(item.toString());
+          gallery.add(ApiConfig.resolveMediaUrl(item.toString()));
         }
       }
     }
 
-    final imageUrl = (json['image_url'] ?? (gallery.isNotEmpty ? gallery.first : ''))
-        .toString();
+    final rawImage = json['image_url']?.toString();
+    final imageUrl = rawImage != null && rawImage.isNotEmpty
+        ? ApiConfig.resolveMediaUrl(rawImage)
+        : (gallery.isNotEmpty ? gallery.first : '');
 
     final productStock = int.tryParse('${json['stock'] ?? 0}') ?? 0;
 
@@ -53,12 +56,7 @@ class ApiMappers {
           final sMap = Map<String, dynamic>.from(item);
           final name = (sMap['name'] ?? '').toString();
           if (name.isNotEmpty) {
-            sizes.add(
-              ProductSize(
-                name: name,
-                stock: variantStock(sMap),
-              ),
-            );
+            sizes.add(ProductSize(name: name, stock: variantStock(sMap)));
           }
         }
       }
@@ -89,7 +87,9 @@ class ApiMappers {
       name: (json['name'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       price: _toDouble(json['price']),
-      promoPrice: json['promo_price'] != null ? _toDouble(json['promo_price']) : null,
+      promoPrice: json['promo_price'] != null
+          ? _toDouble(json['promo_price'])
+          : null,
       categoryId: '${json['category_id']}',
       imageUrl: imageUrl,
       images: gallery,

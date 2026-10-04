@@ -46,6 +46,7 @@ export function useAuth() {
   }
 
   async function login(login: string, password: string) {
+    if (getToken()) await logout()
     state.loading = true
     try {
       const res = await api<{ token: string; user?: UserProfile }>('/customer/auth/login', {
@@ -66,6 +67,7 @@ export function useAuth() {
     password: string
     email?: string
   }) {
+    if (getToken()) await logout()
     state.loading = true
     try {
       const res = await api<{ token: string; user?: UserProfile }>('/customer/auth/register', {
