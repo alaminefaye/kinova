@@ -10,8 +10,10 @@
         "@fullcalendar/vue3": "^6.1.15",
         "@tailwindcss/forms": "^0.5.10",
         "@tailwindcss/typography": "^0.5.16",
+        "apexcharts": "^7.8.0",
         "vue": "^3.5.13",
-        "vue-router": "^4.5.0"
+        "vue-router": "^4.5.0",
+        "vue3-apexcharts": "^1.11.1"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

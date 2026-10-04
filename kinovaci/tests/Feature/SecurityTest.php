@@ -664,6 +664,37 @@ class SecurityTest extends TestCase
         $this->assertSame(4, \App\Models\AppNotification::query()->where('user_id', $admin->id)->count());
     }
 
+    public function test_admin_dashboard_reports_daily_and_lifetime_revenue(): void
+    {
+        $customer = $this->user('customer');
+        $product = $this->product(50, 10000);
+        $paid = ['payment_status' => 'paid', 'status' => 'delivered'];
+
+        $today = $this->orderFor($customer, $paid + ['total' => 20000, 'paid_at' => now()]);
+        $today->items()->create(['product_id' => $product->id, 'product_name' => 'Crème', 'unit_price' => 10000, 'quantity' => 2, 'line_total' => 20000]);
+        $this->orderFor($customer, $paid + ['total' => 5000, 'paid_at' => now()->subDay()]);
+        $this->orderFor($customer, $paid + ['total' => 7000, 'paid_at' => now()->subMonths(3)]);
+        $this->orderFor($customer, ['payment_status' => 'paid', 'status' => 'cancelled', 'total' => 99000, 'paid_at' => now()]);
+        $this->orderFor($customer, ['total' => 3000]);
+
+        Sanctum::actingAs($this->user('super-admin'));
+        $data = $this->getJson('/api/admin/dashboard')->assertOk()->json('data');
+
+        $this->assertEquals(20000, $data['today_revenue']);
+        $this->assertEquals(5000, $data['yesterday_revenue']);
+        $this->assertEquals(32000, $data['total_revenue']);
+        $this->assertSame(3, $data['total_sales_count']);
+        $this->assertSame(now()->subMonths(3)->toDateString(), $data['first_sale_date']);
+        $this->assertCount(7, $data['sales_by_day']);
+        $this->assertCount(30, $data['sales_last_30_days']);
+        $this->assertEquals(32000, end($data['sales_since_start'])['total']);
+        $this->assertEquals(32000, array_sum(array_column($data['sales_by_month'], 'amount')));
+        $this->assertSame(['name' => 'Crème', 'quantity' => 2, 'revenue' => 20000], $data['top_products'][0]);
+        $this->assertSame('Soins', $data['revenue_by_category'][0]['name']);
+        $this->assertSame(1, $data['orders_by_status']['cancelled']);
+        $this->assertSame(1, $data['pending_orders']);
+    }
+
     public function test_admin_password_reset_revokes_existing_sessions(): void
     {
         $customer = $this->user('customer');
