@@ -21,7 +21,7 @@ class CategoryController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'slug' => ['nullable', 'string', 'max:140', 'unique:categories,slug'],
-            'image_url' => ['nullable', 'url'],
+            'image_url' => ['nullable', 'string', 'max:500'],
             'is_active' => ['boolean'],
             'sort_order' => ['integer', 'min:0'],
         ]);
@@ -43,7 +43,7 @@ class CategoryController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:120'],
             'slug' => ['sometimes', 'string', 'max:140', 'unique:categories,slug,'.$category->id],
-            'image_url' => ['nullable', 'url'],
+            'image_url' => ['nullable', 'string', 'max:500'],
             'is_active' => ['boolean'],
             'sort_order' => ['integer', 'min:0'],
         ]);

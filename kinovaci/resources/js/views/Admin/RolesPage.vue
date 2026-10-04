@@ -5,6 +5,8 @@ import { api } from '@/api/client'
 import ListPager from '@/components/admin/ListPager.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
 import TableState from '@/components/admin/TableState.vue'
+import AdminIcon from '@/components/admin/AdminIcon.vue'
+import FormField from '@/components/admin/FormField.vue'
 import { useClientPager } from '@/composables/useClientPager'
 
 interface PermissionItem {
@@ -311,51 +313,39 @@ onMounted(() => {
         v-if="showModal"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       >
-        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700 shadow-2xl p-6 space-y-6">
-          <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-4">
-            <h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-              {{ modalMode === 'create' ? 'Créer un nouveau rôle' : `Modifier le rôle "${form.name}"` }}
-            </h2>
-            <button
-              @click="showModal = false"
-              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
-              ✕
+        <form class="admin-card w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" @submit.prevent="saveRole">
+          <div class="admin-card-header sticky top-0 z-10 bg-white dark:bg-gray-900">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-800 dark:text-white">
+                {{ modalMode === 'create' ? 'Nouveau rôle' : `Modifier le rôle « ${form.name} »` }}
+              </h2>
+              <p class="text-xs text-gray-500">Un rôle regroupe ce qu’un membre de l’équipe a le droit de faire.</p>
+            </div>
+            <button type="button" class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/5" aria-label="Fermer" @click="showModal = false">
+              <AdminIcon name="x" :size="18" />
             </button>
           </div>
 
-          <div class="space-y-4">
-            <!-- Nom du Rôle -->
-            <div>
-              <label class="block text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 mb-1">
-                Identifiant du Rôle (ex: manager, support, logistique)
-              </label>
-              <input
-                v-model="form.name"
-                type="text"
-                :disabled="form.name === 'super-admin'"
-                placeholder="ex: gestionnaire-stock"
-                class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-              />
-              <p v-if="form.name === 'super-admin'" class="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                Le rôle super-admin a obligatoirement toutes les permissions.
-              </p>
-            </div>
+          <div class="space-y-5 p-5">
+            <div v-if="error" class="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">{{ error }}</div>
+            <FormField
+              label="Nom du rôle"
+              for="r-name"
+              required
+              :hint="form.name === 'super-admin' ? 'Le rôle super-admin a obligatoirement toutes les permissions.' : 'Un mot simple en minuscules, ex. manager, support, logistique.'"
+            >
+              <input id="r-name" v-model="form.name" type="text" required :disabled="form.name === 'super-admin'" placeholder="Ex. gestionnaire-stock" class="admin-input" />
+            </FormField>
 
             <!-- Permissions groupées par module -->
             <div v-if="form.name !== 'super-admin'" class="space-y-4 pt-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">
-                  Permissions & Autorisations
-                </span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Ce que ce rôle peut faire</span>
                 <div class="flex gap-2 text-xs">
                   <button
                     type="button"
                     @click="selectAllPermissions"
-                    class="text-amber-600 dark:text-amber-400 hover:underline font-medium"
+                    class="text-brand-500 dark:text-brand-300 hover:underline font-medium"
                   >
                     Tout cocher
                   </button>
@@ -382,7 +372,7 @@ onMounted(() => {
                   <button
                     type="button"
                     @click="toggleModulePermissions(String(moduleName))"
-                    class="text-xs font-medium text-amber-600 dark:text-amber-400 hover:underline"
+                    class="text-xs font-medium text-brand-500 dark:text-brand-300 hover:underline"
                   >
                     {{ isModuleFullySelected(String(moduleName)) ? 'Désélectionner module' : 'Sélectionner tout le module' }}
                   </button>
@@ -398,7 +388,7 @@ onMounted(() => {
                       type="checkbox"
                       :checked="form.permissions.includes(p.name)"
                       @change="togglePermission(p.name)"
-                      class="mt-1 rounded text-amber-600 focus:ring-amber-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                      class="mt-1 rounded text-brand-500 focus:ring-brand-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                     />
                     <div class="text-xs">
                       <div class="font-medium text-gray-800 dark:text-gray-200">{{ p.label }}</div>
@@ -412,28 +402,13 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
-            <button
-              type="button"
-              @click="showModal = false"
-              class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              @click="saveRole"
-              :disabled="saving"
-              class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition disabled:opacity-50 flex items-center gap-2 shadow-sm"
-            >
-              <svg v-if="saving" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              {{ saving ? 'Enregistrement...' : (modalMode === 'create' ? 'Créer le Rôle' : 'Sauvegarder') }}
+          <div class="flex flex-wrap justify-end gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+            <button type="button" class="admin-btn-secondary" @click="showModal = false">Annuler</button>
+            <button type="submit" class="admin-btn-primary" :disabled="saving">
+              {{ saving ? 'Enregistrement…' : modalMode === 'create' ? 'Créer le rôle' : 'Enregistrer' }}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   </AdminLayout>

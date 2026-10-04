@@ -6,6 +6,8 @@ import ListPager from '@/components/admin/ListPager.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
 import StatusBadge from '@/components/admin/StatusBadge.vue'
 import TableState from '@/components/admin/TableState.vue'
+import FormField from '@/components/admin/FormField.vue'
+import AdminIcon from '@/components/admin/AdminIcon.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -181,88 +183,111 @@ onMounted(() => load())
           <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
         </div>
 
-        <div class="self-start rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-          <h2 class="font-semibold text-gray-800 dark:text-white mb-4">Détail</h2>
-          <div v-if="!selected" class="text-sm text-gray-500">Sélectionnez une commande</div>
-          <div v-else class="space-y-3 text-sm">
-            <p><span class="text-gray-500">Réf.</span> {{ selected.reference }}</p>
-            <p><span class="text-gray-500">Client</span> {{ selected.customer_name }}</p>
-            <p>
-              <span class="text-gray-500">Tél.</span> {{ selected.customer_phone }}
-              <a :href="`tel:${selected.customer_phone}`" class="ml-2 text-brand-500">Appeler</a>
-            </p>
-            <p>
-              <span class="text-gray-500">{{ selected.is_delivery === false ? 'Retrait' : 'Livraison' }}</span>
-              {{ selected.address }}, {{ selected.city }}
-            </p>
-            <p v-if="selected.delivery_details" class="rounded-lg bg-gray-50 p-2 dark:bg-white/5">
-              <span class="text-gray-500 block text-xs">Précisions du client</span>
-              {{ selected.delivery_details }}
-            </p>
-            <p v-if="selected.maps_url">
-              <a :href="selected.maps_url" target="_blank" rel="noopener" class="text-brand-500">📍 Voir la position GPS du client</a>
-            </p>
-            <p>
-              <span class="text-gray-500">Paiement</span> à la livraison —
-              <span :class="selected.payment_status === 'paid' ? 'text-success-600 font-medium' : 'text-warning-600'">
-                {{ selected.payment_status === 'paid' ? 'payé' : 'non payé' }}
-              </span>
-            </p>
-            <p class="font-semibold">
-              Total {{ money(selected.total) }}
-              <span v-if="selected.is_delivery !== false && Number(selected.shipping) === 0" class="text-xs font-normal text-gray-500">(livraison réglée au livreur)</span>
-            </p>
-            <div class="flex flex-wrap gap-2">
-              <a
-                v-if="selected.invoice_url"
-                :href="selected.invoice_url"
-                target="_blank"
-                rel="noopener"
-                class="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700"
-              >
-                {{ selected.invoice_status === 'confirmed' ? 'Facture payée' : 'Facture provisoire' }}
-              </a>
-              <button
-                v-if="selected.payment_status !== 'paid' && selected.status !== 'cancelled'"
-                class="rounded-lg border border-success-300 px-3 py-2 text-sm text-success-700"
-                @click="updatePayment('paid')"
-              >
-                Marquer payé
-              </button>
-              <button
-                v-else-if="selected.payment_status === 'paid'"
-                class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-gray-700"
-                @click="updatePayment('unpaid')"
-              >
-                Annuler le paiement
-              </button>
+        <div class="admin-card self-start">
+          <div class="admin-card-header">
+            <div class="min-w-0">
+              <h2 class="font-semibold text-gray-800 dark:text-white">{{ selected ? selected.reference : 'Détail de la commande' }}</h2>
+              <p v-if="selected" class="text-xs text-gray-500">{{ formatDate(selected.created_at) }}</p>
             </div>
+            <StatusBadge v-if="selected" :label="statusLabels[selected.status] ?? selected.status" :tone="statusTones[selected.status] ?? 'info'" />
+          </div>
+          <div v-if="!selected" class="px-5 py-14 text-center text-sm text-gray-500">Cliquez sur une commande pour l’afficher ici.</div>
+          <div v-else class="divide-y divide-gray-100 text-sm dark:divide-gray-800">
+            <section class="space-y-2 p-5">
+              <p class="admin-section-title">Client</p>
+              <p class="font-medium text-gray-800 dark:text-white">{{ selected.customer_name }}</p>
+              <p class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                {{ selected.customer_phone }}
+                <a :href="`tel:${selected.customer_phone}`" class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-white/10 dark:text-brand-300">
+                  <AdminIcon name="phone" :size="12" /> Appeler
+                </a>
+              </p>
+              <p class="text-gray-600 dark:text-gray-300">
+                <span class="font-medium text-gray-800 dark:text-white">{{ selected.is_delivery === false ? 'Retrait en boutique' : 'Livraison' }}</span>
+                <template v-if="selected.address || selected.city"> — {{ [selected.address, selected.city].filter(Boolean).join(', ') }}</template>
+              </p>
+              <p v-if="selected.delivery_details" class="rounded-lg bg-gray-50 p-2.5 dark:bg-white/5">
+                <span class="block text-xs text-gray-500">Précisions du client</span>
+                {{ selected.delivery_details }}
+              </p>
+              <a v-if="selected.maps_url" :href="selected.maps_url" target="_blank" rel="noopener" class="inline-block text-brand-500 hover:underline dark:text-brand-300">
+                📍 Voir la position GPS du client
+              </a>
+            </section>
 
-            <label class="block text-gray-500 mt-2">N° suivi</label>
-            <input v-model="tracking" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" placeholder="KIN-TRACK-…" />
-            <label class="block text-gray-500 mt-2">Transporteur</label>
-            <input v-model="carrier" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" placeholder="KINOVA Express" />
-            <button class="rounded-lg border border-gray-200 px-3 py-2 text-sm" @click="saveTracking">Enregistrer suivi</button>
+            <section class="space-y-2 p-5">
+              <p class="admin-section-title">Articles</p>
+              <ul class="space-y-2">
+                <li v-for="item in selected.items" :key="item.id" class="flex justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-gray-800 dark:text-white">{{ item.product_name }} <span class="text-gray-500">× {{ item.quantity }}</span></p>
+                    <p v-if="item.selected_size || item.selected_color" class="text-xs text-gray-500">
+                      {{ [item.selected_size && `Taille ${item.selected_size}`, item.selected_color].filter(Boolean).join(' · ') }}
+                    </p>
+                  </div>
+                  <span class="shrink-0 text-gray-700 dark:text-gray-300">{{ money(item.line_total) }}</span>
+                </li>
+              </ul>
+              <div class="flex items-baseline justify-between border-t border-dashed border-gray-200 pt-2 dark:border-gray-700">
+                <span class="font-semibold text-gray-800 dark:text-white">Total</span>
+                <span class="text-right">
+                  <span class="text-base font-semibold text-gray-800 dark:text-white">{{ money(selected.total) }}</span>
+                  <span v-if="selected.is_delivery !== false && Number(selected.shipping) === 0" class="block text-xs text-gray-500">livraison réglée au livreur</span>
+                </span>
+              </div>
+            </section>
 
-            <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-              <li v-for="item in selected.items" :key="item.id" class="py-2 flex justify-between">
-                <span>{{ item.product_name }} × {{ item.quantity }}</span>
-                <span>{{ money(item.line_total) }}</span>
-              </li>
-            </ul>
+            <section class="space-y-3 p-5">
+              <div class="flex items-center justify-between">
+                <p class="admin-section-title">Paiement à la livraison</p>
+                <StatusBadge :label="selected.payment_status === 'paid' ? 'Payé' : 'Non payé'" :tone="selected.payment_status === 'paid' ? 'success' : 'warning'" />
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-if="selected.payment_status !== 'paid' && selected.status !== 'cancelled'"
+                  type="button"
+                  class="admin-btn-primary"
+                  @click="updatePayment('paid')"
+                >
+                  <AdminIcon name="check" :size="16" /> Marquer payé
+                </button>
+                <button v-else-if="selected.payment_status === 'paid'" type="button" class="admin-btn-secondary" @click="updatePayment('unpaid')">
+                  Annuler le paiement
+                </button>
+                <a v-if="selected.invoice_url" :href="selected.invoice_url" target="_blank" rel="noopener" class="admin-btn-secondary">
+                  <AdminIcon name="file" :size="16" />
+                  {{ selected.invoice_status === 'confirmed' ? 'Facture payée' : 'Facture provisoire' }}
+                </a>
+              </div>
+            </section>
 
-            <label class="block text-gray-500 mt-2">Changer statut</label>
-            <select
-              class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900"
-              :value="selected.status"
-              @change="updateStatus(($event.target as HTMLSelectElement).value)"
-            >
-              <option value="pending">En attente</option>
-              <option value="processing">Confirmée / en préparation</option>
-              <option value="shipped">Expédiée</option>
-              <option value="delivered">Livrée (marque payée)</option>
-              <option value="cancelled">Annulée</option>
-            </select>
+            <section class="space-y-4 p-5">
+              <FormField label="Statut de la commande" for="o-status" hint="Le client reçoit une notification à chaque changement. « Livrée » marque aussi la commande payée.">
+                <select
+                  id="o-status"
+                  class="admin-input"
+                  :value="selected.status"
+                  @change="updateStatus(($event.target as HTMLSelectElement).value)"
+                >
+                  <option value="pending">En attente</option>
+                  <option value="processing">Confirmée / en préparation</option>
+                  <option value="shipped">Expédiée</option>
+                  <option value="delivered">Livrée (marque payée)</option>
+                  <option value="cancelled">Annulée</option>
+                </select>
+              </FormField>
+            </section>
+
+            <section class="space-y-4 p-5">
+              <p class="admin-section-title">Suivi de livraison (facultatif)</p>
+              <FormField label="Numéro de suivi" for="o-tracking" hint="Visible par le client dans le suivi de sa commande.">
+                <input id="o-tracking" v-model="tracking" maxlength="120" class="admin-input" placeholder="Ex. KIN-TRACK-0042" />
+              </FormField>
+              <FormField label="Livreur / transporteur" for="o-carrier">
+                <input id="o-carrier" v-model="carrier" maxlength="80" class="admin-input" placeholder="Ex. KINOVA Express, Yango…" />
+              </FormField>
+              <button type="button" class="admin-btn-secondary w-full justify-center" @click="saveTracking">Enregistrer le suivi</button>
+            </section>
           </div>
         </div>
       </div>

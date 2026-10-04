@@ -7,10 +7,14 @@ import ActionButton from '@/components/admin/ActionButton.vue'
 import StatusBadge from '@/components/admin/StatusBadge.vue'
 import TableState from '@/components/admin/TableState.vue'
 import { useClientPager } from '@/composables/useClientPager'
+import FormField from '@/components/admin/FormField.vue'
+import ImageUpload from '@/components/admin/ImageUpload.vue'
+import ToggleSwitch from '@/components/admin/ToggleSwitch.vue'
 
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+const success = ref('')
 const categories = ref<any[]>([])
 const { page, lastPage, pageItems } = useClientPager(categories)
 const form = reactive({
@@ -61,11 +65,14 @@ async function save() {
       sort_order: Number(form.sort_order) || 0,
       is_active: form.is_active,
     }
-    if (form.id) {
+    const editing = !!form.id
+    if (editing) {
       await api(`/admin/categories/${form.id}`, { method: 'PUT', json: payload })
     } else {
       await api('/admin/categories', { method: 'POST', json: payload })
     }
+    success.value = editing ? 'Catégorie mise à jour.' : 'Catégorie créée.'
+    setTimeout(() => (success.value = ''), 3000)
     reset()
     await load()
   } catch (e: any) {
@@ -98,21 +105,35 @@ onMounted(load)
       </div>
 
       <div v-if="error" class="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-error-700">{{ error }}</div>
+      <div v-if="success" class="rounded-lg border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-400">
+        {{ success }}
+      </div>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <form class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] space-y-3 xl:col-span-1" @submit.prevent="save">
-          <h2 class="font-semibold text-gray-800 dark:text-white">{{ form.id ? 'Modifier' : 'Nouvelle catégorie' }}</h2>
-          <input v-model="form.name" required placeholder="Nom" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
-          <input v-model="form.image_url" type="url" placeholder="URL image" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
-          <input v-model.number="form.sort_order" type="number" min="0" placeholder="Ordre" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
-          <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <input v-model="form.is_active" type="checkbox" /> Active
-          </label>
-          <div class="flex gap-2">
-            <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white" :disabled="saving">
-              {{ saving ? '…' : 'Enregistrer' }}
+        <form class="admin-card self-start xl:col-span-1" @submit.prevent="save">
+          <div class="admin-card-header">
+            <div>
+              <h2 class="font-semibold text-gray-800 dark:text-white">{{ form.id ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Un rayon de la boutique (Beauté, Mode…).</p>
+            </div>
+          </div>
+          <div class="space-y-5 p-5">
+            <FormField label="Nom de la catégorie" for="c-name" required>
+              <input id="c-name" v-model="form.name" required maxlength="120" placeholder="Ex. Beauté" class="admin-input" />
+            </FormField>
+            <FormField label="Image" hint="Affichée dans « Nos Univers » sur l’accueil.">
+              <ImageUpload v-model="form.image_url" hint="carré conseillé" @error="error = $event" />
+            </FormField>
+            <FormField label="Ordre d’affichage" for="c-order" hint="Les plus petits numéros apparaissent en premier (0, 1, 2…).">
+              <input id="c-order" v-model.number="form.sort_order" type="number" min="0" placeholder="0" class="admin-input" />
+            </FormField>
+            <ToggleSwitch v-model="form.is_active" label="Catégorie visible" description="Masquée, elle n’apparaît plus dans la boutique." />
+          </div>
+          <div class="flex flex-wrap justify-end gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+            <button type="button" class="admin-btn-secondary" @click="reset">{{ form.id ? 'Annuler' : 'Vider' }}</button>
+            <button type="submit" class="admin-btn-primary" :disabled="saving">
+              {{ saving ? 'Enregistrement…' : form.id ? 'Enregistrer' : 'Créer la catégorie' }}
             </button>
-            <button type="button" class="rounded-lg border border-gray-200 px-4 py-2.5 text-sm" @click="reset">Reset</button>
           </div>
         </form>
 

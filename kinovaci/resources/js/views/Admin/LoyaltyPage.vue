@@ -6,6 +6,7 @@ import ListPager from '@/components/admin/ListPager.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
 import StatusBadge from '@/components/admin/StatusBadge.vue'
 import TableState from '@/components/admin/TableState.vue'
+import FormField from '@/components/admin/FormField.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -36,6 +37,10 @@ async function load(p = page.value) {
 
 async function adjust(userId: number, delta: number) {
   error.value = ''
+  if (!delta) {
+    error.value = 'Indiquez un nombre de points supérieur à 0.'
+    return
+  }
   try {
     await api(`/admin/loyalty/customers/${userId}/adjust`, {
       method: 'POST',
@@ -67,15 +72,26 @@ onMounted(() => load())
 
       <div v-if="error" class="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-error-700">{{ error }}</div>
 
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] flex flex-wrap gap-3 items-end">
-        <label class="text-sm">
-          <span class="text-gray-500 block mb-1">Points (±)</span>
-          <input v-model.number="points" type="number" class="rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900 w-32" />
-        </label>
-        <label class="text-sm flex-1 min-w-[200px]">
-          <span class="text-gray-500 block mb-1">Motif</span>
-          <input v-model="note" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
-        </label>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h2 class="font-semibold text-gray-800 dark:text-white">Ajuster des points</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Réglez le nombre et le motif ici, puis cliquez sur + (ajouter) ou − (retirer) sur la ligne du client.
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-3">
+          <FormField label="Nombre de points" for="l-points" hint="Le solde d’un client ne descend jamais sous 0.">
+            <div class="relative">
+              <input id="l-points" v-model.number="points" type="number" min="1" max="1000000" class="admin-input pr-12" />
+              <span class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-xs font-medium text-gray-400">pts</span>
+            </div>
+          </FormField>
+          <FormField label="Motif" for="l-note" hint="Visible dans l’historique de points du client." class="md:col-span-2">
+            <input id="l-note" v-model="note" maxlength="255" placeholder="Ex. Geste commercial, concours Instagram…" class="admin-input" />
+          </FormField>
+        </div>
       </div>
 
       <div class="admin-card">

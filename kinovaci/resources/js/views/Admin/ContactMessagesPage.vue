@@ -6,6 +6,7 @@ import ListPager from '@/components/admin/ListPager.vue'
 import ActionButton from '@/components/admin/ActionButton.vue'
 import StatusBadge from '@/components/admin/StatusBadge.vue'
 import TableState from '@/components/admin/TableState.vue'
+import FormField from '@/components/admin/FormField.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -147,19 +148,40 @@ onMounted(() => load())
           <ListPager :page="page" :last-page="lastPage" :total="total" @change="load" />
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] space-y-3 text-sm">
-          <h2 class="font-semibold text-gray-800 dark:text-white">Détail</h2>
-          <div v-if="!selected" class="text-gray-500">Sélectionnez un message</div>
-          <template v-else>
-            <p><span class="text-gray-500">De</span> {{ selected.name }} ({{ selected.email }})</p>
-            <p><span class="text-gray-500">Tél.</span> {{ selected.phone || '—' }}</p>
-            <p class="whitespace-pre-wrap">{{ selected.message }}</p>
-            <textarea v-model="reply" rows="4" placeholder="Réponse admin" class="w-full rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900" />
-            <div class="flex gap-2">
-              <button class="rounded-lg bg-brand-500 px-4 py-2 text-white" @click="saveReply">Enregistrer réponse</button>
-              <button class="rounded-lg border border-gray-200 px-4 py-2" @click="closeMsg">Clôturer</button>
+        <div class="admin-card self-start">
+          <div class="admin-card-header">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Détail du message</h2>
+            <StatusBadge v-if="selected" :label="statusMeta[selected.status]?.label ?? selected.status" :tone="statusMeta[selected.status]?.tone ?? 'gray'" />
+          </div>
+          <div v-if="!selected" class="px-5 py-14 text-center text-sm text-gray-500">Cliquez sur un message pour l’afficher ici.</div>
+          <div v-else class="space-y-4 p-5 text-sm">
+            <div class="space-y-1">
+              <p class="font-semibold text-gray-800 dark:text-white">{{ selected.subject }}</p>
+              <p class="text-xs text-gray-500">{{ formatDate(selected.created_at) }}</p>
             </div>
-          </template>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl bg-gray-50 p-3.5 dark:bg-white/5">
+              <dt class="text-gray-500">Nom</dt>
+              <dd class="text-gray-800 dark:text-white">{{ selected.name }}</dd>
+              <dt class="text-gray-500">E-mail</dt>
+              <dd class="truncate"><a :href="`mailto:${selected.email}`" class="text-brand-500 hover:underline dark:text-brand-300">{{ selected.email }}</a></dd>
+              <dt class="text-gray-500">Téléphone</dt>
+              <dd>
+                <a v-if="selected.phone" :href="`tel:${selected.phone}`" class="text-brand-500 hover:underline dark:text-brand-300">{{ selected.phone }}</a>
+                <span v-else class="text-gray-400">—</span>
+              </dd>
+            </dl>
+            <div>
+              <p class="admin-section-title mb-1.5">Message du client</p>
+              <p class="whitespace-pre-wrap rounded-xl border border-gray-100 p-3.5 text-gray-700 dark:border-gray-800 dark:text-gray-300">{{ selected.message }}</p>
+            </div>
+            <FormField label="Votre réponse" for="m-reply" hint="Enregistrée avec le message ; contactez aussi le client par téléphone ou e-mail si besoin.">
+              <textarea id="m-reply" v-model="reply" rows="5" maxlength="5000" placeholder="Bonjour, merci pour votre message…" class="admin-input" />
+            </FormField>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="admin-btn-primary" :disabled="!reply.trim()" @click="saveReply">Enregistrer la réponse</button>
+              <button v-if="selected.status !== 'closed'" type="button" class="admin-btn-secondary" @click="closeMsg">Clôturer</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
